@@ -1,4 +1,5 @@
 import { expect, test } from 'vitest'
+import type { TraceEvent } from '../trace/types'
 import { BASE_MS, delayFor } from './pacing'
 
 test('layer events are much quicker than sample events', () => {
@@ -8,7 +9,7 @@ test('layer events are much quicker than sample events', () => {
 })
 
 test('speed divides delay', () => {
-  const e = { type: 'tokenize', tokens: [] } as const
+  const e: TraceEvent = { type: 'tokenize', tokens: [] }
   expect(delayFor(e, 2)).toBeCloseTo(delayFor(e, 1) / 2)
 })
 
