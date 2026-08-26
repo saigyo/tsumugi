@@ -1,0 +1,45 @@
+import { cleanup, render, screen } from '@testing-library/react'
+import { afterEach, expect, test } from 'vitest'
+import { makeFixtureTrace } from '../test/fixtures'
+import { DetailPanel } from './DetailPanel'
+
+const trace = makeFixtureTrace()  // cursor 1=tokenize, 2=embed, 3..5=layers
+
+afterEach(() => cleanup())
+
+test('tokenizer detail shows token chips with ids', () => {
+  render(<DetailPanel events={trace} cursor={1} mode="sim" />)
+  expect(screen.getByTestId('detail-tokenizer')).toHaveTextContent('The')
+  expect(screen.getByTestId('detail-tokenizer')).toHaveTextContent('10')  // token id
+})
+
+test('embeddings detail shows dims caption and heat cells', () => {
+  render(<DetailPanel events={trace} cursor={2} mode="sim" />)
+  expect(screen.getByTestId('detail-embeddings')).toHaveTextContent('576')
+})
+
+test('layers detail lights the active layer; sim shows norms', () => {
+  render(<DetailPanel events={trace} cursor={4} mode="sim" />)  // layer index 1 of 3
+  const blocks = screen.getAllByTestId('layer-block')
+  expect(blocks).toHaveLength(3)
+  expect(blocks[1].dataset.lit).toBe('true')
+  expect(blocks[2].dataset.lit).toBe('false')
+})
+
+test('real mode labels layers as schematic', () => {
+  render(<DetailPanel events={trace} cursor={4} mode="real" />)
+  expect(screen.getByTestId('detail-layers')).toHaveTextContent(/schematic/i)
+})
+
+test('no relevant event renders empty state', () => {
+  render(<DetailPanel events={trace} cursor={-1} mode="sim" />)
+  expect(screen.getByTestId('detail-empty')).toBeInTheDocument()
+})
+
+test('truncated tokenize event shows a notice', () => {
+  const t = makeFixtureTrace()
+  const tok = t[1]
+  if (tok.type === 'tokenize') tok.truncated = true
+  render(<DetailPanel events={t} cursor={1} mode="sim" />)
+  expect(screen.getByTestId('truncation-notice')).toBeInTheDocument()
+})

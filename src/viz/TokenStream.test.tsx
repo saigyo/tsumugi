@@ -1,9 +1,11 @@
-import { render, screen } from '@testing-library/react'
-import { expect, test } from 'vitest'
+import { cleanup, render, screen } from '@testing-library/react'
+import { afterEach, expect, test } from 'vitest'
 import { makeFixtureTrace } from '../test/fixtures'
 import { TokenStream } from './TokenStream'
 
 const trace = makeFixtureTrace()
+
+afterEach(() => cleanup())
 
 test('shows prompt tokens once tokenize is reached', () => {
   render(<TokenStream events={trace} cursor={1} />)
