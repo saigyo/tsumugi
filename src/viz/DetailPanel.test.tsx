@@ -43,3 +43,20 @@ test('truncated tokenize event shows a notice', () => {
   render(<DetailPanel events={t} cursor={1} mode="sim" />)
   expect(screen.getByTestId('truncation-notice')).toBeInTheDocument()
 })
+
+// makeFixtureTrace cycle 0: index 6=logits, 7=softmax, 8=sample, 9=append
+test('logits detail shows one bar per candidate', () => {
+  render(<DetailPanel events={trace} cursor={6} mode="sim" />)
+  expect(screen.getAllByTestId('logit-bar')).toHaveLength(3)
+  expect(screen.getByTestId('detail-logits')).toHaveTextContent('sat')
+})
+
+test('softmax cursor switches bars to probabilities', () => {
+  render(<DetailPanel events={trace} cursor={7} mode="sim" />)
+  expect(screen.getByTestId('detail-logits')).toHaveTextContent('70')  // 0.7 → 70%
+})
+
+test('sampler detail marks the chosen token', () => {
+  render(<DetailPanel events={trace} cursor={8} mode="sim" />)
+  expect(screen.getByTestId('chosen-marker')).toHaveTextContent('sat')
+})

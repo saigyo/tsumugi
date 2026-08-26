@@ -3,6 +3,8 @@ import { activeStage, eventAt, latestOfType } from './selectors'
 import { EmbeddingsDetail } from './details/EmbeddingsDetail'
 import { LayersDetail } from './details/LayersDetail'
 import { TokenizerDetail } from './details/TokenizerDetail'
+import { LogitsDetail } from './details/LogitsDetail'
+import { SamplerDetail } from './details/SamplerDetail'
 
 export function DetailPanel({ events, cursor, mode }: { events: TraceEvent[]; cursor: number; mode: Mode }) {
   const stage = activeStage(eventAt(events, cursor))
@@ -21,7 +23,17 @@ export function DetailPanel({ events, cursor, mode }: { events: TraceEvent[]; cu
       const e = latestOfType(events, cursor, 'layer')
       return e ? <LayersDetail event={e} mode={mode} /> : empty
     }
+    case 'logits': {
+      const logits = latestOfType(events, cursor, 'logits')
+      const sm = latestOfType(events, cursor, 'softmax')
+      return logits ? <LogitsDetail logits={logits} softmax={sm} /> : empty
+    }
+    case 'sampler': {
+      const sm = latestOfType(events, cursor, 'softmax')
+      const sample = latestOfType(events, cursor, 'sample')
+      return sm ? <SamplerDetail softmax={sm} sample={sample} /> : empty
+    }
     default:
-      return empty  // 'logits' and 'sampler' branches added in Task 14
+      return empty
   }
 }
