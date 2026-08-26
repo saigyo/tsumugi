@@ -75,38 +75,46 @@ async function run(runId: number, prompt: string, params: GenParams) {
   let pastKeyValues: any = null
   let nextInputIds = promptIds
 
-  for (let cycle = 0; cycle < params.maxNewTokens; cycle++) {
-    if (aborted) { emit({ type: 'run-end', reason: 'aborted' }); break }
+  try {
+    for (let cycle = 0; cycle < params.maxNewTokens; cycle++) {
+      if (aborted) { emit({ type: 'run-end', reason: 'aborted' }); break }
 
-    // schematic embed preview (real hidden states not exposed; spec-accepted compromise)
-    emit({ type: 'embed', cycle, seqLen: allIds.length, dims,
-      preview: allIds.slice(-4).map((id) => Array.from({ length: 16 }, (_, d) => Math.sin(id * 0.7 + d))) })
-    for (let l = 0; l < numLayers; l++) emit({ type: 'layer', cycle, index: l, total: numLayers })
+      // schematic embed preview (real hidden states not exposed; spec-accepted compromise)
+      emit({ type: 'embed', cycle, seqLen: allIds.length, dims,
+        preview: allIds.slice(-4).map((id) => Array.from({ length: 16 }, (_, d) => Math.sin(id * 0.7 + d))) })
+      for (let l = 0; l < numLayers; l++) emit({ type: 'layer', cycle, index: l, total: numLayers })
 
-    const input_ids = new Tensor('int64', BigInt64Array.from(nextInputIds.map(BigInt)), [1, nextInputIds.length])
-    const attention_mask = new Tensor('int64', BigInt64Array.from(allIds.map(() => 1n)), [1, allIds.length])
-    const out = await model({ input_ids, attention_mask, past_key_values: pastKeyValues })
-    pastKeyValues = updateCache(DynamicCache, out, pastKeyValues)
+      const input_ids = new Tensor('int64', BigInt64Array.from(nextInputIds.map(BigInt)), [1, nextInputIds.length])
+      const attention_mask = new Tensor('int64', BigInt64Array.from(allIds.map(() => 1n)), [1, allIds.length])
+      const out = await model({ input_ids, attention_mask, past_key_values: pastKeyValues })
+      pastKeyValues = updateCache(DynamicCache, out, pastKeyValues)
 
-    const [, seq, vocab] = out.logits.dims as [number, number, number]
-    const lastLogits: Float32Array = out.logits.data.slice((seq - 1) * vocab, seq * vocab)
-    const top = topK(lastLogits, params.topK).map((c) => ({ ...tokenInfo(c.id), logit: Math.round(c.logit * 100) / 100 }))
-    emit({ type: 'logits', cycle, topK: top })
+      const [, seq, vocab] = out.logits.dims as [number, number, number]
+      const lastLogits: Float32Array = out.logits.data.slice((seq - 1) * vocab, seq * vocab)
+      const top = topK(lastLogits, params.topK).map((c) => ({ ...tokenInfo(c.id), logit: Math.round(c.logit * 100) / 100 }))
+      emit({ type: 'logits', cycle, topK: top })
 
-    const probs = softmax(top.map((c) => c.logit), params.temperature)
-    emit({ type: 'softmax', cycle, temperature: params.temperature,
-      topK: top.map((c, i) => ({ id: c.id, text: c.text, prob: probs[i] })) })
+      const probs = softmax(top.map((c) => c.logit), params.temperature)
+      emit({ type: 'softmax', cycle, temperature: params.temperature,
+        topK: top.map((c, i) => ({ id: c.id, text: c.text, prob: probs[i] })) })
 
-    const method = params.temperature === 0 ? 'greedy' : 'top-k'
-    const idx = method === 'greedy' ? 0 : sampleIndex(probs, Math.random)
-    const chosen = { id: top[idx].id, text: top[idx].text }
-    emit({ type: 'sample', cycle, chosen, method })
-    emit({ type: 'append', cycle, token: chosen })
+      const method = params.temperature === 0 ? 'greedy' : 'top-k'
+      const idx = method === 'greedy' ? 0 : sampleIndex(probs, Math.random)
+      const chosen = { id: top[idx].id, text: top[idx].text }
+      emit({ type: 'sample', cycle, chosen, method })
+      emit({ type: 'append', cycle, token: chosen })
 
-    allIds.push(chosen.id)
-    nextInputIds = [chosen.id]
-    if (eosIds.includes(chosen.id)) { emit({ type: 'run-end', reason: 'eos' }); break }
-    if (cycle === params.maxNewTokens - 1) emit({ type: 'run-end', reason: 'max-tokens' })
+      allIds.push(chosen.id)
+      nextInputIds = [chosen.id]
+      if (eosIds.includes(chosen.id)) { emit({ type: 'run-end', reason: 'eos' }); break }
+      if (cycle === params.maxNewTokens - 1) emit({ type: 'run-end', reason: 'max-tokens' })
+    }
+  } finally {
+    // Every exit path (eos/max-tokens/aborted break, or an exception) must release the final
+    // cycle's cache tensors — DynamicCache.update() only disposes *replaced* GPU-buffer tensors,
+    // so the last cycle's tensors are never freed unless we dispose the cache here (mirrors the
+    // library's own generate(), which does `await past_key_values.dispose()` after its loop).
+    await (pastKeyValues as any)?.dispose?.()
   }
   post({ type: 'done', runId })
 }

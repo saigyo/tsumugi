@@ -25,6 +25,7 @@ export default function App() {
   const [modelError, setModelError] = useState<string | null>(null)
   const realEngineRef = useRef<TransformersEngine | null>(null)
   const [device, setDevice] = useState<'webgpu' | 'wasm' | null>(null)
+  const [realReady, setRealReady] = useState(false)
 
   useEffect(() => {
     let live = true
@@ -41,17 +42,22 @@ export default function App() {
     setMode(m)
     setModelError(null)
     if (m === 'real' && !realEngineRef.current) {
+      setRealReady(false)
       try {
         const engine = new TransformersEngine()
         await engine.prepare((p) => setProgress(p))
         realEngineRef.current = engine
         setDevice(engine.device)
+        setRealReady(true)
       } catch (err) {
         setModelError(err instanceof Error ? err.message : String(err))
         setMode('sim')
+        setRealReady(false)
       } finally {
         setProgress(null)
       }
+    } else if (m === 'real' && realEngineRef.current) {
+      setRealReady(true)
     }
   }
 
@@ -80,7 +86,8 @@ export default function App() {
       <h1>LLM Pipeline Visualizer</h1>
       <ModelStatus progress={progress} device={mode === 'real' ? device : null} error={modelError}
         onFallback={() => { setModelError(null); setMode('sim') }} />
-      <PromptBar mode={mode} onModeChange={handleModeChange} onGenerate={handleGenerate} busy={busy} />
+      <PromptBar mode={mode} onModeChange={handleModeChange} onGenerate={handleGenerate}
+        busy={busy || (mode === 'real' && !realReady)} />
       <TokenStream events={events} cursor={cursor} />
       <PipelineBand events={events} cursor={cursor} />
       <DetailPanel events={events} cursor={cursor} mode={mode} />
