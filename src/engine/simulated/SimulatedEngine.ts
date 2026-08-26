@@ -7,10 +7,12 @@ import { MODEL_ID } from '../tokenizer'
 import { candidateWords } from './candidates'
 
 export class SimulatedEngine implements PipelineEngine {
+  private tokenizer: Tokenizer
   private layers: number
   private dims: number
 
-  constructor(private tokenizer: Tokenizer, opts?: { layers?: number; dims?: number }) {
+  constructor(tokenizer: Tokenizer, opts?: { layers?: number; dims?: number }) {
+    this.tokenizer = tokenizer
     this.layers = opts?.layers ?? 12
     this.dims = opts?.dims ?? 576
   }
