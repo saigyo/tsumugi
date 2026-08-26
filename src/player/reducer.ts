@@ -20,7 +20,7 @@ export const initialPlayerState: PlayerState = {
   cursor: -1, status: 'idle', speed: 1, followLive: true, traceLength: 0,
 }
 
-const clamp = (i: number, len: number) => Math.max(0, Math.min(i, len - 1))
+const clamp = (i: number, len: number) => (len === 0 ? -1 : Math.max(0, Math.min(i, len - 1)))
 
 export function playerReducer(s: PlayerState, a: PlayerAction): PlayerState {
   switch (a.type) {

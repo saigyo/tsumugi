@@ -49,3 +49,9 @@ test('reset keeps speed, starts playing from -1', () => {
   const fast = r(grown, { type: 'setSpeed', speed: 4 })
   expect(r(fast, { type: 'reset' })).toEqual({ cursor: -1, status: 'playing', speed: 4, followLive: true, traceLength: 0 })
 })
+
+test('empty trace: stepping and seeking keep cursor at -1', () => {
+  expect(r(init, { type: 'stepForward' }).cursor).toBe(-1)
+  expect(r(init, { type: 'stepBack' }).cursor).toBe(-1)
+  expect(r(init, { type: 'seek', index: 3 }).cursor).toBe(-1)
+})
