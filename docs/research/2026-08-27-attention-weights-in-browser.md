@@ -106,3 +106,32 @@ Net: **none of the alternative runtimes make this easier than the ONNX/transform
 - [mlc-ai/web-llm GitHub repo](https://github.com/mlc-ai/web-llm)
 - ONNX Runtime docs (general `session.run(outputNames, inputs)` API pattern, cross-language) — https://onnxruntime.ai/docs/api/python/api_summary.html and related.
 - [Optimum docs: Configuration classes for ONNX exports](https://huggingface.co/docs/optimum/v1.8.3/exporters/onnx/package_reference/configuration) — `custom_onnx_configs` mechanism.
+
+---
+
+## Spike result (2026-08-27, this repo)
+
+Empirically confirmed the TL;DR's core claim without the 623 MB download (HF was
+unreachable from the test network): a synthetic ONNX graph shaped like a gpt2
+causal LM but declaring an extra `attentions.0` output ([batch, heads, seq, seq],
+row-softmaxed) was loaded through `AutoModelForCausalLM.from_pretrained` and
+called with the exact input shape `worker.ts` uses
+(`model({ input_ids, attention_mask, past_key_values })`), on unmodified
+transformers.js 4.2.0 (Node, cpu):
+
+```
+output keys: [ 'logits', 'attentions.0' ]
+attentions.0 dims: [ 1, 1, 3, 3 ] type: float32
+rows sum to 1: true
+```
+
+Conclusions: (1) extra graph outputs pass through the full
+`AutoModelForCausalLM` → `decoder_forward` → `sessionRun` path untouched — no
+library changes needed on the consumption side; (2) a cache-less graph (no
+`past_key_values` inputs, like the damoncrockett export) also loads and runs
+fine through this path; (3) `worker.ts`'s `updateCache()` ignores non-`present.*`
+keys by construction, so an `attentions.*` output coexists with the manual loop.
+The remaining risks are unchanged: export-side work (custom OnnxConfig),
+KV-cache vs full-matrix reconciliation, WebGPU readback cost, and quantization
+being unproven with extra outputs. Spike artifacts were throwaway (session
+scratchpad, not committed).
