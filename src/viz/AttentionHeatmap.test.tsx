@@ -55,3 +55,15 @@ test('hovering a cell highlights both labels and fills the readout', () => {
   expect(screen.getByTestId('attn-readout')).not.toHaveTextContent('%')
   expect(rows[1].dataset.hl).toBe('false')
 })
+
+test('scored heads show the score and the measured note', () => {
+  const scored = attn.heads.map((h) => ({ ...h, score: 0.87 }))
+  render(<AttentionHeatmap heads={scored} tokens={tokens} />)
+  expect(screen.getAllByTestId('head-chip')[0]).toHaveTextContent('0.87')
+  expect(screen.getByTestId('attn-note')).toHaveTextContent(/measured on this prompt/i)
+})
+
+test('unscored heads keep the illustrative note', () => {
+  render(<AttentionHeatmap heads={attn.heads} tokens={tokens} />)
+  expect(screen.getByTestId('attn-note')).toHaveTextContent(/illustrative/i)
+})

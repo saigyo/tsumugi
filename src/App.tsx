@@ -27,6 +27,7 @@ export default function App() {
   const preparingRef = useRef<{ engine: TransformersEngine; promise: Promise<void> } | null>(null)
   const [device, setDevice] = useState<'webgpu' | 'wasm' | null>(null)
   const [realReady, setRealReady] = useState(false)
+  const [attn, setAttn] = useState(false)
 
   useEffect(() => {
     let live = true
@@ -54,6 +55,7 @@ export default function App() {
         await prepping.promise
         realEngineRef.current = prepping.engine
         setDevice(prepping.engine.device)
+        setAttn(prepping.engine.attentions ?? false)
         setRealReady(true)
       } catch (err) {
         setModelError(err instanceof Error ? err.message : String(err))
@@ -91,6 +93,7 @@ export default function App() {
       <PromptBar mode={mode} onModeChange={handleModeChange} onGenerate={handleGenerate}
         busy={mode === 'real' && !realReady} examples={CURATED_EXAMPLES}
         status={<ModelStatus progress={progress} device={mode === 'real' ? device : null} error={modelError}
+          attentions={mode === 'real' && attn}
           onFallback={() => { setModelError(null); setMode('sim') }} />} />
       <TokenStream events={events} cursor={cursor} />
       <PipelineBand events={events} cursor={cursor} onStageClick={(index) => {

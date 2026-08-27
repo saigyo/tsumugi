@@ -76,6 +76,11 @@ test('attention cursor maps to layers stage and shows the heatmap', () => {
   expect(screen.getByTestId('attention-heatmap')).toBeInTheDocument()
 })
 
+test('real mode drops the schematic tag when attention data exists', () => {
+  render(<DetailPanel events={trace} cursor={6} mode="real" />)  // cursor on attention event
+  expect(screen.getByTestId('detail-layers')).not.toHaveTextContent(/schematic/i)
+})
+
 test('mid-layer cursor before the cycle attention has no heatmap', () => {
   render(<DetailPanel events={trace} cursor={4} mode="sim" />)
   expect(screen.queryByTestId('attention-heatmap')).not.toBeInTheDocument()

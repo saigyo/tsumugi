@@ -28,6 +28,7 @@ export function AttentionHeatmap({ heads, tokens }: { heads: AttentionHead[]; to
           <button key={`${h.layer}-${h.head}`} data-testid="head-chip" data-active={String(i === selected)}
             className="head-chip" onClick={() => { setSelected(i); setHovered(null) }}>
             {h.label} <span className="head-loc">L{h.layer}·H{h.head}</span>
+            {h.score != null && <span className="head-score">· {h.score}</span>}
           </button>
         ))}
       </div>
@@ -72,7 +73,11 @@ export function AttentionHeatmap({ heads, tokens }: { heads: AttentionHead[]; to
           : ' '}
       </p>
       <p data-testid="attn-hint" className="attn-hint">{HINTS[head.label]}</p>
-      <p className="attn-note">Illustrative pattern (simulated) — real attention weights are not exposed by the browser model.</p>
+      <p data-testid="attn-note" className="attn-note">
+        {head.score != null
+          ? 'Measured on this prompt — head roles detected from the attention weights, not labeled by the model.'
+          : 'Illustrative pattern (simulated) — real attention weights are not exposed by the browser model.'}
+      </p>
     </div>
   )
 }

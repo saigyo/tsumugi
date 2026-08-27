@@ -1,6 +1,8 @@
-import { fireEvent, render, screen } from '@testing-library/react'
-import { expect, test, vi } from 'vitest'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { afterEach, expect, test, vi } from 'vitest'
 import { ModelStatus } from './ModelStatus'
+
+afterEach(() => cleanup())
 
 test('shows download progress', () => {
   render(<ModelStatus progress={{ file: 'model.onnx', loaded: 50, total: 100 }} device={null} error={null} onFallback={() => {}} />)
@@ -23,4 +25,9 @@ test('error offers fallback to simulated', () => {
 test('renders nothing when idle', () => {
   const { container } = render(<ModelStatus progress={null} device={null} error={null} onFallback={() => {}} />)
   expect(container).toBeEmptyDOMElement()
+})
+
+test('device chip marks attention capability', () => {
+  render(<ModelStatus progress={null} device="webgpu" error={null} attentions onFallback={() => {}} />)
+  expect(screen.getByTestId('device-chip')).toHaveTextContent('webgpu · attn')
 })

@@ -4,10 +4,11 @@ interface Props {
   progress: ProgressInfo | null
   device: 'webgpu' | 'wasm' | null
   error: string | null
+  attentions?: boolean
   onFallback(): void
 }
 
-export function ModelStatus({ progress, device, error, onFallback }: Props) {
+export function ModelStatus({ progress, device, error, attentions, onFallback }: Props) {
   if (error) return (
     <div data-testid="model-error" className="model-error">
       Real model unavailable: {error}
@@ -19,6 +20,6 @@ export function ModelStatus({ progress, device, error, onFallback }: Props) {
       Downloading {progress.file}: {progress.total > 0 ? Math.round((progress.loaded / progress.total) * 100) : 0}%
     </div>
   )
-  if (device) return <span data-testid="device-chip" className="device-chip">{device}</span>
+  if (device) return <span data-testid="device-chip" className="device-chip">{device}{attentions ? ' · attn' : ''}</span>
   return null
 }

@@ -11,7 +11,7 @@ export function LayersDetail({ event, mode, attention, tokens, streamShape }: {
 }) {
   return (
     <div data-testid="detail-layers" className="detail">
-      <h3>Transformer layers {mode === 'real' && <em>(schematic — real internals not exposed)</em>}</h3>
+      <h3>Transformer layers {mode === 'real' && !attention && <em>(schematic — real internals not exposed)</em>}</h3>
       {streamShape && (
         <ResidualStreamDiagram seqLen={streamShape.seqLen} dims={streamShape.dims} layers={event.total} />
       )}
