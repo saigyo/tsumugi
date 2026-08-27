@@ -8,6 +8,7 @@ export interface AttentionHead {
   layer: number
   head: number
   label: AttentionLabel
+  score?: number
   // ragged causal matrix: row i holds weights for positions 0..i and sums to 1
   matrix: number[][]
 }
