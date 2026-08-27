@@ -93,3 +93,7 @@ The original design spec and implementation plan live under
 
 - [`specs/2026-08-26-llm-pipeline-visualizer-design.md`](docs/superpowers/specs/2026-08-26-llm-pipeline-visualizer-design.md)
 - [`plans/2026-08-26-llm-pipeline-visualizer.md`](docs/superpowers/plans/2026-08-26-llm-pipeline-visualizer.md)
+
+## License
+
+[MIT](LICENSE)
