@@ -81,9 +81,14 @@ input[type="text"], input[type="number"], input:not([type]) {
 }
 input[type="number"] { width: 4rem; }
 
-.prompt-bar { display: flex; gap: .75rem; align-items: center; flex-wrap: wrap; }
-.prompt-bar input[data-testid="prompt-input"] { flex: 1; min-width: 16rem; padding: .45rem .6rem; }
-.prompt-bar label { font-size: .88rem; color: var(--ink-soft); }
+.prompt-bar { display: flex; flex-direction: column; gap: .5rem; }
+.prompt-row { display: flex; gap: .6rem; }
+.prompt-row input[data-testid="prompt-input"] { flex: 1; min-width: 12rem; padding: .45rem .6rem; }
+.config-row { display: flex; gap: .8rem; align-items: center; flex-wrap: wrap; }
+.config-row label { font-size: .88rem; color: var(--ink-soft); white-space: nowrap; }
+.config-divider { width: 1px; height: 1.4rem; background: var(--line); }
+.mode-note { color: var(--ink-faint); font-size: .78rem; }
+.model-status-slot { display: inline-flex; align-items: center; gap: .4rem; min-width: 0; }
 
 .token-stream { min-height: 2.4rem; padding: .6rem 0; }
 .token {
@@ -105,7 +110,7 @@ input[type="number"] { width: 4rem; }
 .popover-row[data-chosen="true"] .popover-bar { background: var(--shu); }
 .popover-pct { color: var(--ink-soft); font-family: var(--mono); font-size: .72rem; }
 
-.pipeline-band { display: flex; align-items: center; gap: .25rem; position: relative; padding-bottom: 1.5rem; }
+.pipeline-band { display: flex; align-items: center; gap: .25rem; position: relative; padding-bottom: 1.5rem; overflow-x: auto; }
 .stage-wrap { display: flex; align-items: center; gap: .25rem; }
 .stage-card {
   border: 1.5px solid var(--line-strong); border-radius: 8px; padding: .6rem .9rem;
@@ -127,7 +132,7 @@ input[type="number"] { width: 4rem; }
 }
 .example-chip:hover:not(:disabled) { background: var(--ai-wash-strong); }
 
-.attention-heatmap { margin-top: 1rem; }
+.attention-heatmap { margin-top: 1rem; overflow-x: auto; }
 .head-chip-row { display: flex; gap: .4rem; flex-wrap: wrap; margin-bottom: .5rem; }
 .head-chip { border-radius: 999px; padding: .15rem .7rem; font-size: .78rem; }
 .head-chip[data-active="true"] { border-color: var(--ai); background: var(--ai-wash-strong); color: var(--ai-deep); }
@@ -138,10 +143,10 @@ input[type="number"] { width: 4rem; }
 .attn-hint { font-size: .82rem; color: var(--ink-soft); margin: .5rem 0 0; }
 .attn-note { font-size: .72rem; color: var(--ink-faint); margin: .2rem 0 0; }
 
-.layer-stack { display: flex; gap: .3rem; }
+.layer-stack { display: flex; flex-wrap: wrap; gap: .3rem; }
 .layer-block {
-  border: 1px solid var(--line-strong); border-radius: 4px; padding: .3rem .5rem;
-  background: var(--card); transition: background .2s; font-family: var(--mono); font-size: .8rem;
+  border: 1px solid var(--line-strong); border-radius: 4px; padding: .2rem .4rem;
+  background: var(--card); transition: background .2s; font-family: var(--mono); font-size: .78rem;
 }
 .layer-block[data-lit="true"] { background: var(--ai-wash-strong); border-color: var(--ai); color: var(--ai-deep); }
 .layer-norm { font-size: .72rem; color: var(--ink-soft); }
@@ -160,8 +165,8 @@ input[type="number"] { width: 4rem; }
 .slice-chosen { fill: var(--shu); }
 .chosen-marker { color: var(--shu); font-weight: 600; }
 
-.controls { display: flex; gap: .5rem; align-items: center; padding: .6rem 0; }
-.controls input[type="range"] { flex: 1; accent-color: var(--ai); }
+.controls { display: flex; gap: .5rem; align-items: center; padding: .6rem 0; flex-wrap: wrap; }
+.controls input[type="range"] { flex: 1; min-width: 10rem; accent-color: var(--ai); }
 .controls select { font: inherit; background: var(--card); border: 1px solid var(--line-strong); border-radius: 6px; padding: .25rem; }
 
 .notice, .model-error { color: var(--shu); }

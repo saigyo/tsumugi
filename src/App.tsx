@@ -88,10 +88,10 @@ export default function App() {
   return (
     <div className="app">
       <h1><span className="app-mark">紬</span> Tsumugi <span className="app-subtitle">LLM Pipeline Visualizer</span></h1>
-      <ModelStatus progress={progress} device={mode === 'real' ? device : null} error={modelError}
-        onFallback={() => { setModelError(null); setMode('sim') }} />
       <PromptBar mode={mode} onModeChange={handleModeChange} onGenerate={handleGenerate}
-        busy={mode === 'real' && !realReady} examples={CURATED_EXAMPLES} />
+        busy={mode === 'real' && !realReady} examples={CURATED_EXAMPLES}
+        status={<ModelStatus progress={progress} device={mode === 'real' ? device : null} error={modelError}
+          onFallback={() => { setModelError(null); setMode('sim') }} />} />
       <TokenStream events={events} cursor={cursor} />
       <PipelineBand events={events} cursor={cursor} onStageClick={(index) => {
         usePlayerStore.getState().dispatch({ type: 'seek', index })

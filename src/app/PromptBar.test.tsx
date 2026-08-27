@@ -50,6 +50,13 @@ test('example chips fill the prompt and start generation', () => {
   expect(onGenerate).toHaveBeenCalledWith('The cat sat', { temperature: 0.8, topK: 10, maxNewTokens: 20 })
 })
 
+test('status slot renders inside the config row', () => {
+  render(<PromptBar mode="real" onModeChange={noop} onGenerate={noop} busy={false}
+    status={<span data-testid="fake-status">webgpu</span>} />)
+  const slot = screen.getByTestId('model-status-slot')
+  expect(slot).toContainElement(screen.getByTestId('fake-status'))
+})
+
 test('example chips are hidden while busy', () => {
   const examples = [{ id: 'x', label: 'Example X', prompt: 'p', hint: 'h' }]
   render(<PromptBar mode="real" onModeChange={noop} onGenerate={noop} busy={true} examples={examples} />)
