@@ -8,6 +8,12 @@ export interface PromptBarProps {
   busy: boolean
 }
 
+const clampOrKeep = (raw: string, min: number, max: number, prev: number): number => {
+  const n = Number(raw)
+  if (raw.trim() === '' || Number.isNaN(n)) return prev
+  return Math.min(max, Math.max(min, n))
+}
+
 export function PromptBar({ mode, onModeChange, onGenerate, busy }: PromptBarProps) {
   const [prompt, setPrompt] = useState('')
   const [temperature, setTemperature] = useState(0.8)
@@ -24,11 +30,11 @@ export function PromptBar({ mode, onModeChange, onGenerate, busy }: PromptBarPro
         Real model (~120 MB download on first use)
       </label>
       <label>T <input data-testid="temp-input" type="number" step="0.1" min="0" max="2" value={temperature}
-        onChange={(e) => setTemperature(Number(e.target.value))} /></label>
+        onChange={(e) => setTemperature(clampOrKeep(e.target.value, 0, 2, temperature))} /></label>
       <label>top-k <input data-testid="topk-input" type="number" min="1" max="10" value={topK}
-        onChange={(e) => setTopK(Number(e.target.value))} /></label>
+        onChange={(e) => setTopK(clampOrKeep(e.target.value, 1, 10, topK))} /></label>
       <label>max <input data-testid="maxtok-input" type="number" min="1" max="100" value={maxNewTokens}
-        onChange={(e) => setMaxNewTokens(Number(e.target.value))} /></label>
+        onChange={(e) => setMaxNewTokens(clampOrKeep(e.target.value, 1, 100, maxNewTokens))} /></label>
       <button data-testid="btn-generate" disabled={prompt.trim() === '' || busy}
         onClick={() => onGenerate(prompt, { temperature, topK, maxNewTokens })}>
         Generate
