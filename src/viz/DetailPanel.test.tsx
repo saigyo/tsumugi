@@ -88,6 +88,7 @@ test('layers detail shows the residual-stream diagram with live shapes', () => {
   expect(diagram).toHaveTextContent('× 3 layers')
   expect(diagram).toHaveTextContent(/attention/i)
   expect(diagram).toHaveTextContent(/MLP/i)
+  expect(diagram).toHaveTextContent(/multi-layer perceptron/i)  // tooltip on the MLP box
 })
 
 test('logits detail frames scores as a dot-product readout', () => {

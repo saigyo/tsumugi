@@ -17,7 +17,9 @@ export function ResidualStreamDiagram({ seqLen, dims, layers }: {
         <text x="470" y="106" className="rs-shape">x′ [{seqLen}×{dims}]</text>
         {/* + attention branch */}
         <path d="M120 88 v-30 h30" fill="none" className="rs-branch" />
-        <rect x="150" y="42" width="112" height="32" rx="6" className="rs-box" />
+        <rect x="150" y="42" width="112" height="32" rx="6" className="rs-box">
+          <title>Self-attention: each position takes a weighted average of the other positions’ (projected) vectors — the weights are the rows of the attention heatmap below.</title>
+        </rect>
         <text x="206" y="62" textAnchor="middle" className="rs-box-label">attention</text>
         <path d="M262 58 h30 v30" fill="none" className="rs-branch" />
         <circle cx="292" cy="88" r="7" className="rs-adder" />
@@ -25,7 +27,9 @@ export function ResidualStreamDiagram({ seqLen, dims, layers }: {
         <text x="206" y="30" textAnchor="middle" className="rs-note">mixes across tokens — heatmap rows are the weights</text>
         {/* + MLP branch */}
         <path d="M330 88 v-30 h26" fill="none" className="rs-branch" />
-        <rect x="356" y="42" width="88" height="32" rx="6" className="rs-box" />
+        <rect x="356" y="42" width="88" height="32" rx="6" className="rs-box">
+          <title>MLP = multi-layer perceptron (also called the feed-forward network): up-project each token’s vector to a wider space, apply a nonlinearity, project back down — one position at a time, no mixing between tokens.</title>
+        </rect>
         <text x="400" y="62" textAnchor="middle" className="rs-box-label">MLP</text>
         <path d="M444 58 h26 v30" fill="none" className="rs-branch" />
         <circle cx="470" cy="88" r="7" className="rs-adder" />
