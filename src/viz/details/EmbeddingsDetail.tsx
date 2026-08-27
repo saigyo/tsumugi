@@ -9,7 +9,9 @@ export function EmbeddingsDetail({ event }: { event: Extract<TraceEvent, { type:
         {event.preview.map((row, r) =>
           row.map((v, c) => (
             <rect key={`${r}-${c}`} x={c * 14} y={r * 14} width={12} height={12}
-              fill={`hsl(${v >= 0 ? 210 : 10} 70% ${50 + Math.abs(v) * 30}%)`} />
+              fill={v >= 0
+                ? `hsl(211 45% ${Math.round(88 - Math.abs(v) * 50)}%)`
+                : `hsl(13 55% ${Math.round(90 - Math.abs(v) * 40)}%)`} />
           )),
         )}
       </svg>

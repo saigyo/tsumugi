@@ -55,7 +55,7 @@ export function AttentionHeatmap({ heads, tokens }: { heads: AttentionHead[]; to
               return (
                 <rect key={c} data-testid="attn-cell" x={LABEL_W + c * CELL} y={DIAG_PAD + r * CELL}
                   width={CELL - 1} height={CELL - 1}
-                  fill={`hsl(220 70% ${Math.round(96 - 56 * Math.min(1, w))}%)`}
+                  fill={`hsl(211 ${Math.round(30 + 25 * Math.min(1, w))}% ${Math.round(94 - 70 * Math.min(1, w))}%)`}
                   stroke={isHovered ? '#d64' : 'none'} strokeWidth={isHovered ? 2 : 0}
                   onMouseEnter={() => setHovered({ r, c })}
                   onMouseLeave={() => setHovered(null)}>
