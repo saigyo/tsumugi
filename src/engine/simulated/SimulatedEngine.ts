@@ -5,6 +5,7 @@ import type { PipelineEngine, RunHandle } from '../types'
 import type { Tokenizer } from '../tokenizer'
 import { MODEL_ID } from '../tokenizer'
 import { candidateWords } from './candidates'
+import { attentionHeadsFor } from './examples'
 
 export class SimulatedEngine implements PipelineEngine {
   private tokenizer: Tokenizer
@@ -48,6 +49,8 @@ export class SimulatedEngine implements PipelineEngine {
       for (let i = 0; i < this.layers; i++)
         emit({ type: 'layer', cycle, index: i, total: this.layers,
           activationNorm: Math.round((1 + 0.05 * i + 0.3 * rand()) * 100) / 100 })
+
+      emit({ type: 'attention', cycle, heads: attentionHeadsFor(prompt, seq) })
 
       const k = Math.min(10, Math.max(1, params.topK))
       const candidates = candidateWords(text, rand).map((word) => {

@@ -73,3 +73,27 @@ test('embed preview is capped at 4 tokens × 16 dims', async () => {
   expect(embed.preview.length).toBeLessThanOrEqual(4)
   expect(embed.preview[0]).toHaveLength(16)
 })
+
+test('emits one attention event per cycle, after layers and before logits', async () => {
+  const events = await collect('The cat sat')
+  const attn = events.filter((e) => e.type === 'attention')
+  const appends = events.filter((e) => e.type === 'append')
+  expect(attn.length).toBe(appends.length)
+  const firstAttn = events.findIndex((e) => e.type === 'attention')
+  expect(events[firstAttn - 1].type).toBe('layer')
+  expect(events[firstAttn + 1].type).toBe('logits')
+})
+
+test('attention matrices grow with the sequence across cycles', async () => {
+  const events = await collect('a b c')
+  const attn = events.filter((e) => e.type === 'attention')
+  if (attn[0]?.type !== 'attention' || attn[1]?.type !== 'attention') throw new Error('missing attention')
+  expect(attn[1].heads[0].matrix.length).toBe(attn[0].heads[0].matrix.length + 1)
+})
+
+test('coreference example prompt yields a coreference head', async () => {
+  const events = await collect('The cat sat on the mat because it was tired')
+  const attn = events.find((e) => e.type === 'attention')
+  if (attn?.type !== 'attention') throw new Error('missing attention')
+  expect(attn.heads.some((h) => h.label === 'coreference')).toBe(true)
+})
