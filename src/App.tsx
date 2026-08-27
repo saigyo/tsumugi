@@ -18,12 +18,12 @@ export default function App() {
   const events = useTraceStore((s) => s.events)
   const cursor = usePlayerStore((s) => s.cursor)
   const [mode, setMode] = useState<Mode>('sim')
-  const [busy, setBusy] = useState(false)
   const tokenizerRef = useRef<Tokenizer>(fallbackTokenizer())
   const runRef = useRef<RunHandle | null>(null)
   const [progress, setProgress] = useState<ProgressInfo | null>(null)
   const [modelError, setModelError] = useState<string | null>(null)
   const realEngineRef = useRef<TransformersEngine | null>(null)
+  const preparingRef = useRef<{ engine: TransformersEngine; promise: Promise<void> } | null>(null)
   const [device, setDevice] = useState<'webgpu' | 'wasm' | null>(null)
   const [realReady, setRealReady] = useState(false)
 
@@ -43,17 +43,23 @@ export default function App() {
     setModelError(null)
     if (m === 'real' && !realEngineRef.current) {
       setRealReady(false)
-      try {
+      let prepping = preparingRef.current
+      if (!prepping) {
         const engine = new TransformersEngine()
-        await engine.prepare((p) => setProgress(p))
-        realEngineRef.current = engine
-        setDevice(engine.device)
+        prepping = { engine, promise: engine.prepare((p) => setProgress(p)) }
+        preparingRef.current = prepping
+      }
+      try {
+        await prepping.promise
+        realEngineRef.current = prepping.engine
+        setDevice(prepping.engine.device)
         setRealReady(true)
       } catch (err) {
         setModelError(err instanceof Error ? err.message : String(err))
         setMode('sim')
         setRealReady(false)
       } finally {
+        if (preparingRef.current === prepping) preparingRef.current = null
         setProgress(null)
       }
     } else if (m === 'real' && realEngineRef.current) {
@@ -70,13 +76,10 @@ export default function App() {
       mode === 'real' && realEngineRef.current
         ? realEngineRef.current
         : new SimulatedEngine(tokenizerRef.current)
-    setBusy(true)
     try {
       const handle = engine.run(prompt, params, (e) => useTraceStore.getState().append(e))
       runRef.current = handle
-      handle.done.finally(() => setBusy(false))
     } catch (err) {
-      setBusy(false)
       setModelError(err instanceof Error ? err.message : String(err))
     }
   }
@@ -87,7 +90,7 @@ export default function App() {
       <ModelStatus progress={progress} device={mode === 'real' ? device : null} error={modelError}
         onFallback={() => { setModelError(null); setMode('sim') }} />
       <PromptBar mode={mode} onModeChange={handleModeChange} onGenerate={handleGenerate}
-        busy={busy || (mode === 'real' && !realReady)} />
+        busy={mode === 'real' && !realReady} />
       <TokenStream events={events} cursor={cursor} />
       <PipelineBand events={events} cursor={cursor} />
       <DetailPanel events={events} cursor={cursor} mode={mode} />

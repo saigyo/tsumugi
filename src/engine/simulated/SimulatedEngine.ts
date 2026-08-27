@@ -49,6 +49,7 @@ export class SimulatedEngine implements PipelineEngine {
         emit({ type: 'layer', cycle, index: i, total: this.layers,
           activationNorm: Math.round((1 + 0.05 * i + 0.3 * rand()) * 100) / 100 })
 
+      const k = Math.min(10, Math.max(1, params.topK))
       const candidates = candidateWords(text, rand).map((word) => {
         const tok = this.tokenizer.encode(word)[0]
         return { id: tok.id, text: tok.text }
@@ -56,6 +57,7 @@ export class SimulatedEngine implements PipelineEngine {
       const scored = candidates
         .map((c, i) => ({ ...c, logit: 10 - i * 1.1 + rand() * 0.6 }))
         .sort((a, b) => b.logit - a.logit)
+        .slice(0, k)
       emit({ type: 'logits', cycle, topK: scored })
 
       const probs = softmax(scored.map((c) => c.logit), params.temperature)

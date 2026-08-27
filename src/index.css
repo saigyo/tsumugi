@@ -33,3 +33,14 @@ body {
 .controls input[type="range"] { flex: 1; }
 .notice, .model-error { color: #b40; }
 .device-chip { border: 1px solid #999; border-radius: 999px; padding: 0 .5rem; font-size: .8rem; }
+.token-chip-row { display: flex; flex-wrap: wrap; gap: .3rem; margin-top: .5rem; }
+.token-chip { display: inline-flex; align-items: baseline; gap: .35rem; padding: .15rem .55rem; border-radius: 999px; }
+.chip-text { font-weight: 500; white-space: pre; }
+.chip-id { font-size: .7rem; opacity: .65; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.hue-0 { background: #ffe0e0; }
+.hue-1 { background: #ffe9c7; }
+.hue-2 { background: #e3f3c2; }
+.hue-3 { background: #c8ecdf; }
+.hue-4 { background: #cfe4fb; }
+.hue-5 { background: #e6d9f7; }
+.bar-chart { display: flex; flex-direction: column; row-gap: .3rem; }

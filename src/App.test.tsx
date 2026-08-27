@@ -45,6 +45,28 @@ test('generate in sim mode fills the trace and plays', async () => {
   expect(usePlayerStore.getState().status).toBe('playing')
 })
 
+test('clicking Generate during an active run aborts it and starts a fresh one', async () => {
+  render(<App />)
+  fireEvent.change(screen.getByTestId('prompt-input'), { target: { value: 'The cat sat' } })
+  fireEvent.change(screen.getByTestId('maxtok-input'), { target: { value: '100' } })
+
+  fireEvent.click(screen.getByTestId('btn-generate'))
+  await waitFor(() => {
+    expect(useTraceStore.getState().events.length).toBeGreaterThan(0)
+  })
+
+  // Re-click mid-run: the old run must be aborted and a new one started, not blocked.
+  expect(screen.getByTestId('btn-generate')).not.toBeDisabled()
+  fireEvent.click(screen.getByTestId('btn-generate'))
+
+  await waitFor(() => {
+    expect(useTraceStore.getState().events.at(-1)?.type).toBe('run-end')
+  })
+
+  const finalEvents = useTraceStore.getState().events
+  expect(finalEvents.filter((e) => e.type === 'run-start')).toHaveLength(1)
+})
+
 test('generate is disabled while real mode is still loading the model', async () => {
   render(<App />)
   fireEvent.change(screen.getByTestId('prompt-input'), { target: { value: 'The cat sat' } })

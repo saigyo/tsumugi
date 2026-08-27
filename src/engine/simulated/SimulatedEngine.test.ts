@@ -49,6 +49,23 @@ test('abort emits run-end aborted', async () => {
   expect(last.type === 'run-end' && last.reason === 'aborted').toBe(true)
 })
 
+test('topK limits the number of candidates in logits/softmax', async () => {
+  const events = await collect('The cat', { ...PARAMS, topK: 3 })
+  const logits = events.find((e) => e.type === 'logits')
+  const sm = events.find((e) => e.type === 'softmax')
+  if (logits?.type !== 'logits' || sm?.type !== 'softmax') throw new Error('missing events')
+  expect(logits.topK).toHaveLength(3)
+  expect(sm.topK).toHaveLength(3)
+})
+
+test('topK is clamped to [1, 10]', async () => {
+  const tooLow = (await collect('Hi', { ...PARAMS, topK: 0 })).find((e) => e.type === 'logits')
+  const tooHigh = (await collect('Hi', { ...PARAMS, topK: 99 })).find((e) => e.type === 'logits')
+  if (tooLow?.type !== 'logits' || tooHigh?.type !== 'logits') throw new Error('missing events')
+  expect(tooLow.topK).toHaveLength(1)
+  expect(tooHigh.topK).toHaveLength(10)
+})
+
 test('embed preview is capped at 4 tokens × 16 dims', async () => {
   const events = await collect('one two three four five six')
   const embed = events.find((e) => e.type === 'embed')
