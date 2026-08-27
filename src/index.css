@@ -167,6 +167,7 @@ input[type="number"] { width: 4rem; }
 .rs-arrowhead { fill: var(--ai); }
 .rs-branch { stroke: var(--ai-soft); stroke-width: 1.5; }
 .rs-box { fill: var(--ai-wash); stroke: var(--ai); }
+.rs-hover { cursor: help; }
 .rs-box-label { font-size: 12px; fill: var(--ai-deep); font-weight: 600; }
 .rs-adder { fill: var(--card); stroke: var(--ai); stroke-width: 1.5; }
 .rs-plus { font-size: 11px; fill: var(--ai-deep); font-weight: 700; }
