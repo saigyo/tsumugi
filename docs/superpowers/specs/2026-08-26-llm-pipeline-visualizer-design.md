@@ -220,7 +220,12 @@ Layout (three bands + controls):
   `layer` → Layers, `logits` and `softmax` → Logits, `sample` and
   `append` → Sampler); an animated packet crosses connectors on stage
   transitions. Cards show micro-summaries (token count, `N layers`, top
-  candidate).
+  candidate). Connectors carry live tensor-shape labels for what flows
+  there — ids `[n]`, the residual stream `[n×d]`, the last-row readout
+  `[1×d]`, vocab scores `[v]` (from an optional `vocabSize` field on
+  `run-start`), and `+1 token` on the loop; the Layers detail opens with
+  a residual-stream anatomy diagram (attention and MLP adding into one
+  matrix), and the Logits detail shows the dot-product readout formula.
 - **Detail panel** per stage:
   - *Tokenizer*: prompt with colored token-boundary underlays; chips
     show text + ID (subword splits made visceral).

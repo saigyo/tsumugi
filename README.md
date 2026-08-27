@@ -31,11 +31,58 @@ controls.
   cached by the browser afterward. It prefers WebGPU and automatically falls
   back to WASM on browsers/devices without WebGPU support.
 
+## One matrix, end to end — the residual stream
+
+The pipeline stages look like separate machines, but there is only one
+object flowing through the whole pipeline: a matrix **X of shape
+`[seq_len × d_model]`** — one 576-dimensional vector per token position
+(SmolLM2's numbers). This is the *residual stream*, and it answers every
+"what happens between the stages" question:
+
+- **Embeddings → Layers**: no hand-off, no conversion. The embedding
+  stage's output — one vector per token, looked up from the embedding
+  table — *is* layer 0's input, verbatim. The heat-strips in the
+  Embeddings panel are (downsampled) rows of exactly the matrix that
+  enters the first layer.
+- **Layer → Layer**: each layer edits this matrix and passes it on —
+  and it edits by **addition**: `X ← X + attention(X)`, then
+  `X ← X + MLP(X)`. Each token's vector accumulates refinements layer by
+  layer, like a document going through thirty rounds of margin notes;
+  the original embedding is still in there, with the corrections added
+  on top. Inside a layer the jobs are strictly divided: **attention is
+  the only place information moves between token positions** (the
+  heatmap row for token *i* is the mixing recipe — row "it" = 65% "cat"
+  means the vector at "it" gets a large dose of "cat"'s vector added
+  in), while the MLP transforms each position's vector in isolation.
+- **Layers → Logits**: take only the **last token's row** of the final
+  matrix — one vector — normalize it, and multiply by the unembedding
+  matrix (`d_model × vocab`, essentially the embedding table
+  transposed). Each logit is literally a **dot product**: how similar is
+  the final state of the last position to vocabulary token *v*'s
+  direction? That single matrix multiply *is* the Logits stage; softmax
+  and sampling just turn the ~49k scores into a choice.
+
+So the causal chain to the probabilities runs: attention weights decide
+which vectors get blended into the last position's vector; the layers'
+accumulated edits shape that vector; the logits read it out against
+every vocabulary direction. The app shows this carrier explicitly — the
+tensor-shape labels on the pipeline arrows (watch `[10×576]` narrow to
+`[1×576]` before Logits), the layer-anatomy diagram in the Layers panel,
+and the readout formula in the Logits panel.
+
+The name of the app tells the same story: each token is a thread,
+attention decides which existing threads get twisted into the new one at
+each layer, and at the end the finished strand is held up against 49k
+reference threads to see which it resembles most.
+
 ## Reading the attention heatmaps
 
 The Layers stage shows attention heatmaps (simulated mode): a triangular
 grid per attention head, where row *i* shows how much the token at
 position *i* attends to each earlier token — every row sums to 100%.
+Mechanically these weights are the mixing recipe of the residual
+stream's attention step described above: they decide whose vectors get
+blended into each position.
 Real attention heads show strikingly legible patterns, and the simulated
 heads reproduce the canonical ones:
 
