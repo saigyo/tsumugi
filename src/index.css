@@ -86,6 +86,7 @@ input[type="number"] { width: 4rem; }
 .prompt-row input[data-testid="prompt-input"] { flex: 1; min-width: 12rem; padding: .45rem .6rem; }
 .config-row { display: flex; gap: .8rem; align-items: center; flex-wrap: wrap; }
 .config-row label { font-size: .88rem; color: var(--ink-soft); white-space: nowrap; }
+.config-row label[title] { cursor: help; }
 .config-divider { width: 1px; height: 1.4rem; background: var(--line); }
 .mode-note { color: var(--ink-faint); font-size: .78rem; }
 .model-status-slot { display: inline-flex; align-items: center; gap: .4rem; min-width: 0; }
