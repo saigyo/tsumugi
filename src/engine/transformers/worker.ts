@@ -8,9 +8,11 @@ const post = (msg: WorkerResponse) => (self as unknown as Worker).postMessage(ms
 /* eslint-disable @typescript-eslint/no-explicit-any */
 let tokenizer: any = null
 let model: any = null
+let loadedModelId = 'unknown'
 let aborted = false
 
 async function prepare(modelId: string) {
+  loadedModelId = modelId
   const { AutoTokenizer, AutoModelForCausalLM } = await import('@huggingface/transformers')
   const progress_callback = (p: any) => {
     if (p.status === 'progress') post({ type: 'progress', info: { file: p.file, loaded: p.loaded ?? 0, total: p.total ?? 0 } })
@@ -53,7 +55,7 @@ async function run(runId: number, prompt: string, params: GenParams) {
   const emit = (event: TraceEvent) => post({ type: 'trace', runId, event })
   const { Tensor, DynamicCache } = await import('@huggingface/transformers')
 
-  emit({ type: 'run-start', prompt, mode: 'real', modelId: model.config._name_or_path ?? 'unknown', params })
+  emit({ type: 'run-start', prompt, mode: 'real', modelId: loadedModelId, params })
   let promptIds: number[] = tokenizer.encode(prompt, { add_special_tokens: false })
   const maxCtx: number = model.config.max_position_embeddings ?? 2048
   const budget = Math.max(1, maxCtx - params.maxNewTokens)

@@ -57,7 +57,7 @@ Why trace-based won over alternatives:
 |---|---|---|
 | `src/trace/` | Trace event schema (discriminated union) + append-only store (append, subscribe, clear) | nothing |
 | `src/engine/` | `PipelineEngine` interface; `SimulatedEngine` (main thread); `TransformersEngine` (Web Worker client) | `trace` types |
-| `src/player/` | Playback state: cursor, play/pause, speed, follow-live. Pure reducer | `trace` types |
+| `src/player/` | Playback state: cursor, play/pause, speed. Pure reducer (pacing + park model) | `trace` types |
 | `src/viz/` | One component per stage + pipeline layout; renders `(trace, cursor)` | `trace`, `player` state |
 | `src/app/` | Shell: prompt input, mode toggle, gen params, player controls, model-loading UI | all of the above |
 
@@ -166,26 +166,30 @@ interface PlayerState {
   cursor: number;          // index into trace; -1 = before start
   status: 'idle' | 'playing' | 'paused';
   speed: number;           // 0.5×, 1×, 2×, 4×
-  followLive: boolean;     // stick cursor to trace end while engine emits
 }
 ```
 
 Actions: `play`, `pause`, `stepForward`, `stepBack`, `seek(index)`,
-`setSpeed`, `traceGrew(newLength)`.
+`setSpeed`, `traceGrew(newLength)`, `goLive`, `reset`.
 
-Behaviors:
+Behaviors (the **pacing + park** model):
 
 - **Playing** advances the cursor on a timer derived from `speed`, with
   per-event pacing multipliers (a `sample` lingers; one of twelve
   `layer` events is quick). The pacing table lives in the player, not
   components.
-- **Follow-live** unifies "real time" and "step-by-step": on during a
-  run (cursor chases the trace frontier as events stream in); flips off
-  the moment the user pauses, steps back, or scrubs — they inspect
-  history while generation continues appending. A "Live ⏺" button jumps
-  back to the frontier.
-- Stepping past the frontier of a still-generating trace parks and
-  waits; past the end of a finished trace pauses.
+- "Real time" and "step-by-step" are unified by paced playback plus
+  **parking**: a playing cursor that reaches the frontier of a
+  still-generating trace parks there and resumes automatically as
+  events stream in — during live generation, playback naturally chases
+  the frontier. Pausing, stepping back, or scrubbing lets the user
+  inspect history while generation continues appending; the "Live ⏺"
+  button (`goLive`) seeks to the frontier and plays. "Live" is a
+  derived condition (cursor at frontier while playing), not stored
+  state.
+- Reaching the frontier of a *finished* trace (its `run-end` event)
+  pauses playback; the detail panel then shows a run summary (finish
+  reason, token counts, sampling params).
 - **Scrubber**: range input over `trace.length`, tick marks at each
   `append` event to jump between token cycles. Step controls work by
   *event* or by *cycle* (modifier or dedicated buttons).
@@ -231,7 +235,11 @@ Layout (three bands + controls):
     token; chip flies up to the token stream.
 - **Cross-mode identity**: both modes render through identical
   components; visible differences are a mode badge and the "schematic"
-  layer label. Switching modes re-runs the same prompt for comparison.
+  layer label. The prompt and sampling params persist across a mode
+  switch, so comparing modes is one click of Generate away (an
+  automatic re-run on toggle was considered and rejected: it would
+  surprise-start generation and, on first real-mode use, a ~120 MB
+  download).
 - SVG + CSS transitions only (no canvas, no D3 — data volumes are
   tiny). Animations keyed to cursor changes, so scrubbing backward
   replays them in reverse for free.
@@ -266,7 +274,7 @@ Layout (three bands + controls):
   the TransformersEngine worker protocol is tested against a mocked
   transformers.js module. Real inference stays out of CI.
 - **Player (Vitest)**: exhaustive unit tests of the pure reducer —
-  boundary stepping, follow-live flipping off on interaction, seek
+  boundary stepping, park-at-frontier vs pause-on-run-end, seek
   clamping, pacing table.
 - **Components (Vitest + Testing Library)**: fixed traces at fixed
   cursors → assert active stage and detail-panel contents. No animation
