@@ -44,11 +44,24 @@ the actual acceptance checklist for a release.
    confirm you can reach the Hugging Face Hub (`huggingface-cli whoami` or
    `curl -sI https://huggingface.co`) and that you're authenticated
    (`HF_TOKEN` env var or `hf auth login`) if you intend to `publish`.
-2. **Run the pipeline in order:** `export` → `quantize` → `validate` →
-   `publish`. Do not skip `validate` — `publish` refuses to run without a
-   passing report, but you should also read the printed verdict table
-   yourself rather than relying solely on the exit code.
-3. **In the actual Tsumugi app**, load the exported model in real
+2. **Export the primary (with-past) variant:**
+   `uv run python -m tsumugi_export export --out out/model`
+3. **Export the no-cache (Approach B) variant, for the A≡B equivalence
+   check:**
+   `uv run python -m tsumugi_export export --out out/model-nocache --no-cache`
+   This step is not optional. `validate` looks for
+   `out/model-nocache/onnx/model.onnx` specifically; without it, the
+   `a-equiv-b` check is reported as **SKIPPED** rather than run, and the
+   release has *not* been fully validated — cached incremental attention
+   rows will not have been checked against the full-matrix ground truth.
+4. **Quantize:** `uv run python -m tsumugi_export quantize --model-dir out/model`
+5. **Validate:** `uv run python -m tsumugi_export validate --model-dir out/model`.
+   Do not skip this — `publish` refuses to run without a passing report,
+   but you should also read the printed verdict table yourself (including
+   confirming `a-equiv-b` actually ran, not SKIPPED) rather than relying
+   solely on the exit code.
+6. **Publish:** `uv run python -m tsumugi_export publish --model-dir out/model`
+7. **In the actual Tsumugi app**, load the exported model in real
    (non-fallback) attention mode and check:
    - **One curated prompt** with a known, hand-checked attention pattern
      (e.g. an induction-style repeat like `"one two three one two three
@@ -62,10 +75,10 @@ the actual acceptance checklist for a release.
      semantically or positionally sensible source tokens, not noise.
    - Each attention row's displayed weights **sum to 100%** (row-stochastic,
      matching what `validate` already checked at the ONNX level).
-4. **Stock fallback check.** Simulate the attention repo being unreachable
+8. **Stock fallback check.** Simulate the attention repo being unreachable
    (e.g. block the `saigyo-hoshi/smollm2-135m-attn-onnx` host, or point the
    app at a bad repo id) and confirm the app falls back gracefully to the
    stock model without attention data, rather than erroring out.
 
-Only after all four steps pass should the exported artifacts be considered
-release-ready.
+Only after all eight steps pass — including a non-SKIPPED `a-equiv-b`
+result — should the exported artifacts be considered release-ready.

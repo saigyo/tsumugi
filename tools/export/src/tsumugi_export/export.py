@@ -24,7 +24,8 @@ def run(args) -> int:
 
     config = AutoConfig.from_pretrained(STOCK_MODEL_ID)
     use_past = not args.no_cache
-    custom = AttnLlamaOnnxConfig(config, task="text-generation", use_past=use_past)
+    custom = AttnLlamaOnnxConfig(
+        config, task="text-generation", use_past=use_past, use_past_in_inputs=use_past)
 
     main_export(
         STOCK_MODEL_ID,

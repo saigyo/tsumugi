@@ -28,3 +28,21 @@ def test_no_cache_variant_has_no_present():
     cfg = AttnLlamaOnnxConfig(make_config(), task="text-generation", use_past=False)
     assert not any(k.startswith("present") for k in cfg.outputs)
     assert "attentions.0" in cfg.outputs
+
+
+def test_use_past_in_inputs_true_yields_past_key_values_inputs():
+    cfg = AttnLlamaOnnxConfig(
+        make_config(), task="text-generation", use_past=True, use_past_in_inputs=True)
+    ins = cfg.inputs
+    assert "past_key_values.0.key" in ins
+    assert "past_key_values.0.value" in ins
+
+
+def test_without_use_past_in_inputs_no_past_key_values_inputs():
+    # use_past controls the OUTPUT-side cache (present.*); it does not by
+    # itself add past_key_values.* INPUTS — that requires the separate
+    # use_past_in_inputs flag. export.py must pass both, or the exported
+    # graph declares present.* outputs with no way to feed a cache back in.
+    cfg = AttnLlamaOnnxConfig(make_config(), task="text-generation", use_past=True)
+    ins = cfg.inputs
+    assert not any(k.startswith("past_key_values") for k in ins)

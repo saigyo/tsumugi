@@ -54,33 +54,21 @@ def _sha256(path: Path) -> str:
     return h.hexdigest()
 
 
-def _check_a_equiv_b(model_dir: Path, nocache_model: Path) -> dict:
-    """Drive the cached (with-past) graph token by token, feeding each
+def _has_past_inputs(sess) -> bool:
+    return any(i.name.startswith("past_key_values") for i in sess.get_inputs())
+
+
+def _drive_cached_stepwise(sess, ids: np.ndarray) -> list[dict]:
+    """Run a with-past graph token by token over `ids`, feeding each
     step's present.* outputs back in as the next step's past_key_values.*
-    inputs, and compare each step's per-layer attention row (the row for
-    the newly-generated query position) against the corresponding row of
-    the no-cache graph's full attention matrix (run once, over the whole
-    sequence). The two should agree up to numerical noise: causal
-    attention over the same tokens should produce identical probabilities
-    whether computed incrementally with a KV cache or all at once."""
-    cached_sess = _session(model_dir / "onnx" / "model.onnx")
-    nocache_sess = _session(nocache_model)
-
-    ids = _tokenize(model_dir, PROMPTS[0])
+    inputs (step 0 uses an all-zero, past_sequence_length=0 cache).
+    Returns one output dict per token position — shared by both the A≡B
+    equivalence check and the cache-integrity check so the stepping logic
+    isn't duplicated between them."""
     seq_len = ids.shape[1]
-
-    # single full-sequence pass through the no-cache graph
-    nc_out_names = [o.name for o in nocache_sess.get_outputs()]
-    nc_result = dict(zip(nc_out_names, nocache_sess.run(None, _feeds(nocache_sess, ids))))
-    nc_attn = {n: v for n, v in nc_result.items() if n.startswith("attentions.")}
-
-    cached_out_names = [o.name for o in cached_sess.get_outputs()]
-    cached_in_names = {i.name for i in cached_sess.get_inputs()}
-    cached_attn_names = sorted(
-        (n for n in cached_out_names if n.startswith("attentions.")),
-        key=lambda n: int(n.split(".")[1]),
-    )
-    past_specs = {i.name: i for i in cached_sess.get_inputs()
+    out_names = [o.name for o in sess.get_outputs()]
+    in_names = {i.name for i in sess.get_inputs()}
+    past_specs = {i.name: i for i in sess.get_inputs()
                   if i.name.startswith("past_key_values")}
 
     def empty_past() -> dict:
@@ -92,24 +80,19 @@ def _check_a_equiv_b(model_dir: Path, nocache_model: Path) -> dict:
         return feeds
 
     past_feeds = empty_past()
-    max_dev = 0.0
+    steps = []
 
     for t in range(seq_len):
         feeds = {
             "input_ids": ids[:, t:t + 1],
             "attention_mask": np.ones((1, t + 1), dtype=np.int64),
         }
-        if "position_ids" in cached_in_names:
+        if "position_ids" in in_names:
             feeds["position_ids"] = np.array([[t]], dtype=np.int64)
         feeds.update(past_feeds)
 
-        outputs = dict(zip(cached_out_names, cached_sess.run(None, feeds)))
-
-        for name in cached_attn_names:
-            row = outputs[name][0, :, -1, :]           # [heads, t+1] (this step's query)
-            nc_row = nc_attn[name][0, :, t, :t + 1]     # [heads, t+1] (row t of full matrix)
-            dev = float(np.max(np.abs(row - nc_row)))
-            max_dev = max(max_dev, dev)
+        outputs = dict(zip(out_names, sess.run(None, feeds)))
+        steps.append(outputs)
 
         # carry this step's present.* forward as next step's past_key_values.*
         next_past = {}
@@ -118,9 +101,73 @@ def _check_a_equiv_b(model_dir: Path, nocache_model: Path) -> dict:
             next_past[name] = outputs[f"present.{layer_key}"]
         past_feeds = next_past
 
+    return steps
+
+
+def _check_a_equiv_b(model_dir: Path, nocache_model: Path) -> dict:
+    """Drive the cached (with-past) graph token by token (via
+    _drive_cached_stepwise) and compare each step's per-layer attention
+    row (the row for the newly-generated query position) against the
+    corresponding row of the no-cache graph's full attention matrix (run
+    once, over the whole sequence). The two should agree up to numerical
+    noise: causal attention over the same tokens should produce identical
+    probabilities whether computed incrementally with a KV cache or all
+    at once."""
+    cached_sess = _session(model_dir / "onnx" / "model.onnx")
+    nocache_sess = _session(nocache_model)
+
+    ids = _tokenize(model_dir, PROMPTS[0])
+
+    # single full-sequence pass through the no-cache graph
+    nc_out_names = [o.name for o in nocache_sess.get_outputs()]
+    nc_result = dict(zip(nc_out_names, nocache_sess.run(None, _feeds(nocache_sess, ids))))
+    nc_attn = {n: v for n, v in nc_result.items() if n.startswith("attentions.")}
+
+    steps = _drive_cached_stepwise(cached_sess, ids)
+    cached_attn_names = sorted(
+        (n for n in steps[0] if n.startswith("attentions.")),
+        key=lambda n: int(n.split(".")[1]),
+    )
+
+    max_dev = 0.0
+    for t, outputs in enumerate(steps):
+        for name in cached_attn_names:
+            row = outputs[name][0, :, -1, :]           # [heads, t+1] (this step's query)
+            nc_row = nc_attn[name][0, :, t, :t + 1]     # [heads, t+1] (row t of full matrix)
+            dev = float(np.max(np.abs(row - nc_row)))
+            max_dev = max(max_dev, dev)
+
     return {
         "passed": max_dev <= 1e-3,
         "detail": f"max row deviation {max_dev:.2e} (atol 1e-3)",
+    }
+
+
+def _check_cache_integrity(sess, model_dir: Path, tol: float) -> dict:
+    """Cache integrity: tokenize PROMPTS[0], run the full sequence in one
+    single-shot (prefill) call to get the last-position logits, then
+    drive the same graph token by token via _drive_cached_stepwise and
+    take the final step's logits — the two must agree, since they are the
+    same causal computation done two different ways. If the graph has no
+    past_key_values inputs at all (e.g. export.py failed to pass
+    use_past_in_inputs), there is no cache to validate — fail loudly
+    rather than silently skipping."""
+    if not _has_past_inputs(sess):
+        return {"passed": False, "detail": "graph has no past_key_values inputs"}
+
+    ids = _tokenize(model_dir, PROMPTS[0])
+    out_names = [o.name for o in sess.get_outputs()]
+
+    single_shot = dict(zip(out_names, sess.run(None, _feeds(sess, ids))))
+    single_logits = single_shot["logits"][0, -1]
+
+    steps = _drive_cached_stepwise(sess, ids)
+    multi_logits = steps[-1]["logits"][0, -1]
+
+    diff = float(np.max(np.abs(single_logits - multi_logits)))
+    return {
+        "passed": diff < tol,
+        "detail": f"max|Δlogit| multi-step vs single-shot={diff:.2e} (tol {tol})",
     }
 
 
@@ -177,6 +224,9 @@ def run(args) -> int:
         checks[f"{variant}:has-cache"] = {
             "passed": any(n.startswith("present") for n in out_names),
             "detail": "present.* outputs present"}
+
+        ci_tol = 1e-3 if variant == "model.onnx" else TOL
+        checks[f"{variant}:cache-integrity"] = _check_cache_integrity(sess, model_dir, ci_tol)
 
     # A≡B equivalence when the operator exported both variants
     nc = model_dir.parent / "model-nocache" / "onnx" / "model.onnx"
