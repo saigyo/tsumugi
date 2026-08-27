@@ -32,7 +32,14 @@ export function DetailPanel({ events, cursor, mode }: { events: TraceEvent[]; cu
     }
     case 'layers': {
       const e = latestOfType(events, cursor, 'layer')
-      return e ? <LayersDetail event={e} mode={mode} /> : empty
+      if (!e) return empty
+      // show this cycle's attention only once its event has been reached
+      const attention = latestOfType(events, cursor, 'attention')
+      const inCycle = attention && attention.cycle === e.cycle ? attention : undefined
+      const rows = inCycle?.heads[0]?.matrix.length ?? 0
+      const { prompt, generated } = visibleTokens(events, cursor)
+      const tokens = [...prompt, ...generated].slice(0, rows)
+      return <LayersDetail event={e} mode={mode} attention={inCycle} tokens={tokens} />
     }
     case 'logits': {
       const logits = latestOfType(events, cursor, 'logits')

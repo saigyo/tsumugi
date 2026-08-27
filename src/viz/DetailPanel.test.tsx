@@ -69,3 +69,14 @@ test('run-end cursor shows a run summary, not the idle hint', () => {
   expect(summary).toHaveTextContent(/T=0.8/)      // params from run-start
   expect(screen.queryByTestId('detail-empty')).not.toBeInTheDocument()
 })
+
+test('attention cursor maps to layers stage and shows the heatmap', () => {
+  render(<DetailPanel events={trace} cursor={6} mode="sim" />)
+  expect(screen.getByTestId('detail-layers')).toBeInTheDocument()
+  expect(screen.getByTestId('attention-heatmap')).toBeInTheDocument()
+})
+
+test('mid-layer cursor before the cycle attention has no heatmap', () => {
+  render(<DetailPanel events={trace} cursor={4} mode="sim" />)
+  expect(screen.queryByTestId('attention-heatmap')).not.toBeInTheDocument()
+})

@@ -45,3 +45,7 @@ test('distributionFor returns the softmax and sample of a cycle', () => {
   expect(d?.sample.chosen.text).toBe(' on')
   expect(distributionFor(trace, 99)).toBeUndefined()
 })
+
+test('attention events map to the layers stage', () => {
+  expect(activeStage({ type: 'attention', cycle: 0, heads: [] })).toBe('layers')
+})

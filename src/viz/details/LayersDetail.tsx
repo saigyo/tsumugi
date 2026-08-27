@@ -1,6 +1,12 @@
-import type { Mode, TraceEvent } from '../../trace/types'
+import type { Mode, TokenInfo, TraceEvent } from '../../trace/types'
+import { AttentionHeatmap } from '../AttentionHeatmap'
 
-export function LayersDetail({ event, mode }: { event: Extract<TraceEvent, { type: 'layer' }>; mode: Mode }) {
+export function LayersDetail({ event, mode, attention, tokens }: {
+  event: Extract<TraceEvent, { type: 'layer' }>
+  mode: Mode
+  attention?: Extract<TraceEvent, { type: 'attention' }>
+  tokens?: TokenInfo[]
+}) {
   return (
     <div data-testid="detail-layers" className="detail">
       <h3>Transformer layers {mode === 'real' && <em>(schematic — real internals not exposed)</em>}</h3>
@@ -13,6 +19,7 @@ export function LayersDetail({ event, mode }: { event: Extract<TraceEvent, { typ
           </div>
         ))}
       </div>
+      {attention && tokens && <AttentionHeatmap heads={attention.heads} tokens={tokens} />}
     </div>
   )
 }

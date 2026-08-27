@@ -1,0 +1,36 @@
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { afterEach, expect, test } from 'vitest'
+import { makeFixtureTrace } from '../test/fixtures'
+import { AttentionHeatmap } from './AttentionHeatmap'
+
+afterEach(() => cleanup())
+
+const trace = makeFixtureTrace()
+const attn = trace.find((e) => e.type === 'attention')
+if (attn?.type !== 'attention') throw new Error('fixture lacks attention')
+const tokens = [{ id: 10, text: 'The' }, { id: 11, text: ' cat' }]
+
+test('renders one chip per head and a triangular cell grid', () => {
+  render(<AttentionHeatmap heads={attn.heads} tokens={tokens} />)
+  expect(screen.getAllByTestId('head-chip')).toHaveLength(2)
+  // 2 tokens → rows of length 1 and 2 → 3 cells
+  expect(screen.getAllByTestId('attn-cell')).toHaveLength(3)
+})
+
+test('chip click switches the selected head and its hint', () => {
+  render(<AttentionHeatmap heads={attn.heads} tokens={tokens} />)
+  const chips = screen.getAllByTestId('head-chip')
+  expect(chips[0].dataset.active).toBe('true')
+  expect(screen.getByTestId('attn-hint')).toHaveTextContent(/first token/i)   // sink hint
+  fireEvent.click(chips[1])
+  expect(chips[1].dataset.active).toBe('true')
+  expect(screen.getByTestId('attn-hint')).toHaveTextContent(/right before/i)  // previous-token hint
+})
+
+test('cells carry a from → to tooltip with the percentage', () => {
+  render(<AttentionHeatmap heads={attn.heads} tokens={tokens} />)
+  const cells = screen.getAllByTestId('attn-cell')
+  const withPct = cells.find((c) => c.querySelector('title')?.textContent?.includes('%'))
+  expect(withPct).toBeDefined()
+  expect(withPct!.querySelector('title')!.textContent).toMatch(/→/)
+})
