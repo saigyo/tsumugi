@@ -48,6 +48,33 @@ export function cycleTickIndices(events: TraceEvent[]): number[] {
   return events.flatMap((e, i) => (e.type === 'append' ? [i] : []))
 }
 
+// Shapes of what flows along each pipeline connector at the current cursor.
+export interface FlowShapes {
+  ids?: string      // Tokenizer → Embeddings
+  stream?: string   // Embeddings → Layers: the residual stream [seq × d_model]
+  lastRow?: string  // Layers → Logits: only the last position is read out
+  vocab?: string    // Logits → Sampler: one score per vocabulary entry
+  loop?: string     // Sampler → token stream
+}
+
+const thousands = (n: number) => n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
+
+export function flowShapes(events: TraceEvent[], cursor: number): FlowShapes {
+  const shapes: FlowShapes = {}
+  const tokenize = latestOfType(events, cursor, 'tokenize')
+  if (!tokenize) return shapes
+  shapes.ids = `[${tokenize.tokens.length}]`
+  shapes.loop = '+1 token'
+  const embed = latestOfType(events, cursor, 'embed')
+  if (embed) {
+    shapes.stream = `[${embed.seqLen}×${embed.dims}]`
+    shapes.lastRow = `[1×${embed.dims}]`
+  }
+  const runStart = latestOfType(events, cursor, 'run-start')
+  if (runStart?.vocabSize) shapes.vocab = `[${thousands(runStart.vocabSize)}]`
+  return shapes
+}
+
 // The one event per cycle where a stage's payload is fully on screen.
 const REPRESENTATIVE: Record<Exclude<StageId, null>, TraceEvent['type']> = {
   tokenizer: 'tokenize', embeddings: 'embed', layers: 'attention',

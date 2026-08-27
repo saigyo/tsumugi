@@ -30,7 +30,8 @@ export class SimulatedEngine implements PipelineEngine {
     prompt: string, params: GenParams,
     emit: (e: TraceEvent) => void, isAborted: () => boolean,
   ): Promise<void> {
-    emit({ type: 'run-start', prompt, mode: 'sim', modelId: MODEL_ID, params })
+    // vocab size of the simulated model (SmolLM2-135M-Instruct)
+    emit({ type: 'run-start', prompt, mode: 'sim', modelId: MODEL_ID, params, vocabSize: 49152 })
     const promptTokens = this.tokenizer.encode(prompt)
     emit({ type: 'tokenize', tokens: promptTokens })
 

@@ -1,5 +1,8 @@
 import type { TraceEvent } from '../trace/types'
-import { activeStage, eventAt, latestOfType, stageEventIndex, type StageId } from './selectors'
+import { activeStage, eventAt, flowShapes, latestOfType, stageEventIndex, type FlowShapes, type StageId } from './selectors'
+
+// what travels along the connector INTO stage i (see FlowShapes)
+const CONNECTOR_SHAPE: Array<keyof FlowShapes> = ['ids', 'ids', 'stream', 'lastRow', 'vocab']
 
 const STAGES: Array<{ id: Exclude<StageId, null>; label: string }> = [
   { id: 'tokenizer', label: 'Tokenizer' },
@@ -40,15 +43,22 @@ export function PipelineBand({ events, cursor, onStageClick }: {
   onStageClick?: (index: number) => void
 }) {
   const active = activeStage(eventAt(events, cursor))
+  const shapes = flowShapes(events, cursor)
   return (
     <div className="pipeline-band">
       {STAGES.map((s, i) => {
         const summary = summaryFor(s.id, events, cursor)
         const target = stageEventIndex(events, cursor, s.id)
         const clickable = target >= 0 && onStageClick != null
+        const shape = i > 0 ? shapes[CONNECTOR_SHAPE[i]] : undefined
         return (
           <div key={s.id} className="stage-wrap">
-            {i > 0 && <span className="stage-arrow">→</span>}
+            {i > 0 && (
+              <span className="stage-arrow-wrap">
+                <span className="stage-arrow">→</span>
+                {shape && <span data-testid="flow-shape" className="flow-shape">{shape}</span>}
+              </span>
+            )}
             <div data-testid="stage-card" data-stage={s.id} data-active={String(active === s.id)}
               data-clickable={String(clickable)} className="stage-card"
               role={clickable ? 'button' : undefined} tabIndex={clickable ? 0 : undefined}
@@ -64,6 +74,7 @@ export function PipelineBand({ events, cursor, onStageClick }: {
       <svg className="loop-arrow" viewBox="0 0 100 20" aria-label="loop back to token stream">
         <path d="M95 15 H10 M10 15 L16 10 M10 15 L16 20" fill="none" stroke="currentColor" strokeWidth="2" />
       </svg>
+      {shapes.loop && <span data-testid="loop-label" className="loop-label">{shapes.loop}</span>}
     </div>
   )
 }

@@ -80,3 +80,20 @@ test('mid-layer cursor before the cycle attention has no heatmap', () => {
   render(<DetailPanel events={trace} cursor={4} mode="sim" />)
   expect(screen.queryByTestId('attention-heatmap')).not.toBeInTheDocument()
 })
+
+test('layers detail shows the residual-stream diagram with live shapes', () => {
+  render(<DetailPanel events={trace} cursor={4} mode="sim" />)
+  const diagram = screen.getByTestId('residual-diagram')
+  expect(diagram).toHaveTextContent('[2×576]')
+  expect(diagram).toHaveTextContent('× 3 layers')
+  expect(diagram).toHaveTextContent(/attention/i)
+  expect(diagram).toHaveTextContent(/MLP/i)
+})
+
+test('logits detail frames scores as a dot-product readout', () => {
+  render(<DetailPanel events={trace} cursor={7} mode="sim" />)
+  const formula = screen.getByTestId('logits-formula')
+  expect(formula).toHaveTextContent('[1×576]')
+  expect(formula).toHaveTextContent('[576×49 152]')
+  expect(screen.getByTestId('detail-logits')).toHaveTextContent(/dot product/i)
+})

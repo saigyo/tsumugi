@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest'
 import { makeFixtureTrace } from '../test/fixtures'
-import { activeStage, cycleTickIndices, distributionFor, eventAt, latestOfType, stageEventIndex, visibleTokens } from './selectors'
+import { activeStage, cycleTickIndices, distributionFor, eventAt, flowShapes, latestOfType, stageEventIndex, visibleTokens } from './selectors'
 
 const trace = makeFixtureTrace()  // 2 cycles, 3 layers
 
@@ -48,6 +48,26 @@ test('distributionFor returns the softmax and sample of a cycle', () => {
 
 test('attention events map to the layers stage', () => {
   expect(activeStage({ type: 'attention', cycle: 0, heads: [] })).toBe('layers')
+})
+
+test('flowShapes are absent before the run reaches each stage', () => {
+  expect(flowShapes(trace, -1)).toEqual({})
+  const atTokenize = flowShapes(trace, 1)
+  expect(atTokenize.ids).toBe('[2]')
+  expect(atTokenize.stream).toBeUndefined()
+})
+
+test('flowShapes carry live tensor shapes once data exists', () => {
+  const s = flowShapes(trace, 7)  // cycle 0 logits
+  expect(s.ids).toBe('[2]')
+  expect(s.stream).toBe('[2×576]')
+  expect(s.lastRow).toBe('[1×576]')
+  expect(s.vocab).toBe('[49 152]')
+  expect(s.loop).toBe('+1 token')
+})
+
+test('flowShapes stream grows with the sequence', () => {
+  expect(flowShapes(trace, 11).stream).toBe('[3×576]')  // cycle 1 embed
 })
 
 // fixture indices: 1=tokenize; c0: 2 embed, 3-5 layers, 6 attention, 7 logits, 8 softmax, 9 sample, 10 append;

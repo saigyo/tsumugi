@@ -39,12 +39,17 @@ export function DetailPanel({ events, cursor, mode }: { events: TraceEvent[]; cu
       const rows = inCycle?.heads[0]?.matrix.length ?? 0
       const { prompt, generated } = visibleTokens(events, cursor)
       const tokens = [...prompt, ...generated].slice(0, rows)
-      return <LayersDetail event={e} mode={mode} attention={inCycle} tokens={tokens} />
+      const embed = latestOfType(events, cursor, 'embed')
+      const streamShape = embed ? { seqLen: embed.seqLen, dims: embed.dims } : undefined
+      return <LayersDetail event={e} mode={mode} attention={inCycle} tokens={tokens} streamShape={streamShape} />
     }
     case 'logits': {
       const logits = latestOfType(events, cursor, 'logits')
       const sm = latestOfType(events, cursor, 'softmax')
-      return logits ? <LogitsDetail logits={logits} softmax={sm} /> : empty
+      const embed = latestOfType(events, cursor, 'embed')
+      const vocabSize = latestOfType(events, cursor, 'run-start')?.vocabSize
+      const readout = embed ? { dims: embed.dims, vocabSize } : undefined
+      return logits ? <LogitsDetail logits={logits} softmax={sm} readout={readout} /> : empty
     }
     case 'sampler': {
       const sm = latestOfType(events, cursor, 'softmax')

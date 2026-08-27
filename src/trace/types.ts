@@ -13,7 +13,7 @@ export interface AttentionHead {
 }
 export type RunEndReason = 'eos' | 'max-tokens' | 'aborted' | 'error'
 export type TraceEvent =
-  | { type: 'run-start'; prompt: string; mode: Mode; modelId: string; params: GenParams }
+  | { type: 'run-start'; prompt: string; mode: Mode; modelId: string; params: GenParams; vocabSize?: number }
   | { type: 'tokenize'; tokens: TokenInfo[]; truncated?: boolean }
   | { type: 'embed'; cycle: number; seqLen: number; dims: number; preview: number[][] }
   | { type: 'layer'; cycle: number; index: number; total: number; activationNorm?: number }

@@ -17,6 +17,12 @@ test('produces a valid trace', async () => {
   expect(validateTrace(await collect('The cat sat'))).toEqual([])
 })
 
+test('run-start carries the simulated model vocab size', async () => {
+  const events = await collect('Hi')
+  const start = events[0]
+  expect(start.type === 'run-start' && start.vocabSize).toBe(49152)
+})
+
 test('same prompt → identical trace (deterministic)', async () => {
   expect(await collect('Hello world')).toEqual(await collect('Hello world'))
 })

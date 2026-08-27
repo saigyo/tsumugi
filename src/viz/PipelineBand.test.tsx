@@ -44,6 +44,19 @@ test('stage cards seek to the representative event when clickable', () => {
   expect(card.dataset.clickable).toBe('true')
 })
 
+test('connector labels show live tensor shapes', () => {
+  render(<PipelineBand events={trace} cursor={7} />)
+  const labels = screen.getAllByTestId('flow-shape').map((l) => l.textContent)
+  expect(labels).toEqual(['[2]', '[2×576]', '[1×576]', '[49 152]'])
+  expect(screen.getByTestId('loop-label')).toHaveTextContent('+1 token')
+})
+
+test('connector labels are absent before a run', () => {
+  render(<PipelineBand events={[]} cursor={-1} />)
+  expect(screen.queryAllByTestId('flow-shape')).toHaveLength(0)
+  expect(screen.queryByTestId('loop-label')).not.toBeInTheDocument()
+})
+
 test('cards without a target are not clickable', () => {
   const onStageClick = vi.fn()
   render(<PipelineBand events={trace.slice(0, 2)} cursor={1} onStageClick={onStageClick} />)

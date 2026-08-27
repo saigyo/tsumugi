@@ -55,7 +55,8 @@ async function run(runId: number, prompt: string, params: GenParams) {
   const emit = (event: TraceEvent) => post({ type: 'trace', runId, event })
   const { Tensor, DynamicCache } = await import('@huggingface/transformers')
 
-  emit({ type: 'run-start', prompt, mode: 'real', modelId: loadedModelId, params })
+  emit({ type: 'run-start', prompt, mode: 'real', modelId: loadedModelId, params,
+    ...(model.config.vocab_size ? { vocabSize: model.config.vocab_size } : {}) })
   let promptIds: number[] = tokenizer.encode(prompt, { add_special_tokens: false })
   const maxCtx: number = model.config.max_position_embeddings ?? 2048
   const budget = Math.max(1, maxCtx - params.maxNewTokens)

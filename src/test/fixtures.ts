@@ -3,7 +3,7 @@ import type { TraceEvent, TokenInfo } from '../trace/types'
 export function makeFixtureTrace(cycles = 2, layers = 3): TraceEvent[] {
   const events: TraceEvent[] = [
     { type: 'run-start', prompt: 'The cat', mode: 'sim', modelId: 'fixture',
-      params: { temperature: 0.8, topK: 10, maxNewTokens: cycles } },
+      params: { temperature: 0.8, topK: 10, maxNewTokens: cycles }, vocabSize: 49152 },
     { type: 'tokenize', tokens: [{ id: 10, text: 'The' }, { id: 11, text: ' cat' }] },
   ]
   const words = [' sat', ' on', ' the', ' mat']
