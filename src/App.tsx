@@ -93,7 +93,10 @@ export default function App() {
       <PromptBar mode={mode} onModeChange={handleModeChange} onGenerate={handleGenerate}
         busy={mode === 'real' && !realReady} examples={CURATED_EXAMPLES} />
       <TokenStream events={events} cursor={cursor} />
-      <PipelineBand events={events} cursor={cursor} />
+      <PipelineBand events={events} cursor={cursor} onStageClick={(index) => {
+        usePlayerStore.getState().dispatch({ type: 'seek', index })
+        usePlayerStore.getState().dispatch({ type: 'pause' })
+      }} />
       <DetailPanel events={events} cursor={cursor} mode={mode} />
       <Controls />
     </div>

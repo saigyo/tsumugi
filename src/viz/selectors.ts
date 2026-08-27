@@ -47,3 +47,31 @@ export function latestOfType<K extends TraceEvent['type']>(
 export function cycleTickIndices(events: TraceEvent[]): number[] {
   return events.flatMap((e, i) => (e.type === 'append' ? [i] : []))
 }
+
+// The one event per cycle where a stage's payload is fully on screen.
+const REPRESENTATIVE: Record<Exclude<StageId, null>, TraceEvent['type']> = {
+  tokenizer: 'tokenize', embeddings: 'embed', layers: 'attention',
+  logits: 'softmax', sampler: 'sample',
+}
+
+function cycleAt(events: TraceEvent[], cursor: number): number {
+  for (let i = Math.min(cursor, events.length - 1); i >= 0; i--) {
+    const e = events[i]
+    if ('cycle' in e) return e.cycle
+  }
+  return 0
+}
+
+export function stageEventIndex(events: TraceEvent[], cursor: number, stage: Exclude<StageId, null>): number {
+  const type = REPRESENTATIVE[stage]
+  if (type === 'tokenize') return events.findIndex((e) => e.type === 'tokenize')
+  const cycle = cycleAt(events, cursor)
+  let fallback = -1
+  for (let i = 0; i < events.length; i++) {
+    const e = events[i]
+    if (e.type !== type) continue
+    if ('cycle' in e && e.cycle === cycle) return i
+    fallback = i
+  }
+  return fallback
+}

@@ -1,5 +1,5 @@
 import type { TraceEvent } from '../trace/types'
-import { activeStage, eventAt, latestOfType, type StageId } from './selectors'
+import { activeStage, eventAt, latestOfType, stageEventIndex, type StageId } from './selectors'
 
 const STAGES: Array<{ id: Exclude<StageId, null>; label: string }> = [
   { id: 'tokenizer', label: 'Tokenizer' },
@@ -34,17 +34,27 @@ function summaryFor(stage: Exclude<StageId, null>, events: TraceEvent[], cursor:
   }
 }
 
-export function PipelineBand({ events, cursor }: { events: TraceEvent[]; cursor: number }) {
+export function PipelineBand({ events, cursor, onStageClick }: {
+  events: TraceEvent[]
+  cursor: number
+  onStageClick?: (index: number) => void
+}) {
   const active = activeStage(eventAt(events, cursor))
   return (
     <div className="pipeline-band">
       {STAGES.map((s, i) => {
         const summary = summaryFor(s.id, events, cursor)
+        const target = stageEventIndex(events, cursor, s.id)
+        const clickable = target >= 0 && onStageClick != null
         return (
           <div key={s.id} className="stage-wrap">
             {i > 0 && <span className="stage-arrow">→</span>}
             <div data-testid="stage-card" data-stage={s.id} data-active={String(active === s.id)}
-              className="stage-card">
+              data-clickable={String(clickable)} className="stage-card"
+              role={clickable ? 'button' : undefined} tabIndex={clickable ? 0 : undefined}
+              title={clickable ? `Jump to the ${s.label} step of the current token` : undefined}
+              onClick={clickable ? () => onStageClick(target) : undefined}
+              onKeyDown={clickable ? (e) => { if (e.key === 'Enter' || e.key === ' ') onStageClick(target) } : undefined}>
               {s.label}
               {summary && <div data-testid="stage-summary" className="stage-summary">{summary}</div>}
             </div>

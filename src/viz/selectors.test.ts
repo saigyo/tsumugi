@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest'
 import { makeFixtureTrace } from '../test/fixtures'
-import { activeStage, cycleTickIndices, distributionFor, eventAt, latestOfType, visibleTokens } from './selectors'
+import { activeStage, cycleTickIndices, distributionFor, eventAt, latestOfType, stageEventIndex, visibleTokens } from './selectors'
 
 const trace = makeFixtureTrace()  // 2 cycles, 3 layers
 
@@ -48,4 +48,25 @@ test('distributionFor returns the softmax and sample of a cycle', () => {
 
 test('attention events map to the layers stage', () => {
   expect(activeStage({ type: 'attention', cycle: 0, heads: [] })).toBe('layers')
+})
+
+// fixture indices: 1=tokenize; c0: 2 embed, 3-5 layers, 6 attention, 7 logits, 8 softmax, 9 sample, 10 append;
+// c1: 11 embed, 12-14 layers, 15 attention, 16 logits, 17 softmax, 18 sample, 19 append
+test('stageEventIndex seeks to the representative event of the current cycle', () => {
+  expect(stageEventIndex(trace, 4, 'tokenizer')).toBe(1)
+  expect(stageEventIndex(trace, 4, 'layers')).toBe(6)      // cursor in cycle 0 → its attention
+  expect(stageEventIndex(trace, 12, 'layers')).toBe(15)    // cursor in cycle 1
+  expect(stageEventIndex(trace, 12, 'logits')).toBe(17)    // softmax of cycle 1
+  expect(stageEventIndex(trace, 4, 'sampler')).toBe(9)
+  expect(stageEventIndex(trace, 0, 'embeddings')).toBe(2)  // before first cycle → cycle 0
+})
+
+test('stageEventIndex falls back to the latest existing event when the cycle lacks one', () => {
+  const partial = trace.slice(0, 13)  // cycle 1 cut off mid-layers
+  expect(stageEventIndex(partial, 12, 'layers')).toBe(6)   // falls back to cycle 0 attention
+  expect(stageEventIndex(partial, 12, 'sampler')).toBe(9)
+})
+
+test('stageEventIndex returns -1 when no event exists at all', () => {
+  expect(stageEventIndex(trace.slice(0, 2), 1, 'layers')).toBe(-1)
 })

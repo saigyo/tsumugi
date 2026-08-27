@@ -1,5 +1,5 @@
-import { cleanup, render, screen } from '@testing-library/react'
-import { afterEach, expect, test } from 'vitest'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { afterEach, expect, test, vi } from 'vitest'
 import { makeFixtureTrace } from '../test/fixtures'
 import { PipelineBand } from './PipelineBand'
 
@@ -33,4 +33,22 @@ test('cards show micro-summaries once their data exists', () => {
 test('cards show no micro-summaries before any data', () => {
   render(<PipelineBand events={trace} cursor={-1} />)
   expect(screen.queryAllByTestId('stage-summary')).toHaveLength(0)
+})
+
+test('stage cards seek to the representative event when clickable', () => {
+  const onStageClick = vi.fn()
+  render(<PipelineBand events={trace} cursor={4} onStageClick={onStageClick} />)
+  const card = screen.getAllByTestId('stage-card').find((c) => c.dataset.stage === 'layers')!
+  fireEvent.click(card)
+  expect(onStageClick).toHaveBeenCalledWith(6)  // cycle 0 attention
+  expect(card.dataset.clickable).toBe('true')
+})
+
+test('cards without a target are not clickable', () => {
+  const onStageClick = vi.fn()
+  render(<PipelineBand events={trace.slice(0, 2)} cursor={1} onStageClick={onStageClick} />)
+  const card = screen.getAllByTestId('stage-card').find((c) => c.dataset.stage === 'layers')!
+  fireEvent.click(card)
+  expect(onStageClick).not.toHaveBeenCalled()
+  expect(card.dataset.clickable).toBe('false')
 })
