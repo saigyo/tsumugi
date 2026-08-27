@@ -97,3 +97,31 @@ test('coreference example prompt yields a coreference head', async () => {
   if (attn?.type !== 'attention') throw new Error('missing attention')
   expect(attn.heads.some((h) => h.label === 'coreference')).toBe(true)
 })
+
+test('curated example runs follow their scripted continuation and end with eos', async () => {
+  const events = await collect('The cat sat on the mat because it was tired', { ...PARAMS, maxNewTokens: 20 })
+  const generated = events.filter((e) => e.type === 'append').map((e) => e.type === 'append' ? e.token.text : '')
+  expect(generated.join('')).toBe(' It closed its eyes and fell asleep')
+  const last = events[events.length - 1]
+  expect(last.type === 'run-end' && last.reason === 'eos').toBe(true)
+})
+
+test('scripted tokens are the dominant top candidate each cycle', async () => {
+  const events = await collect('one two three one two three one', { ...PARAMS, maxNewTokens: 20 })
+  const logits = events.filter((e) => e.type === 'logits')
+  const samples = events.filter((e) => e.type === 'sample')
+  expect(logits.length).toBeGreaterThan(0)
+  logits.forEach((l, i) => {
+    if (l.type !== 'logits' || samples[i]?.type !== 'sample') throw new Error('shape')
+    expect(l.topK[0].id).toBe(samples[i].chosen.id)          // scripted token is argmax
+    expect(l.topK[0].logit - l.topK[1].logit).toBeGreaterThan(1.5)  // clearly dominant
+  })
+})
+
+test('scripted runs still produce valid traces and respect maxNewTokens', async () => {
+  const events = await collect('The cat sat on the mat because it was tired', { ...PARAMS, maxNewTokens: 3 })
+  expect(validateTrace(events)).toEqual([])
+  expect(events.filter((e) => e.type === 'append')).toHaveLength(3)
+  const last = events[events.length - 1]
+  expect(last.type === 'run-end' && last.reason === 'max-tokens').toBe(true)
+})

@@ -306,6 +306,14 @@ head linking the pronoun to its antecedent, anchored by finding the
 tokens rather than hardcoded indices (omitted if the anchors are missing
 under a different tokenizer). Curated example prompts are one-click chips
 under the prompt input; clicking fills the prompt and starts generation.
+Curated runs follow a hand-written continuation: the scripted token is
+inserted as the clearly-dominant top candidate each cycle and chosen
+deterministically (temperature still reshapes the displayed softmax but
+not the outcome on scripted runs), ending with `eos` when the script is
+exhausted. Stage cards are clickable and seek to the current cycle's
+representative event (Layers → its `attention` event, Logits → its
+`softmax`, Sampler → its `sample`), giving stage × cycle navigation
+together with the cycle-step buttons.
 The Layers detail panel renders the heatmap with head-selector chips,
 per-label reading hints, and an "illustrative" disclaimer. Real mode
 emits no attention events, so the panel stays schematic there; when a

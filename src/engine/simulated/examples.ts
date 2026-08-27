@@ -6,6 +6,8 @@ export interface CuratedExample {
   label: string
   prompt: string
   hint: string
+  // hand-written continuation, one token text per generation cycle
+  continuation: string[]
 }
 
 export const CURATED_EXAMPLES: CuratedExample[] = [
@@ -14,18 +16,21 @@ export const CURATED_EXAMPLES: CuratedExample[] = [
     label: 'Coreference: “it” → “cat”',
     prompt: 'The cat sat on the mat because it was tired',
     hint: 'Open the coreference head and find the row for “it”: most of its attention points back to “cat” — the model resolving what the pronoun refers to.',
+    continuation: [' It', ' closed', ' its', ' eyes', ' and', ' fell', ' asleep'],
   },
   {
     id: 'induction',
     label: 'Induction: repeated pattern',
     prompt: 'one two three one two three one',
     hint: 'Open the induction head: on each repeated token, attention jumps to what followed its previous occurrence — the circuit behind in-context pattern completion.',
+    continuation: [' two', ' three', ' one', ' two', ' three'],
   },
   {
     id: 'sink',
     label: 'Attention sink',
     prompt: 'The quick brown fox jumps over the lazy dog',
     hint: 'Open the attention-sink head: almost every row lights up the first column — surplus attention parking on the first token as a learned “do nothing” default.',
+    continuation: [' and', ' lands', ' in', ' the', ' soft', ' grass'],
   },
 ]
 
