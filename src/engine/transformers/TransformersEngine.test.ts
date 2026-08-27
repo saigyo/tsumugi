@@ -22,7 +22,7 @@ test('prepare resolves on ready and records device', async () => {
   const onProgress = vi.fn()
   const p = engine.prepare(onProgress)
   worker.respond({ type: 'progress', info: { file: 'model.onnx', loaded: 1, total: 2 } })
-  worker.respond({ type: 'ready', device: 'wasm' })
+  worker.respond({ type: 'ready', device: 'wasm', attentions: false })
   await p
   expect(onProgress).toHaveBeenCalledOnce()
   expect(engine.device).toBe('wasm')
@@ -62,4 +62,12 @@ test('abort posts abort message', () => {
   const handle = engine.run('Hi', { temperature: 1, topK: 10, maxNewTokens: 2 }, () => {})
   handle.abort()
   expect(worker.sent.some((m) => m.type === 'abort')).toBe(true)
+})
+
+test('ready records the attentions capability', async () => {
+  const { worker, engine } = make()
+  const p = engine.prepare()
+  worker.respond({ type: 'ready', device: 'webgpu', attentions: true })
+  await p
+  expect(engine.attentions).toBe(true)
 })

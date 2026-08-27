@@ -7,7 +7,7 @@ export type WorkerRequest =
   | { type: 'abort' }
 export type WorkerResponse =
   | { type: 'progress'; info: ProgressInfo }
-  | { type: 'ready'; device: 'webgpu' | 'wasm' }
+  | { type: 'ready'; device: 'webgpu' | 'wasm'; attentions: boolean }
   | { type: 'trace'; runId: number; event: TraceEvent }
   | { type: 'done'; runId: number }
   | { type: 'fatal'; message: string }

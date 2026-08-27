@@ -7,6 +7,7 @@ export class TransformersEngine implements PipelineEngine {
   private worker: Worker
   private nextRunId = 1
   device: 'webgpu' | 'wasm' | null = null
+  attentions: boolean | null = null
   private listeners = new Set<(msg: WorkerResponse) => void>()
 
   constructor(workerFactory: () => Worker = () =>
@@ -23,7 +24,7 @@ export class TransformersEngine implements PipelineEngine {
     return new Promise((resolve, reject) => {
       const listener = (msg: WorkerResponse) => {
         if (msg.type === 'progress') onProgress?.(msg.info)
-        if (msg.type === 'ready') { this.device = msg.device; this.listeners.delete(listener); resolve() }
+        if (msg.type === 'ready') { this.device = msg.device; this.attentions = msg.attentions; this.listeners.delete(listener); resolve() }
         if (msg.type === 'fatal') { this.listeners.delete(listener); reject(new Error(msg.message)) }
       }
       this.listeners.add(listener)

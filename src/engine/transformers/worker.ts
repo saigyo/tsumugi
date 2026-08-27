@@ -21,10 +21,10 @@ async function prepare(modelId: string) {
   const device = 'gpu' in navigator ? 'webgpu' : 'wasm'
   try {
     model = await AutoModelForCausalLM.from_pretrained(modelId, { dtype: 'q4', device, progress_callback })
-    post({ type: 'ready', device })
+    post({ type: 'ready', device, attentions: false })
   } catch {
     model = await AutoModelForCausalLM.from_pretrained(modelId, { dtype: 'q4', device: 'wasm', progress_callback })
-    post({ type: 'ready', device: 'wasm' })
+    post({ type: 'ready', device: 'wasm', attentions: false })
   }
 }
 

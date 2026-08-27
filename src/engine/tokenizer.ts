@@ -6,6 +6,7 @@ export interface Tokenizer {
 }
 
 export const MODEL_ID = 'HuggingFaceTB/SmolLM2-135M-Instruct'
+export const ATTN_MODEL_ID = 'saigyo-hoshi/smollm2-135m-attn-onnx'
 
 function hashId(text: string): number {
   let h = 0x811c9dc5
