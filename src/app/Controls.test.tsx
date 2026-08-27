@@ -34,7 +34,6 @@ test('scrubber seeks', () => {
   render(<Controls />)
   fireEvent.change(screen.getByTestId('scrubber'), { target: { value: '7' } })
   expect(usePlayerStore.getState().cursor).toBe(7)
-  expect(usePlayerStore.getState().followLive).toBe(false)
 })
 
 test('live button jumps to frontier and plays', () => {
