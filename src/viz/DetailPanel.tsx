@@ -5,10 +5,21 @@ import { LayersDetail } from './details/LayersDetail'
 import { TokenizerDetail } from './details/TokenizerDetail'
 import { LogitsDetail } from './details/LogitsDetail'
 import { SamplerDetail } from './details/SamplerDetail'
+import { RunEndDetail } from './details/RunEndDetail'
+import { visibleTokens } from './selectors'
 
 export function DetailPanel({ events, cursor, mode }: { events: TraceEvent[]; cursor: number; mode: Mode }) {
-  const stage = activeStage(eventAt(events, cursor))
+  const current = eventAt(events, cursor)
+  const stage = activeStage(current)
   const empty = <div data-testid="detail-empty" className="detail">Press Generate, then step through the pipeline.</div>
+
+  if (current?.type === 'run-end') {
+    const { prompt, generated } = visibleTokens(events, cursor)
+    return (
+      <RunEndDetail runStart={latestOfType(events, cursor, 'run-start')} runEnd={current}
+        promptTokens={prompt.length} generatedTokens={generated.length} />
+    )
+  }
 
   switch (stage) {
     case 'tokenizer': {

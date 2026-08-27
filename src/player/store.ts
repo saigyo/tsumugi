@@ -20,7 +20,14 @@ export function usePlaybackTicker(): void {
   const length = useTraceStore((s) => s.events.length)
 
   useEffect(() => {
-    if (status !== 'playing' || length === 0 || cursor >= length - 1) return
+    if (status !== 'playing' || length === 0) return
+    if (cursor >= length - 1) {
+      // parked at the frontier: a finished trace ends playback; a growing one waits
+      if (useTraceStore.getState().events[cursor]?.type === 'run-end') {
+        usePlayerStore.getState().dispatch({ type: 'pause' })
+      }
+      return
+    }
     const next = useTraceStore.getState().events[cursor + 1]
     const t = setTimeout(
       () => usePlayerStore.getState().dispatch({ type: 'stepForward', auto: true }),

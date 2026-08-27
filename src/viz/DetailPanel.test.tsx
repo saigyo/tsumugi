@@ -60,3 +60,12 @@ test('sampler detail marks the chosen token', () => {
   render(<DetailPanel events={trace} cursor={8} mode="sim" />)
   expect(screen.getByTestId('chosen-marker')).toHaveTextContent('sat')
 })
+
+test('run-end cursor shows a run summary, not the idle hint', () => {
+  render(<DetailPanel events={trace} cursor={trace.length - 1} mode="sim" />)
+  const summary = screen.getByTestId('detail-run-end')
+  expect(summary).toHaveTextContent(/max-tokens/)
+  expect(summary).toHaveTextContent('2')          // generated token count
+  expect(summary).toHaveTextContent(/T=0.8/)      // params from run-start
+  expect(screen.queryByTestId('detail-empty')).not.toBeInTheDocument()
+})
