@@ -34,3 +34,24 @@ test('cells carry a from → to tooltip with the percentage', () => {
   expect(withPct).toBeDefined()
   expect(withPct!.querySelector('title')!.textContent).toMatch(/→/)
 })
+
+test('column labels run along the diagonal', () => {
+  render(<AttentionHeatmap heads={attn.heads} tokens={tokens} />)
+  const cols = screen.getAllByTestId('col-label')
+  expect(cols).toHaveLength(2)
+  expect(cols.map((c) => c.textContent)).toEqual(['The', 'cat'])
+})
+
+test('hovering a cell highlights both labels and fills the readout', () => {
+  render(<AttentionHeatmap heads={attn.heads} tokens={tokens} />)
+  const cells = screen.getAllByTestId('attn-cell')
+  fireEvent.mouseEnter(cells[1])  // row 1 ("cat"), col 0 ("The")
+  expect(screen.getByTestId('attn-readout')).toHaveTextContent(/cat\s*→\s*The:\s*\d+%/)
+  const rows = screen.getAllByTestId('row-label')
+  const cols = screen.getAllByTestId('col-label')
+  expect(rows[1].dataset.hl).toBe('true')
+  expect(cols[0].dataset.hl).toBe('true')
+  fireEvent.mouseLeave(cells[1])
+  expect(screen.getByTestId('attn-readout')).not.toHaveTextContent('%')
+  expect(rows[1].dataset.hl).toBe('false')
+})

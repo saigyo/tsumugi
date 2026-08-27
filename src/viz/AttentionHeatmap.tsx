@@ -8,11 +8,14 @@ const HINTS: Record<AttentionLabel, string> = {
   coreference: 'Follow the pronoun’s row: it attends back to its antecedent.',
 }
 
-const CELL = 18
-const LABEL_W = 64
+const CELL = 20
+const LABEL_W = 66
+const DIAG_PAD = 58   // room above the matrix for the slanted column labels
+const RIGHT_PAD = 70  // overhang of the right-most slanted label
 
 export function AttentionHeatmap({ heads, tokens }: { heads: AttentionHead[]; tokens: TokenInfo[] }) {
   const [selected, setSelected] = useState(0)
+  const [hovered, setHovered] = useState<{ r: number; c: number } | null>(null)
   const head = heads[Math.min(selected, heads.length - 1)]
   if (!head) return null
   const n = head.matrix.length
@@ -23,28 +26,51 @@ export function AttentionHeatmap({ heads, tokens }: { heads: AttentionHead[]; to
       <div className="head-chip-row">
         {heads.map((h, i) => (
           <button key={`${h.layer}-${h.head}`} data-testid="head-chip" data-active={String(i === selected)}
-            className="head-chip" onClick={() => setSelected(i)}>
+            className="head-chip" onClick={() => { setSelected(i); setHovered(null) }}>
             {h.label} <span className="head-loc">L{h.layer}·H{h.head}</span>
           </button>
         ))}
       </div>
-      <svg width={LABEL_W + n * CELL + 4} height={n * CELL + 4} role="img"
+      <svg width={LABEL_W + n * CELL + RIGHT_PAD} height={DIAG_PAD + n * CELL + 4} role="img"
         aria-label={`attention weights, ${head.label} head`}>
+        {head.matrix.map((_, i) => {
+          const cx = LABEL_W + i * CELL + CELL / 2
+          const cy = DIAG_PAD + i * CELL - 5
+          return (
+            <text key={`c${i}`} data-testid="col-label" data-hl={String(hovered?.c === i)}
+              x={cx} y={cy} textAnchor="start" transform={`rotate(-45 ${cx} ${cy})`}
+              className="attn-label attn-col-label">
+              {label(i)}
+            </text>
+          )
+        })}
         {head.matrix.map((row, r) => (
           <g key={r}>
-            <text x={LABEL_W - 6} y={r * CELL + CELL / 2 + 4} textAnchor="end" className="attn-label">
+            <text data-testid="row-label" data-hl={String(hovered?.r === r)}
+              x={LABEL_W - 8} y={DIAG_PAD + r * CELL + CELL / 2 + 4} textAnchor="end" className="attn-label">
               {label(r)}
             </text>
-            {row.map((w, c) => (
-              <rect key={c} data-testid="attn-cell" x={LABEL_W + c * CELL} y={r * CELL}
-                width={CELL - 1} height={CELL - 1}
-                fill={`hsl(220 70% ${Math.round(96 - 56 * Math.min(1, w))}%)`}>
-                <title>{`${label(r)} → ${label(c)}: ${Math.round(w * 100)}%`}</title>
-              </rect>
-            ))}
+            {row.map((w, c) => {
+              const isHovered = hovered?.r === r && hovered?.c === c
+              return (
+                <rect key={c} data-testid="attn-cell" x={LABEL_W + c * CELL} y={DIAG_PAD + r * CELL}
+                  width={CELL - 1} height={CELL - 1}
+                  fill={`hsl(220 70% ${Math.round(96 - 56 * Math.min(1, w))}%)`}
+                  stroke={isHovered ? '#d64' : 'none'} strokeWidth={isHovered ? 2 : 0}
+                  onMouseEnter={() => setHovered({ r, c })}
+                  onMouseLeave={() => setHovered(null)}>
+                  <title>{`${label(r)} → ${label(c)}: ${Math.round(w * 100)}%`}</title>
+                </rect>
+              )
+            })}
           </g>
         ))}
       </svg>
+      <p data-testid="attn-readout" className="attn-readout">
+        {hovered
+          ? `${label(hovered.r)} → ${label(hovered.c)}: ${Math.round(head.matrix[hovered.r][hovered.c] * 100)}%`
+          : ' '}
+      </p>
       <p data-testid="attn-hint" className="attn-hint">{HINTS[head.label]}</p>
       <p className="attn-note">Illustrative pattern (simulated) — real attention weights are not exposed by the browser model.</p>
     </div>

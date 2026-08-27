@@ -39,6 +39,8 @@ body {
 .head-chip[data-active="true"] { border-color: #36c; background: #dbeafe; }
 .head-loc { color: #888; font-size: .7rem; }
 .attn-label { font-size: 10px; fill: #555; }
+.attn-label[data-hl="true"] { fill: #d64; font-weight: 700; }
+.attn-readout { font-size: .85rem; color: #333; margin: .3rem 0 0; min-height: 1.2em; }
 .attn-hint { font-size: .82rem; color: #444; margin: .5rem 0 0; }
 .attn-note { font-size: .72rem; color: #999; margin: .2rem 0 0; }
 /* animated hand-off: the arrow feeding the active stage lights up */
