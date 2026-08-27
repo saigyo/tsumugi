@@ -1,11 +1,19 @@
 import { useState } from 'react'
 import type { GenParams, Mode } from '../trace/types'
 
+export interface PromptExample {
+  id: string
+  label: string
+  prompt: string
+  hint: string
+}
+
 export interface PromptBarProps {
   mode: Mode
   onModeChange(mode: Mode): void
   onGenerate(prompt: string, params: GenParams): void
   busy: boolean
+  examples?: PromptExample[]
 }
 
 const clampOrKeep = (raw: string, min: number, max: number, prev: number): number => {
@@ -14,7 +22,7 @@ const clampOrKeep = (raw: string, min: number, max: number, prev: number): numbe
   return Math.min(max, Math.max(min, n))
 }
 
-export function PromptBar({ mode, onModeChange, onGenerate, busy }: PromptBarProps) {
+export function PromptBar({ mode, onModeChange, onGenerate, busy, examples }: PromptBarProps) {
   const [prompt, setPrompt] = useState('')
   const [temperature, setTemperature] = useState(0.8)
   const [topK, setTopK] = useState(10)
@@ -39,6 +47,21 @@ export function PromptBar({ mode, onModeChange, onGenerate, busy }: PromptBarPro
         onClick={() => onGenerate(prompt, { temperature, topK, maxNewTokens })}>
         Generate
       </button>
+      {examples && examples.length > 0 && (
+        <div className="example-chip-row">
+          <span className="example-chip-label">Try:</span>
+          {examples.map((ex) => (
+            <button key={ex.id} data-testid="example-chip" className="example-chip" title={ex.hint}
+              disabled={busy}
+              onClick={() => {
+                setPrompt(ex.prompt)
+                onGenerate(ex.prompt, { temperature, topK, maxNewTokens })
+              }}>
+              {ex.label}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

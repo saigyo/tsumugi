@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Controls } from './app/Controls'
 import { ModelStatus } from './app/ModelStatus'
 import { PromptBar } from './app/PromptBar'
+import { CURATED_EXAMPLES } from './engine/simulated/examples'
 import { SimulatedEngine } from './engine/simulated/SimulatedEngine'
 import { fallbackTokenizer, loadTokenizer, type Tokenizer } from './engine/tokenizer'
 import { TransformersEngine } from './engine/transformers/TransformersEngine'
@@ -90,7 +91,7 @@ export default function App() {
       <ModelStatus progress={progress} device={mode === 'real' ? device : null} error={modelError}
         onFallback={() => { setModelError(null); setMode('sim') }} />
       <PromptBar mode={mode} onModeChange={handleModeChange} onGenerate={handleGenerate}
-        busy={mode === 'real' && !realReady} />
+        busy={mode === 'real' && !realReady} examples={CURATED_EXAMPLES} />
       <TokenStream events={events} cursor={cursor} />
       <PipelineBand events={events} cursor={cursor} />
       <DetailPanel events={events} cursor={cursor} mode={mode} />

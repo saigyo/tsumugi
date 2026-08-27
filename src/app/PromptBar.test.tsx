@@ -37,3 +37,21 @@ test('out-of-range typed values are clamped; NaN keeps the previous value', () =
   fireEvent.click(screen.getByTestId('btn-generate'))
   expect(onGenerate).toHaveBeenCalledWith('Hi', { temperature: 2, topK: 1, maxNewTokens: 20 })
 })
+
+test('example chips fill the prompt and start generation', () => {
+  const onGenerate = vi.fn()
+  const examples = [{ id: 'x', label: 'Example X', prompt: 'The cat sat', hint: 'watch the cat' }]
+  render(<PromptBar mode="sim" onModeChange={noop} onGenerate={onGenerate} busy={false} examples={examples} />)
+  const chip = screen.getByTestId('example-chip')
+  expect(chip).toHaveTextContent('Example X')
+  expect(chip).toHaveAttribute('title', 'watch the cat')
+  fireEvent.click(chip)
+  expect(screen.getByTestId('prompt-input')).toHaveValue('The cat sat')
+  expect(onGenerate).toHaveBeenCalledWith('The cat sat', { temperature: 0.8, topK: 10, maxNewTokens: 20 })
+})
+
+test('example chips are hidden while busy', () => {
+  const examples = [{ id: 'x', label: 'Example X', prompt: 'p', hint: 'h' }]
+  render(<PromptBar mode="real" onModeChange={noop} onGenerate={noop} busy={true} examples={examples} />)
+  expect(screen.getByTestId('example-chip')).toBeDisabled()
+})

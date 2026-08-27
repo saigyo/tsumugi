@@ -24,6 +24,41 @@ controls.
   cached by the browser afterward. It prefers WebGPU and automatically falls
   back to WASM on browsers/devices without WebGPU support.
 
+## Reading the attention heatmaps
+
+The Layers stage shows attention heatmaps (simulated mode): a triangular
+grid per attention head, where row *i* shows how much the token at
+position *i* attends to each earlier token — every row sums to 100%.
+Real attention heads show strikingly legible patterns, and the simulated
+heads reproduce the canonical ones:
+
+- **Previous-token head** — a bright diagonal stripe: this head mostly
+  copies from the token just before. Local syntax.
+- **Attention sink** — a bright first column: many heads dump most of
+  their attention on the first token as a learned "do nothing" default.
+  A famous, counterintuitive phenomenon invisible in any other view of
+  the model.
+- **Induction head** — with a repeated pattern in the prompt
+  ("one two three one …"), attention jumps from a repeated token to
+  whatever followed its previous occurrence. This is the circuit that
+  interpretability research credits for in-context learning.
+- **Coreference** — in "The cat sat on the mat because it was tired",
+  watch the row for "it" attend back to "cat": the mechanism by which
+  the model resolves what a pronoun refers to.
+
+The example chips under the prompt input load prompts crafted so these
+patterns visibly connect to the input; each head's caption says what to
+look for.
+
+Two honest caveats. First, the heatmaps in this app are **illustrative**:
+browser-run ONNX models don't expose their real attention weights (see
+[`docs/research/`](docs/research/) for what it would take), so simulated
+mode shows deterministic, hand-shaped patterns of the kinds real models
+exhibit. Second, even real attention weights are **not explanations** —
+they show what the mechanism computes, not *why* the model produced its
+output (Jain & Wallace, "Attention is not Explanation", 2019). Read them
+as "how information flows", never as "why the model answered X".
+
 ## Running it
 
 ```bash

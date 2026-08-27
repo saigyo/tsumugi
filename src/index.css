@@ -27,6 +27,20 @@ body {
 .stage-card { border: 2px solid #ccc; border-radius: 6px; padding: .6rem .9rem; transition: border-color .3s, background .3s, box-shadow .3s; }
 .stage-card[data-active="true"] { border-color: #d64; background: #fff3ee; box-shadow: 0 0 8px #d648; }
 .stage-summary { font-size: .72rem; color: #777; margin-top: .2rem; white-space: pre; }
+.example-chip-row { flex-basis: 100%; display: flex; gap: .4rem; align-items: center; flex-wrap: wrap; }
+.example-chip-label { font-size: .8rem; color: #777; }
+.example-chip { border: 1px solid #bcd; background: #f0f6ff; border-radius: 999px; padding: .15rem .7rem;
+  font-size: .8rem; cursor: pointer; }
+.example-chip:hover:not(:disabled) { background: #dbeafe; }
+.attention-heatmap { margin-top: 1rem; }
+.head-chip-row { display: flex; gap: .4rem; flex-wrap: wrap; margin-bottom: .5rem; }
+.head-chip { border: 1px solid #ccc; background: #fafafa; border-radius: 999px; padding: .15rem .7rem;
+  font-size: .78rem; cursor: pointer; }
+.head-chip[data-active="true"] { border-color: #36c; background: #dbeafe; }
+.head-loc { color: #888; font-size: .7rem; }
+.attn-label { font-size: 10px; fill: #555; }
+.attn-hint { font-size: .82rem; color: #444; margin: .5rem 0 0; }
+.attn-note { font-size: .72rem; color: #999; margin: .2rem 0 0; }
 /* animated hand-off: the arrow feeding the active stage lights up */
 .stage-arrow { color: #bbb; transition: color .3s; }
 .stage-wrap:has(.stage-card[data-active="true"]) .stage-arrow { color: #d64; }

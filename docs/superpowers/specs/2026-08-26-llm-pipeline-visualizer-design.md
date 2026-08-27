@@ -285,9 +285,38 @@ Layout (three bands + controls):
   simulated mode, step through a full cycle, assert a token lands in the
   output stream. Real-mode E2E is manual (no 120 MB download in CI).
 
+## Simulated attention heatmaps (post-v1 addition)
+
+Sim mode emits one `attention` trace event per cycle, after the cycle's
+`layer` events and before `logits`:
+
+```ts
+| { type: 'attention'; cycle: number; heads: Array<{
+    layer: number; head: number;
+    label: 'previous-token' | 'attention-sink' | 'induction' | 'coreference';
+    matrix: number[][]   // ragged causal: row i covers positions 0..i, sums to 1
+  }> }
+```
+
+Patterns are deterministic and hand-shaped (no PRNG draw — the engine's
+random stream is untouched): a previous-token head, an attention-sink
+head, an induction head that recomputes over the full sequence each
+cycle, and — for the curated coreference example only — a handcrafted
+head linking the pronoun to its antecedent, anchored by finding the
+tokens rather than hardcoded indices (omitted if the anchors are missing
+under a different tokenizer). Curated example prompts are one-click chips
+under the prompt input; clicking fills the prompt and starts generation.
+The Layers detail panel renders the heatmap with head-selector chips,
+per-label reading hints, and an "illustrative" disclaimer. Real mode
+emits no attention events, so the panel stays schematic there; when a
+custom model export with real attention outputs exists (see
+docs/research/2026-08-27-attention-weights-in-browser.md), the same
+event and UI carry the real data.
+
 ## Out of scope (v1)
 
-- Attention-head heatmaps / per-head visualization
+- Real attention weights (simulated attention heatmaps shipped post-v1,
+  see below; real weights need a custom ONNX export — docs/research/)
 - Chat templating & system-prompt assembly stage
 - Trace archive / comparison of multiple runs side by side
 - Mobile-optimized layout (desktop-first; should degrade gracefully)
