@@ -243,8 +243,10 @@ Layout (three bands + controls):
 - SVG + CSS transitions only (no canvas, no D3 — data volumes are
   tiny). Animations keyed to cursor changes, so scrubbing backward
   replays them in reverse for free.
-- Deferred to post-v1: hover a generated token in the stream → see the
-  distribution it was sampled from (data already in the trace).
+- **Per-token distribution inspection**: hovering a generated token in
+  the stream shows a popover with the probability distribution it was
+  sampled from (the cycle's softmax top-k, chosen token highlighted) —
+  every token's alternatives stay explorable after the fact.
 
 ## Error handling
 
@@ -288,5 +290,4 @@ Layout (three bands + controls):
 - Attention-head heatmaps / per-head visualization
 - Chat templating & system-prompt assembly stage
 - Trace archive / comparison of multiple runs side by side
-- Per-token distribution inspection in the token stream (cheap post-v1 add)
 - Mobile-optimized layout (desktop-first; should degrade gracefully)

@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest'
 import { makeFixtureTrace } from '../test/fixtures'
-import { activeStage, cycleTickIndices, eventAt, latestOfType, visibleTokens } from './selectors'
+import { activeStage, cycleTickIndices, distributionFor, eventAt, latestOfType, visibleTokens } from './selectors'
 
 const trace = makeFixtureTrace()  // 2 cycles, 3 layers
 
@@ -31,4 +31,17 @@ test('cycleTickIndices marks append events', () => {
   const ticks = cycleTickIndices(trace)
   expect(ticks).toHaveLength(2)
   expect(trace[ticks[0]].type).toBe('append')
+})
+
+test('visibleTokens tags generated tokens with their cycle', () => {
+  const { generated } = visibleTokens(trace, trace.length - 1)
+  expect(generated.map((g) => g.cycle)).toEqual([0, 1])
+})
+
+test('distributionFor returns the softmax and sample of a cycle', () => {
+  const d = distributionFor(trace, 1)
+  expect(d?.softmax.cycle).toBe(1)
+  expect(d?.softmax.topK[0].prob).toBe(0.7)
+  expect(d?.sample.chosen.text).toBe(' on')
+  expect(distributionFor(trace, 99)).toBeUndefined()
 })

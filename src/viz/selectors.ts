@@ -17,12 +17,23 @@ export function eventAt(events: TraceEvent[], cursor: number): TraceEvent | unde
 
 export function visibleTokens(events: TraceEvent[], cursor: number) {
   const prompt: TokenInfo[] = []
-  const generated: TokenInfo[] = []
+  const generated: Array<TokenInfo & { cycle: number }> = []
   for (const e of events.slice(0, cursor + 1)) {
     if (e.type === 'tokenize') prompt.push(...e.tokens)
-    if (e.type === 'append') generated.push(e.token)
+    if (e.type === 'append') generated.push({ ...e.token, cycle: e.cycle })
   }
   return { prompt, generated }
+}
+
+export function distributionFor(events: TraceEvent[], cycle: number):
+  | { softmax: Extract<TraceEvent, { type: 'softmax' }>; sample: Extract<TraceEvent, { type: 'sample' }> }
+  | undefined {
+  let softmax, sample
+  for (const e of events) {
+    if (e.type === 'softmax' && e.cycle === cycle) softmax = e
+    if (e.type === 'sample' && e.cycle === cycle) sample = e
+  }
+  return softmax && sample ? { softmax, sample } : undefined
 }
 
 export function latestOfType<K extends TraceEvent['type']>(
