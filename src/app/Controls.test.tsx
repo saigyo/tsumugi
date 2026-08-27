@@ -51,12 +51,12 @@ test('speed select dispatches setSpeed', () => {
 })
 
 test('cycle buttons jump between append events', () => {
-  // fixture (2 cycles, 3 layers): append events at indices 9 and 17
+  // fixture (2 cycles, 3 layers, attention event per cycle): append events at indices 10 and 19
   render(<Controls />)
   fireEvent.click(screen.getByTestId('btn-cycle-fwd'))   // from cursor 3
-  expect(usePlayerStore.getState().cursor).toBe(9)
+  expect(usePlayerStore.getState().cursor).toBe(10)
   fireEvent.click(screen.getByTestId('btn-cycle-fwd'))
-  expect(usePlayerStore.getState().cursor).toBe(17)
+  expect(usePlayerStore.getState().cursor).toBe(19)
   fireEvent.click(screen.getByTestId('btn-cycle-back'))
-  expect(usePlayerStore.getState().cursor).toBe(9)
+  expect(usePlayerStore.getState().cursor).toBe(10)
 })

@@ -17,6 +17,18 @@ export function validateTrace(events: TraceEvent[]): string[] {
       phase = layerIdx >= e.total ? 'logits' : 'layer'
       continue
     }
+    if (e.type === 'attention') {
+      // optional slot: after the cycle's layers, before its logits
+      if (phase !== 'logits') { errs.push(`unexpected attention in phase ${phase}`); continue }
+      for (const h of e.heads) {
+        h.matrix.forEach((row, i) => {
+          if (row.length !== i + 1) errs.push(`attention row ${i} not causal (length ${row.length})`)
+          const sum = row.reduce((a, b) => a + b, 0)
+          if (Math.abs(sum - 1) > 1e-4) errs.push(`attention row ${i} sums to ${sum}`)
+        })
+      }
+      continue
+    }
     if (e.type === 'embed' && phase === 'embed') { phase = 'layer'; layerIdx = 0; continue }
     if (e.type === phase) {
       phase = CYCLE[(CYCLE.indexOf(phase) + 1) % CYCLE.length]
