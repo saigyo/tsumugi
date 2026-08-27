@@ -50,6 +50,13 @@ test('example chips fill the prompt and start generation', () => {
   expect(onGenerate).toHaveBeenCalledWith('The cat sat', { temperature: 0.8, topK: 10, maxNewTokens: 20 })
 })
 
+test('sampling inputs carry explanatory tooltips', () => {
+  render(<PromptBar mode="sim" onModeChange={noop} onGenerate={noop} busy={false} />)
+  expect(screen.getByTestId('temp-input').closest('label')).toHaveAttribute('title', expect.stringContaining('Temperature'))
+  expect(screen.getByTestId('topk-input').closest('label')).toHaveAttribute('title', expect.stringContaining('Top-k'))
+  expect(screen.getByTestId('maxtok-input').closest('label')).toHaveAttribute('title', expect.stringContaining('loop bound'))
+})
+
 test('status slot renders inside the config row', () => {
   render(<PromptBar mode="real" onModeChange={noop} onGenerate={noop} busy={false}
     status={<span data-testid="fake-status">webgpu</span>} />)

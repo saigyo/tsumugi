@@ -40,11 +40,14 @@ export function PromptBar({ mode, onModeChange, onGenerate, busy, examples, stat
         </button>
       </div>
       <div className="config-row">
-        <label>T <input data-testid="temp-input" type="number" step="0.1" min="0" max="2" value={temperature}
+        <label title="Temperature: divides the logits before softmax. Below 1 sharpens the distribution toward the favorite (safer, more repetitive); above 1 flattens it (more varied, more error-prone); exactly 0 always picks the top candidate (greedy). It changes how concentrated the odds are, never the ranking.">
+          T <input data-testid="temp-input" type="number" step="0.1" min="0" max="2" value={temperature}
           onChange={(e) => setTemperature(clampOrKeep(e.target.value, 0, 2, temperature))} /></label>
-        <label>top-k <input data-testid="topk-input" type="number" min="1" max="10" value={topK}
+        <label title="Top-k: only the k highest-scoring candidates are allowed into the draw; everything else gets probability zero. Cuts off the long tail of weird tokens that would otherwise fire eventually. k=1 is greedy decoding regardless of temperature.">
+          top-k <input data-testid="topk-input" type="number" min="1" max="10" value={topK}
           onChange={(e) => setTopK(clampOrKeep(e.target.value, 1, 10, topK))} /></label>
-        <label>max <input data-testid="maxtok-input" type="number" min="1" max="100" value={maxNewTokens}
+        <label title="Max new tokens: the loop bound — the generation cycle runs at most this many times. The run ends earlier if the model samples its end-of-sequence token (the run summary shows which happened). In real mode every token is one full forward pass.">
+          max <input data-testid="maxtok-input" type="number" min="1" max="100" value={maxNewTokens}
           onChange={(e) => setMaxNewTokens(clampOrKeep(e.target.value, 1, 100, maxNewTokens))} /></label>
         <span className="config-divider" aria-hidden="true" />
         <label title="Runs HuggingFaceTB/SmolLM2-135M-Instruct in your browser. Downloads ~120 MB once on first use; cached afterward.">
