@@ -87,7 +87,7 @@ export default function App() {
 
   return (
     <div className="app">
-      <h1>LLM Pipeline Visualizer</h1>
+      <h1>紬 Tsumugi <span className="app-subtitle">LLM Pipeline Visualizer</span></h1>
       <ModelStatus progress={progress} device={mode === 'real' ? device : null} error={modelError}
         onFallback={() => { setModelError(null); setMode('sim') }} />
       <PromptBar mode={mode} onModeChange={handleModeChange} onGenerate={handleGenerate}

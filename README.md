@@ -1,11 +1,18 @@
-# LLM Pipeline Visualizer
+# 紬 Tsumugi — An LLM Pipeline Visualizer
 
-A single-page app that visualizes how a prompt flows through an LLM's
-autoregressive generation loop — tokenize → embed → transformer layers →
-logits → softmax → sample → append → repeat. Built for developers and CS
-students who are comfortable with code but want to *see* what happens
-between typing a prompt and getting tokens back: tokenization, embeddings,
-per-layer activations, logits, probability distributions, and sampling.
+**Tsumugi** (紬) is a traditional Japanese cloth woven from raw silk,
+prized for its rough, hand-spun texture. The name plays on the related
+verb 紡ぐ (*tsumugu*) — to spin, to weave: an LLM pipeline weaves its
+output token by token into text, each new thread pulled from the
+probability distribution the model spins over its vocabulary.
+
+Tsumugi is a single-page app that visualizes how a prompt flows through
+an LLM's autoregressive generation loop — tokenize → embed → transformer
+layers → logits → softmax → sample → append → repeat. Built for
+developers and CS students who are comfortable with code but want to
+*see* what happens between typing a prompt and getting tokens back:
+tokenization, embeddings, per-layer activations, attention patterns,
+logits, probability distributions, and sampling.
 
 You type a prompt, hit generate, and watch the pipeline stages light up as
 each token is produced — live, or one step at a time via manual playback

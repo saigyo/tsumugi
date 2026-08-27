@@ -7,6 +7,7 @@ body {
 }
 
 .app { max-width: 960px; margin: 0 auto; padding: 1rem; font-family: system-ui, sans-serif; }
+.app-subtitle { font-size: .55em; font-weight: 400; color: #888; margin-left: .5rem; }
 .prompt-bar { display: flex; gap: .75rem; align-items: center; flex-wrap: wrap; }
 .prompt-bar input[data-testid="prompt-input"] { flex: 1; min-width: 16rem; padding: .4rem; }
 .token-stream { min-height: 2.2rem; padding: .5rem 0; }
