@@ -1,7 +1,10 @@
 /// <reference lib="webworker" />
 import type { GenParams, TokenInfo, TraceEvent } from '../../trace/types'
+import { ATTN_MODEL_ID } from '../tokenizer'
 import { sampleIndex, softmax, topK } from '../math'
+import { addAttentionOutput, createAccumulator } from './attentionAccum'
 import type { WorkerRequest, WorkerResponse } from './protocol'
+import { headStats, selectShowcaseHeads } from './attentionStats'
 
 const post = (msg: WorkerResponse) => (self as unknown as Worker).postMessage(msg)
 
@@ -9,6 +12,7 @@ const post = (msg: WorkerResponse) => (self as unknown as Worker).postMessage(ms
 let tokenizer: any = null
 let model: any = null
 let loadedModelId = 'unknown'
+let hasAttentions = false
 let aborted = false
 
 async function prepare(modelId: string) {
@@ -18,14 +22,35 @@ async function prepare(modelId: string) {
     if (p.status === 'progress') post({ type: 'progress', info: { file: p.file, loaded: p.loaded ?? 0, total: p.total ?? 0 } })
   }
   tokenizer = await AutoTokenizer.from_pretrained(modelId, { progress_callback })
-  const device = 'gpu' in navigator ? 'webgpu' : 'wasm'
-  try {
-    model = await AutoModelForCausalLM.from_pretrained(modelId, { dtype: 'q4', device, progress_callback })
-    post({ type: 'ready', device, attentions: false })
-  } catch {
-    model = await AutoModelForCausalLM.from_pretrained(modelId, { dtype: 'q4', device: 'wasm', progress_callback })
-    post({ type: 'ready', device: 'wasm', attentions: false })
+  const preferred = 'gpu' in navigator ? 'webgpu' : 'wasm'
+
+  // WebGPU->WASM fallback for a single (modelId, dtype) attempt; returns the device that
+  // actually succeeded, since a caught GPU failure means the load happened on WASM instead.
+  const loadOn = async (id: string, dtype: 'q4' | 'fp16'): Promise<{ m: any; device: 'webgpu' | 'wasm' }> => {
+    try {
+      return { m: await AutoModelForCausalLM.from_pretrained(id, { dtype, device: preferred, progress_callback }), device: preferred }
+    } catch {
+      return { m: await AutoModelForCausalLM.from_pretrained(id, { dtype, device: 'wasm', progress_callback }), device: 'wasm' }
+    }
   }
+
+  let device: 'webgpu' | 'wasm'
+  try {
+    ;({ m: model, device } = await loadOn(ATTN_MODEL_ID, 'q4'))
+    loadedModelId = ATTN_MODEL_ID
+    hasAttentions = true
+  } catch {
+    try {
+      ;({ m: model, device } = await loadOn(ATTN_MODEL_ID, 'fp16'))
+      loadedModelId = ATTN_MODEL_ID
+      hasAttentions = true
+    } catch {
+      ;({ m: model, device } = await loadOn(modelId, 'q4'))
+      loadedModelId = modelId
+      hasAttentions = false
+    }
+  }
+  post({ type: 'ready', device, attentions: hasAttentions })
 }
 
 const tokenInfo = (id: number): TokenInfo => ({ id, text: tokenizer.decode([id]) })
@@ -78,6 +103,10 @@ async function run(runId: number, prompt: string, params: GenParams) {
   let pastKeyValues: any = null
   let nextInputIds = promptIds
 
+  const numHeads: number = model.config.num_attention_heads ?? 9
+  const acc = hasAttentions ? createAccumulator(numLayers, numHeads) : null
+  let attnBroken = false
+
   try {
     for (let cycle = 0; cycle < params.maxNewTokens; cycle++) {
       if (aborted) { emit({ type: 'run-end', reason: 'aborted' }); break }
@@ -91,6 +120,23 @@ async function run(runId: number, prompt: string, params: GenParams) {
       const attention_mask = new Tensor('int64', BigInt64Array.from(allIds.map(() => 1n)), [1, allIds.length])
       const out = await model({ input_ids, attention_mask, past_key_values: pastKeyValues })
       pastKeyValues = updateCache(DynamicCache, out, pastKeyValues)
+
+      if (acc && !attnBroken) {
+        try {
+          for (let l = 0; l < numLayers; l++) {
+            const t = out[`attentions.${l}`]
+            if (!t) throw new Error(`missing attentions.${l}`)
+            addAttentionOutput(acc, l, t.dims as number[], t.data as Float32Array)
+          }
+        } catch { attnBroken = true }
+      }
+
+      // Emit before any further addAttentionOutput call: selectShowcaseHeads' matrices are live
+      // references into the accumulator, and postMessage only clones them synchronously here.
+      if (acc && !attnBroken) {
+        const heads = selectShowcaseHeads(headStats(acc, allIds.map(tokenInfo)), acc)
+        if (heads.length > 0) emit({ type: 'attention', cycle, heads })
+      }
 
       const [, seq, vocab] = out.logits.dims as [number, number, number]
       const lastLogits: Float32Array = out.logits.data.slice((seq - 1) * vocab, seq * vocab)
