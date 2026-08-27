@@ -25,7 +25,7 @@ export function AttentionHeatmap({ heads, tokens }: { heads: AttentionHead[]; to
     <div data-testid="attention-heatmap" className="attention-heatmap">
       <div className="head-chip-row">
         {heads.map((h, i) => (
-          <button key={`${h.layer}-${h.head}`} data-testid="head-chip" data-active={String(i === selected)}
+          <button key={`${h.layer}-${h.head}-${h.label}`} data-testid="head-chip" data-active={String(i === selected)}
             className="head-chip" onClick={() => { setSelected(i); setHovered(null) }}>
             {h.label} <span className="head-loc">L{h.layer}·H{h.head}</span>
             {h.score != null && <span className="head-score">· {h.score}</span>}

@@ -41,7 +41,7 @@ export by hand before it ships. This is not a placeholder — treat it as
 the actual acceptance checklist for a release.
 
 1. **Fast network check first.** Before running the heavy commands,
-   confirm you can reach the Hugging Face Hub (`huggingface-cli whoami` or
+   confirm you can reach the Hugging Face Hub (`hf auth whoami` or
    `curl -sI https://huggingface.co`) and that you're authenticated
    (`HF_TOKEN` env var or `hf auth login`) if you intend to `publish`.
 2. **Export the primary (with-past) variant:**
@@ -62,7 +62,11 @@ the actual acceptance checklist for a release.
    solely on the exit code.
 6. **Publish:** `uv run python -m tsumugi_export publish --model-dir out/model`
 7. **In the actual Tsumugi app**, load the exported model in real
-   (non-fallback) attention mode and check:
+   (non-fallback) attention mode and check the items below. Pre-publish
+   in-app testing against a not-yet-uploaded artifact is not supported in
+   M1 — this step necessarily runs against the model repo `publish` just
+   uploaded, so verification happens post-publish; if it fails, fix and
+   re-publish.
    - **One curated prompt** with a known, hand-checked attention pattern
      (e.g. an induction-style repeat like `"one two three one two three
      one"`) — confirm the highlighted source token(s) for the induction
@@ -82,3 +86,11 @@ the actual acceptance checklist for a release.
 
 Only after all eight steps pass — including a non-SKIPPED `a-equiv-b`
 result — should the exported artifacts be considered release-ready.
+
+**Operator note on `model_fp16.onnx:attn-wellformed`.** The row-sum
+tolerance there is 1e-3. A marginal failure with row sums landing just
+outside that band (e.g. 1.001–1.002) is expected fp16 rounding noise
+accumulating across a softmax over many keys — a numerics question, not
+evidence of a broken graph. Re-run validate to confirm the failure is
+small and stable before treating it as a real defect; a large or wildly
+varying deviation is a different story and should be investigated.

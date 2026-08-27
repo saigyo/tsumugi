@@ -26,9 +26,22 @@ test('layers detail lights the active layer; sim shows norms', () => {
   expect(blocks[2].dataset.lit).toBe('false')
 })
 
-test('real mode labels layers as schematic', () => {
-  render(<DetailPanel events={trace} cursor={4} mode="real" />)
+test('real mode labels layers as schematic when the run has no attention data', () => {
+  // The schematic tag is a run-level fact, not per-cycle: it should show whenever
+  // this run never produces real attention data anywhere, not just before the
+  // current cycle's attention event has fired (see the cursor-6/cursor-4-with-
+  // attention cases below).
+  const noAttn = trace.filter((e) => e.type !== 'attention')
+  render(<DetailPanel events={noAttn} cursor={4} mode="real" />)
   expect(screen.getByTestId('detail-layers')).toHaveTextContent(/schematic/i)
+})
+
+test('real mode drops the schematic tag pre-emptively when the run will produce attention data', () => {
+  // cursor 4 is a layer event in cycle 0, before cycle 0's own attention event
+  // (cursor 6) — but the full run does produce attention data later, so the tag
+  // must not appear even this early.
+  render(<DetailPanel events={trace} cursor={4} mode="real" />)
+  expect(screen.getByTestId('detail-layers')).not.toHaveTextContent(/schematic/i)
 })
 
 test('no relevant event renders empty state', () => {

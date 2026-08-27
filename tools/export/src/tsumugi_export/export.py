@@ -35,10 +35,14 @@ def run(args) -> int:
         model_kwargs={"output_attentions": True, "attn_implementation": "eager"},
         do_validation=False,  # our validate command is the real gate
     )
-    # optimum writes model.onnx into onnx_dir; normalize the name if needed
-    exported = list(onnx_dir.glob("*.onnx"))
-    if len(exported) == 1 and exported[0].name != "model.onnx":
-        exported[0].rename(onnx_dir / "model.onnx")
+    # optimum writes model.onnx into onnx_dir; normalize the name if needed.
+    # Guard on model.onnx being absent (not on "exactly one .onnx file") so a
+    # directory that already has model.onnx plus sibling files (e.g. a
+    # re-run, or external/*.onnx_data) is left alone rather than misfiring.
+    if not (onnx_dir / "model.onnx").exists():
+        exported = list(onnx_dir.glob("*.onnx"))
+        if len(exported) == 1:
+            exported[0].rename(onnx_dir / "model.onnx")
 
     stock = Path(snapshot_download(STOCK_MODEL_ID, allow_patterns=TOKENIZER_FILES))
     for name in TOKENIZER_FILES:

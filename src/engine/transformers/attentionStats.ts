@@ -12,8 +12,9 @@ export interface HeadStats {
 export function headStats(acc: AttnAccumulator, tokens: TokenInfo[]): HeadStats[] {
   // induction targets: for row i whose token appeared at j < i, target j+1
   const targets: Array<number | null> = tokens.map((t, i) => {
+    if (t.text.trim() === '') return null
     for (let j = i - 1; j >= 0; j--) {
-      if (tokens[j].text.trim() === t.text.trim() && j + 1 <= i) return j + 1
+      if (tokens[j].text.trim() !== '' && tokens[j].text.trim() === t.text.trim()) return j + 1
     }
     return null
   })

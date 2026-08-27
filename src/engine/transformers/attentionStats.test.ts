@@ -29,6 +29,16 @@ test('induction score measured only on repeat rows', () => {
   expect(stats[0].inductionScore).toBe(1)
 })
 
+test('whitespace-only tokens yield no induction targets', () => {
+  const acc = createAccumulator(1, 1)
+  // tokens: '\n' ' ' '\n' — whitespace collapses to '' under trim(), which
+  // must not be treated as a repeat (previously '\n'.trim() === ' '.trim()
+  // both being '' made every whitespace row an induction "hit").
+  acc.rows[0][0] = [[1], [0.5, 0.5], [0.34, 0.33, 0.33]]
+  const stats = headStats(acc, toks('\n', ' ', '\n'))
+  expect(stats[0].inductionScore).toBeNull()
+})
+
 test('selectShowcaseHeads picks top head per label above threshold', () => {
   const acc = createAccumulator(2, 1)
   acc.rows[0][0] = fill(diagRow, 5)

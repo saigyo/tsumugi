@@ -8,6 +8,13 @@ import { headStats, selectShowcaseHeads } from './attentionStats'
 
 const post = (msg: WorkerResponse) => (self as unknown as Worker).postMessage(msg)
 
+// Attention accumulation is O(seq^2) in both matrix storage (ragged per-layer/per-head
+// rows) and per-cycle stats cost (headStats/selectShowcaseHeads rescan every row every
+// cycle); at ~2000 tokens across 270 attention outputs this balloons into multi-GB. Cap
+// the combined prompt+generation length we're willing to accumulate for and fall back to
+// schematic (acc stays null) above it — generation itself is unaffected.
+const ATTN_MAX_SEQ = 512
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 let tokenizer: any = null
 let model: any = null
@@ -104,7 +111,9 @@ async function run(runId: number, prompt: string, params: GenParams) {
   let nextInputIds = promptIds
 
   const numHeads: number = model.config.num_attention_heads ?? 9
-  const acc = hasAttentions ? createAccumulator(numLayers, numHeads) : null
+  const acc = hasAttentions && promptIds.length + params.maxNewTokens <= ATTN_MAX_SEQ
+    ? createAccumulator(numLayers, numHeads)
+    : null
   let attnBroken = false
 
   try {
@@ -133,9 +142,13 @@ async function run(runId: number, prompt: string, params: GenParams) {
 
       // Emit before any further addAttentionOutput call: selectShowcaseHeads' matrices are live
       // references into the accumulator, and postMessage only clones them synchronously here.
+      // Never let a stats/emit failure escalate to fatal (kills generation) — degrade to
+      // schematic instead, same as the accumulation try/catch above.
       if (acc && !attnBroken) {
-        const heads = selectShowcaseHeads(headStats(acc, allIds.map(tokenInfo)), acc)
-        if (heads.length > 0) emit({ type: 'attention', cycle, heads })
+        try {
+          const heads = selectShowcaseHeads(headStats(acc, allIds.map(tokenInfo)), acc)
+          if (heads.length > 0) emit({ type: 'attention', cycle, heads })
+        } catch { attnBroken = true }
       }
 
       const [, seq, vocab] = out.logits.dims as [number, number, number]

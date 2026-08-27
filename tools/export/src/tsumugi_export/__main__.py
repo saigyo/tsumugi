@@ -21,6 +21,10 @@ def main() -> int:
     p_pub = sub.add_parser("publish", help="assemble repo layout and upload to the HF Hub")
     p_pub.add_argument("--model-dir", default="out/model")
     p_pub.add_argument("--repo-id", default=None, help="override target repo id")
+    p_pub.add_argument("--allow-skipped-equivalence", action="store_true",
+                        help="publish even if a-equiv-b was SKIPPED (no no-cache export "
+                             "present) — the Approach-A hypothesis was never tested; use "
+                             "only when you have another reason to trust this artifact")
 
     args = parser.parse_args()
     module = importlib.import_module(f"tsumugi_export.{args.command}")

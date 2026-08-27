@@ -36,6 +36,21 @@ def _sha256(path: Path) -> str:
     return h.hexdigest()
 
 
+def is_blocking(check: dict, allow_skipped_equivalence: bool = False) -> bool:
+    """Whether a single validation-report check should block publish.
+
+    A passed check never blocks. A skipped check (currently only
+    a-equiv-b when no no-cache export was present) blocks UNLESS the
+    operator explicitly passed --allow-skipped-equivalence — an untested
+    Approach-A hypothesis must not silently pass the gate. Any other
+    failure always blocks, regardless of the flag."""
+    if check.get("passed"):
+        return False
+    if check.get("skipped") and allow_skipped_equivalence:
+        return False
+    return True
+
+
 def run(args) -> int:
     from huggingface_hub import HfApi
 
@@ -45,8 +60,14 @@ def run(args) -> int:
         print("no validation-report.json — run validate first")
         return 1
     report = json.loads(report_path.read_text())
-    if not all(c["passed"] for c in report["checks"].values()):
+    allow_skipped = getattr(args, "allow_skipped_equivalence", False)
+    blocking = {name: c for name, c in report["checks"].items()
+                if is_blocking(c, allow_skipped)}
+    if blocking:
         print("validation report contains failures — refusing to publish")
+        for name, c in sorted(blocking.items()):
+            reason = "SKIPPED" if c.get("skipped") else "FAILED"
+            print(f"  {reason}  {name}: {c['detail']}")
         return 1
     for name, expected in report["artifacts"].items():
         actual = _sha256(model_dir / "onnx" / name)
@@ -62,6 +83,10 @@ def run(args) -> int:
     repo_id = args.repo_id or ATTN_REPO_ID
     api = HfApi()
     api.create_repo(repo_id, exist_ok=True)
-    api.upload_folder(folder_path=str(model_dir), repo_id=repo_id)
+    # The fp32 onnx/model.onnx (~½ GB) is a validation baseline, not part of
+    # the spec's shipped repo layout (model_q4.onnx is primary, model_fp16.onnx
+    # is insurance) — its hash still lives in validation-report.json.
+    api.upload_folder(folder_path=str(model_dir), repo_id=repo_id,
+                       ignore_patterns=["onnx/model.onnx"])
     print(f"published → https://huggingface.co/{repo_id}")
     return 0

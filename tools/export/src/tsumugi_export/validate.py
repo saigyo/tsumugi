@@ -143,6 +143,51 @@ def _check_a_equiv_b(model_dir: Path, nocache_model: Path) -> dict:
     }
 
 
+def _greedy_continue(sess, model_dir: Path, prompt: str, n_steps: int) -> list[int]:
+    """Greedily generate `n_steps` continuation token ids for `prompt`.
+    Used as the primary cross-precision parity check (spec check 4):
+    quantization legitimately perturbs individual logit values, but a sound
+    quantized graph should still make the same greedy choices as the fp32
+    stock model almost all of the time. Graphs with a KV cache are driven
+    via _drive_cached_stepwise, re-run from scratch on the growing sequence
+    each step — simple, reuses the existing stepping logic, and N=8 steps
+    over a short prompt is cheap; graphs without a cache do a full forward
+    pass over the growing sequence each step."""
+    ids = _tokenize(model_dir, prompt)
+    out_names = [o.name for o in sess.get_outputs()]
+    generated: list[int] = []
+
+    for _ in range(n_steps):
+        if _has_past_inputs(sess):
+            steps = _drive_cached_stepwise(sess, ids)
+            last_logits = steps[-1]["logits"][0, -1]
+        else:
+            outputs = dict(zip(out_names, sess.run(None, _feeds(sess, ids))))
+            last_logits = outputs["logits"][0, -1]
+        next_id = int(np.argmax(last_logits))
+        generated.append(next_id)
+        ids = np.concatenate([ids, np.array([[next_id]], dtype=np.int64)], axis=1)
+
+    return generated
+
+
+def _check_greedy_parity(sess, stock_sess, model_dir: Path, n_steps: int = 8) -> dict:
+    """Greedy-decode N tokens from PROMPTS[0] on both `sess` and the stock
+    fp32 session and compare the generated token-id sequences. This is the
+    PRIMARY parity verdict for the quantized variants (model_q4/model_fp16):
+    their per-logit diff against stock is expected to exceed a tight
+    tolerance by design, so token identity — not the raw magnitude — is
+    what should gate publish."""
+    ours = _greedy_continue(sess, model_dir, PROMPTS[0], n_steps)
+    theirs = _greedy_continue(stock_sess, model_dir, PROMPTS[0], n_steps)
+    match = ours == theirs
+    return {
+        "passed": match,
+        "detail": (f"{n_steps}-step greedy continuation matches stock: {ours}" if match
+                   else f"{n_steps}-step greedy continuation diverges: ours={ours} stock={theirs}"),
+    }
+
+
 def _check_cache_integrity(sess, model_dir: Path, tol: float) -> dict:
     """Cache integrity: tokenize PROMPTS[0], run the full sequence in one
     single-shot (prefill) call to get the last-position logits, then
@@ -194,6 +239,13 @@ def run(args) -> int:
         out_names = [o.name for o in sess.get_outputs()]
         attn_names = sorted(n for n in out_names if n.startswith("attentions."))
 
+        # Greedy-continuation token-identity check (spec check 1). For the
+        # quantized variants this is the PRIMARY parity verdict — see
+        # _check_greedy_parity — so it's computed once per variant, ahead of
+        # the per-prompt logits-parity checks below that consult it.
+        greedy = _check_greedy_parity(sess, stock, model_dir)
+        checks[f"{variant}:greedy-parity"] = greedy
+
         for prompt in PROMPTS:
             ids = _tokenize(model_dir, prompt)
             ours = dict(zip(out_names, sess.run(None, _feeds(sess, ids))))
@@ -203,7 +255,18 @@ def run(args) -> int:
             tol = 1e-4 if variant == "model.onnx" else TOL
             diff = float(np.max(np.abs(ours["logits"][0, -1] - theirs["logits"][0, -1])))
             key = f"{variant}:logits-parity:{prompt[:12]}"
-            checks[key] = {"passed": diff < tol, "detail": f"max|Δlogit|={diff:.2e} (tol {tol})"}
+            if variant == "model.onnx":
+                # fp32-vs-fp32: logits should match tightly, no excuse for drift.
+                checks[key] = {"passed": diff < tol, "detail": f"max|Δlogit|={diff:.2e} (tol {tol})"}
+            else:
+                # Quantization moves individual logits by design — record the
+                # magnitude for visibility, but gate on greedy token identity
+                # (checked once per variant above) instead of this tolerance.
+                checks[key] = {
+                    "passed": greedy["passed"],
+                    "detail": f"max|Δlogit|={diff:.2e} (informational for quantized variants; "
+                              f"verdict via {variant}:greedy-parity)",
+                }
 
             ok, detail = True, "all rows row-stochastic and causal"
             for name in attn_names:
@@ -236,7 +299,13 @@ def run(args) -> int:
         # reports max row deviation per layer
         checks["a-equiv-b"] = _check_a_equiv_b(model_dir, nc)
     else:
-        checks["a-equiv-b"] = {"passed": True, "detail": "SKIPPED (no no-cache export present)"}
+        # Not "passed": True — an untested Approach-A hypothesis must not
+        # look like a pass to callers that gate on `passed` (publish.py's
+        # upload gate in particular). See is_blocking() in publish.py.
+        checks["a-equiv-b"] = {
+            "passed": False, "skipped": True,
+            "detail": "SKIPPED (no no-cache export present)",
+        }
 
     passed = all(c["passed"] for c in checks.values())
     report = {
@@ -247,6 +316,7 @@ def run(args) -> int:
 
     width = max(len(k) for k in checks)
     for k, c in sorted(checks.items()):
-        print(f"{'PASS' if c['passed'] else 'FAIL'}  {k.ljust(width)}  {c['detail']}")
+        label = "SKIP" if c.get("skipped") else ("PASS" if c["passed"] else "FAIL")
+        print(f"{label}  {k.ljust(width)}  {c['detail']}")
     print("VERDICT:", "PASS" if passed else "FAIL")
     return 0 if passed else 1

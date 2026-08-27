@@ -36,12 +36,16 @@ export function DetailPanel({ events, cursor, mode }: { events: TraceEvent[]; cu
       // show this cycle's attention only once its event has been reached
       const attention = latestOfType(events, cursor, 'attention')
       const inCycle = attention && attention.cycle === e.cycle ? attention : undefined
+      // the schematic tag is a run-level fact (does this run ever produce real attention
+      // data at all), not a per-cycle one — so it looks at the whole event list, not cursor
+      const attentionInRun = latestOfType(events, events.length - 1, 'attention') !== undefined
       const rows = inCycle?.heads[0]?.matrix.length ?? 0
       const { prompt, generated } = visibleTokens(events, cursor)
       const tokens = [...prompt, ...generated].slice(0, rows)
       const embed = latestOfType(events, cursor, 'embed')
       const streamShape = embed ? { seqLen: embed.seqLen, dims: embed.dims } : undefined
-      return <LayersDetail event={e} mode={mode} attention={inCycle} tokens={tokens} streamShape={streamShape} />
+      return <LayersDetail event={e} mode={mode} attention={inCycle} attentionInRun={attentionInRun}
+        tokens={tokens} streamShape={streamShape} />
     }
     case 'logits': {
       const logits = latestOfType(events, cursor, 'logits')
