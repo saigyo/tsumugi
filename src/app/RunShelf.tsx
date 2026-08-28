@@ -50,10 +50,10 @@ export function RunShelf(p: RunShelfProps) {
         </div>
       ))}
       <span className="run-shelf-tools">
-        {p.records.length > 1 && (selecting
+        {selecting
           ? <button data-testid="btn-compare-exit" className="run-shelf-btn" onClick={p.onExitCompare}>× exit compare</button>
-          : <button data-testid="btn-compare-arm" className="run-shelf-btn" disabled={p.activeId === null}
-              title="pick a second run to compare against the active one" onClick={p.onArmCompare}>⇄ compare</button>)}
+          : p.records.length > 1 && <button data-testid="btn-compare-arm" className="run-shelf-btn" disabled={p.activeId === null}
+              title="pick a second run to compare against the active one" onClick={p.onArmCompare}>⇄ compare</button>}
         <button data-testid="btn-import" className="run-shelf-btn" title="load an exported run"
           onClick={() => fileRef.current?.click()}>⇧ import</button>
         <input ref={fileRef} data-testid="import-input" type="file" accept="application/json" hidden

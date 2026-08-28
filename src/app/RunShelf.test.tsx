@@ -80,3 +80,12 @@ test('import file input forwards the file; notes render', () => {
   expect(screen.getByTestId('shelf-note')).toHaveTextContent('not persisted')
   expect(screen.getByTestId('import-error')).toHaveTextContent('bad file')
 })
+
+test('exit-compare stays reachable when only one record remains while comparing', () => {
+  const p = props({ records: [makeRunRecord(1)], compare: { aId: 'run-1', bId: 'gone' } })
+  render(<RunShelf {...p} />)
+  expect(screen.getByTestId('btn-compare-exit')).toBeInTheDocument()
+  expect(screen.queryByTestId('btn-compare-arm')).toBeNull()
+  fireEvent.click(screen.getByTestId('btn-compare-exit'))
+  expect(p.onExitCompare).toHaveBeenCalled()
+})
