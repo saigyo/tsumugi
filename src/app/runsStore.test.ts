@@ -74,3 +74,26 @@ test('hydrate sorts by endedAt and resumes seq numbering after the max', () => {
   expect(state.nextSeq).toBe(8)
   expect(state.activeId).toBeNull()
 })
+
+test('hydrate merges records sealed while loading instead of dropping them', () => {
+  const { record: sealed } = useRunsStore.getState().seal(meta({ endedAt: 100 }), makeFixtureTrace())
+  useRunsStore.getState().hydrate([
+    { id: 'a', meta: { ...meta({ endedAt: 10 }), seq: 3, pinned: false }, events: makeFixtureTrace() },
+    { id: 'b', meta: { ...meta({ endedAt: 20 }), seq: 7, pinned: false }, events: makeFixtureTrace() },
+  ])
+  const state = useRunsStore.getState()
+  expect(state.records.map((r) => r.id)).toEqual(['a', 'b', sealed.id])
+  expect(state.records[2].meta.seq).toBe(8)
+  expect(state.nextSeq).toBe(9)
+  expect(state.activeId).toBe(sealed.id)
+})
+
+test('hydrate with empty storage keeps sealed records', () => {
+  const { record: sealed } = useRunsStore.getState().seal(meta(), makeFixtureTrace())
+  useRunsStore.getState().hydrate([])
+  const state = useRunsStore.getState()
+  expect(state.records).toHaveLength(1)
+  expect(state.records[0].id).toBe(sealed.id)
+  expect(state.records[0].meta.seq).toBe(sealed.meta.seq)
+  expect(state.activeId).toBe(sealed.id)
+})

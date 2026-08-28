@@ -66,8 +66,16 @@ export const useRunsStore = create<RunsState>()((set, get) => ({
     return record
   },
   hydrate: (records) => {
-    const sorted = [...records].sort((a, b) => a.meta.endedAt - b.meta.endedAt)
-    set({ records: sorted, nextSeq: sorted.reduce((m, r) => Math.max(m, r.meta.seq), 0) + 1 })
+    const loaded = [...records].sort((a, b) => a.meta.endedAt - b.meta.endedAt)
+    const loadedIds = new Set(loaded.map((r) => r.id))
+    // Records sealed while `loaded` was being fetched (e.g. IndexedDB open) are newer than
+    // everything in `loaded` and must never be dropped by this replace-on-load path.
+    const baseSeq = loaded.reduce((m, r) => Math.max(m, r.meta.seq), 0)
+    const kept = get().records
+      .filter((r) => !loadedIds.has(r.id))
+      .map((r, i) => ({ ...r, meta: { ...r.meta, seq: baseSeq + i + 1 } }))
+    const merged = [...loaded, ...kept]
+    set({ records: merged, nextSeq: merged.reduce((m, r) => Math.max(m, r.meta.seq), 0) + 1 })
   },
   setPersistFailed: () => set({ persistFailed: true }),
 }))
