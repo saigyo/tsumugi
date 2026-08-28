@@ -7,6 +7,9 @@ export interface HeadStats {
   prevTokenScore: number
   sinkScore: number
   inductionScore: number | null
+  // (1 − best template score) × (1 − mean normalized row entropy):
+  // high = peaked attention that matches no known template
+  distinctiveScore: number
 }
 
 export function headStats(acc: AttnAccumulator, tokens: TokenInfo[]): HeadStats[] {
@@ -22,19 +25,25 @@ export function headStats(acc: AttnAccumulator, tokens: TokenInfo[]): HeadStats[
   for (let l = 0; l < acc.layers; l++) {
     for (let h = 0; h < acc.heads; h++) {
       const m = acc.rows[l][h]
-      let prev = 0, sink = 0, n = 0, ind = 0, indN = 0
+      let prev = 0, sink = 0, n = 0, ind = 0, indN = 0, ent = 0
       for (let i = 1; i < m.length; i++) {
         prev += m[i][i - 1]
         sink += m[i][0]
         n++
+        let rowEnt = 0
+        for (const w of m[i]) if (w > 0) rowEnt -= w * Math.log(w)
+        ent += Math.min(1, rowEnt / Math.log(m[i].length))
         const t = targets[i]
         if (t !== null && t < m[i].length) { ind += m[i][t]; indN++ }
       }
+      const prevTokenScore = n ? prev / n : 0
+      const sinkScore = n ? sink / n : 0
+      const inductionScore = indN ? ind / indN : null
+      const templateMax = Math.max(prevTokenScore, sinkScore, inductionScore ?? 0)
+      const uniformity = n ? ent / n : 1
       out.push({
-        layer: l, head: h,
-        prevTokenScore: n ? prev / n : 0,
-        sinkScore: n ? sink / n : 0,
-        inductionScore: indN ? ind / indN : null,
+        layer: l, head: h, prevTokenScore, sinkScore, inductionScore,
+        distinctiveScore: n ? (1 - templateMax) * (1 - uniformity) : 0,
       })
     }
   }

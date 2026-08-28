@@ -64,3 +64,27 @@ test('heads below threshold are not selected', () => {
   const heads = selectShowcaseHeads(headStats(acc, toks('a', ' b', ' c', ' d', ' e')), acc)
   expect(heads).toHaveLength(0)
 })
+
+test('distinctive score: template heads low, focused-untemplated head high, uniform head low', () => {
+  const acc = createAccumulator(3, 1)
+  // template: perfect previous-token head
+  acc.rows[0][0] = fill(diagRow, 6)
+  // focused but untemplated: rows 3.. lock onto position 1 (not prev, not sink)
+  acc.rows[1][0] = [
+    [1], [0.5, 0.5], [1 / 3, 1 / 3, 1 / 3],
+    [0, 1, 0, 0], [0, 1, 0, 0, 0], [0, 1, 0, 0, 0, 0],
+  ]
+  // uniform: attention spread evenly
+  acc.rows[2][0] = Array.from({ length: 6 }, (_, i) =>
+    Array.from({ length: i + 1 }, () => 1 / (i + 1)))
+  const stats = headStats(acc, toks('a', ' b', ' c', ' d', ' e', ' f'))
+  expect(stats[0].distinctiveScore).toBe(0)                 // templateMax = 1
+  expect(stats[1].distinctiveScore).toBeGreaterThan(0.4)    // ≈ 0.83 × 0.6
+  expect(stats[2].distinctiveScore).toBeLessThan(0.01)      // uniformity ≈ 1
+})
+
+test('distinctive score is 0 for single-row heads', () => {
+  const acc = createAccumulator(1, 1)
+  acc.rows[0][0] = [[1]]
+  expect(headStats(acc, toks('a'))[0].distinctiveScore).toBe(0)
+})
