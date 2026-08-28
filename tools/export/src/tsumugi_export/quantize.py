@@ -36,7 +36,10 @@ def run(args) -> int:
     # q4 variant (weights-only MatMulNBits)
     from onnxruntime.quantization.matmul_nbits_quantizer import MatMulNBitsQuantizer
     model = onnx.load(str(src))
-    quant = MatMulNBitsQuantizer(model, bits=4, block_size=32, is_symmetric=True)
+    # accuracy_level=4 (int8 arithmetic for the quantized matmuls) matches the
+    # official transformers.js conversion recipe; without it this graph's q4
+    # greedy output diverged badly from stock (found during the operator run)
+    quant = MatMulNBitsQuantizer(model, bits=4, block_size=32, is_symmetric=True, accuracy_level=4)
     quant.process()
     onnx.save_model(quant.model.model, str(onnx_dir / "model_q4.onnx"))
     print("wrote model_q4.onnx")
