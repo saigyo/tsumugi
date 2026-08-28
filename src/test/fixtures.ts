@@ -1,4 +1,4 @@
-import type { TraceEvent, TokenInfo } from '../trace/types'
+import type { AttentionGridCell, TraceEvent, TokenInfo } from '../trace/types'
 
 export function makeFixtureTrace(cycles = 2, layers = 3): TraceEvent[] {
   const events: TraceEvent[] = [
@@ -35,4 +35,26 @@ export function makeFixtureTrace(cycles = 2, layers = 3): TraceEvent[] {
   }
   events.push({ type: 'run-end', reason: 'max-tokens' })
   return events
+}
+
+// Grid tests use this instead of growing makeFixtureTrace — the default
+// fixture's event indices are load-bearing for index-based tests.
+export function makeGridEvent(layers = 2, heads = 2): Extract<TraceEvent, { type: 'attention-grid' }> {
+  const thumb = (l: number, h: number): number[][] =>
+    Array.from({ length: 4 }, (_, r) => Array.from({ length: 4 }, (_, c) =>
+      c > r ? 0 : ((l * heads + h + 1) / (layers * heads + 1)) * (c === r ? 1 : 0.25)))
+  const cells: AttentionGridCell[] = []
+  for (let l = 0; l < layers; l++) {
+    for (let h = 0; h < heads; h++) {
+      const k = l * heads + h
+      cells.push({
+        layer: l, head: h, thumb: thumb(l, h),
+        prevTokenScore: (k % 5) / 5,
+        sinkScore: ((k + 1) % 5) / 5,
+        inductionScore: k % 3 === 0 ? null : (k % 4) / 4,
+        distinctiveScore: ((k * 3 + 1) % 5) / 5,
+      })
+    }
+  }
+  return { type: 'attention-grid', layers, heads, cells }
 }

@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import { makeFixtureTrace } from '../test/fixtures'
+import { makeFixtureTrace, makeGridEvent } from '../test/fixtures'
 import { validateTrace } from './validate'
 
 test('fixture trace is valid', () => {
@@ -38,4 +38,39 @@ test('attention outside the post-layer slot is flagged', () => {
   const [att] = t.splice(i, 1)
   t.splice(2, 0, att)  // before embed
   expect(validateTrace(t).some((v) => v.includes('attention'))).toBe(true)
+})
+
+test('default fixture has no attention-grid event', () => {
+  expect(makeFixtureTrace().some((e) => e.type === 'attention-grid')).toBe(false)
+})
+
+test('attention-grid directly before run-end is valid', () => {
+  const t = makeFixtureTrace()
+  t.splice(t.length - 1, 0, makeGridEvent())
+  expect(validateTrace(t)).toEqual([])
+})
+
+test('attention-grid away from run-end is flagged', () => {
+  const t = makeFixtureTrace()
+  t.splice(2, 0, makeGridEvent())
+  expect(validateTrace(t).some((v) => v.includes('attention-grid'))).toBe(true)
+})
+
+test('attention-grid cell count must be layers × heads', () => {
+  const t = makeFixtureTrace()
+  const g = makeGridEvent(2, 2)
+  g.cells.pop()
+  t.splice(t.length - 1, 0, g)
+  expect(validateTrace(t).some((v) => v.includes('cells'))).toBe(true)
+})
+
+test('attention-grid thumbs must be ≤12×12 with values in [0,1]', () => {
+  const t = makeFixtureTrace()
+  const g = makeGridEvent(2, 2)
+  g.cells[0].thumb[0][0] = 1.5
+  g.cells[1].thumb = Array.from({ length: 13 }, () => Array.from({ length: 13 }, () => 0))
+  t.splice(t.length - 1, 0, g)
+  const errs = validateTrace(t)
+  expect(errs.some((v) => v.includes('[0, 1]'))).toBe(true)
+  expect(errs.some((v) => v.includes('12'))).toBe(true)
 })

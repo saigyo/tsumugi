@@ -12,6 +12,19 @@ export interface AttentionHead {
   // ragged causal matrix: row i holds weights for positions 0..i and sums to 1
   matrix: number[][]
 }
+
+export interface AttentionGridCell {
+  layer: number
+  head: number
+  // ≤12×12 mean-pooled thumbnail of the accumulated causal matrix, values 0..1.
+  // Mean pooling preserves relative mass; pooled rows do NOT sum to 1.
+  thumb: number[][]
+  prevTokenScore: number
+  sinkScore: number
+  inductionScore: number | null
+  distinctiveScore: number
+}
+
 export type RunEndReason = 'eos' | 'max-tokens' | 'aborted' | 'error'
 export type TraceEvent =
   | { type: 'run-start'; prompt: string; mode: Mode; modelId: string; params: GenParams; vocabSize?: number }
@@ -23,4 +36,5 @@ export type TraceEvent =
   | { type: 'softmax'; cycle: number; temperature: number; topK: Array<TokenInfo & { prob: number }> }
   | { type: 'sample'; cycle: number; chosen: TokenInfo; method: 'greedy' | 'top-k' }
   | { type: 'append'; cycle: number; token: TokenInfo }
+  | { type: 'attention-grid'; layers: number; heads: number; cells: AttentionGridCell[] }
   | { type: 'run-end'; reason: RunEndReason; message?: string }

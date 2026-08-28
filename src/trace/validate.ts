@@ -10,6 +10,7 @@ export function validateTrace(events: TraceEvent[]): string[] {
   let phase: (typeof CYCLE)[number] = 'embed'
   let layerIdx = 0
   for (const e of events.slice(2, -1)) {
+    if (e.type === 'attention-grid') continue  // placement checked below
     if (e.type === 'layer') {
       if (phase !== 'layer' && phase !== 'logits') { errs.push(`unexpected layer in phase ${phase}`); continue }
       if (e.index !== layerIdx) errs.push(`layer index ${e.index}, expected ${layerIdx}`)
@@ -35,6 +36,20 @@ export function validateTrace(events: TraceEvent[]): string[] {
       continue
     }
     errs.push(`unexpected ${e.type} in phase ${phase}`)
+  }
+
+  const grids = events.flatMap((e, i) => (e.type === 'attention-grid' ? [{ e, i }] : []))
+  if (grids.length > 1) errs.push('more than one attention-grid event')
+  for (const { e, i } of grids) {
+    if (i !== events.length - 2) errs.push('attention-grid must sit directly before run-end')
+    if (e.cells.length !== e.layers * e.heads)
+      errs.push(`attention-grid has ${e.cells.length} cells, expected layers × heads = ${e.layers * e.heads}`)
+    for (const c of e.cells) {
+      if (c.thumb.length > 12 || c.thumb.some((r) => r.length > 12))
+        errs.push(`attention-grid thumb L${c.layer}·H${c.head} exceeds 12×12`)
+      if (c.thumb.some((r) => r.some((v) => v < 0 || v > 1)))
+        errs.push(`attention-grid thumb L${c.layer}·H${c.head} has values outside [0, 1]`)
+    }
   }
 
   for (const e of events) {
