@@ -71,3 +71,24 @@ test('ready records the attentions capability', async () => {
   await p
   expect(engine.attentions).toBe(true)
 })
+
+test('fetchHead posts head-request and resolves on the matching response', async () => {
+  const { worker, engine } = make()
+  const p = engine.fetchHead(2, 5)
+  expect(worker.sent.at(-1)).toEqual({ type: 'head-request', layer: 2, head: 5 })
+  worker.respond({ type: 'head-response', layer: 1, head: 5, matrix: [[1]], label: null, score: null })  // ignored
+  worker.respond({ type: 'head-response', layer: 2, head: 5, matrix: [[1], [0.5, 0.5]], label: 'previous-token', score: 0.5 })
+  const r = await p
+  expect(r.matrix).toEqual([[1], [0.5, 0.5]])
+  expect(r.label).toBe('previous-token')
+  expect(r.score).toBe(0.5)
+})
+
+test('fetchHead resolves the unavailable case as an empty matrix', async () => {
+  const { worker, engine } = make()
+  const p = engine.fetchHead(0, 0)
+  worker.respond({ type: 'head-response', layer: 0, head: 0, matrix: [], label: null, score: null })
+  const r = await p
+  expect(r.matrix).toEqual([])
+  expect(r.label).toBeNull()
+})

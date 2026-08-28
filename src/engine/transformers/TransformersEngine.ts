@@ -1,7 +1,15 @@
-import type { GenParams, TraceEvent } from '../../trace/types'
+import type { AttentionLabel, GenParams, TraceEvent } from '../../trace/types'
 import { MODEL_ID } from '../tokenizer'
 import type { PipelineEngine, ProgressInfo, RunHandle } from '../types'
 import type { WorkerRequest, WorkerResponse } from './protocol'
+
+export interface HeadData {
+  layer: number
+  head: number
+  matrix: number[][]
+  label: AttentionLabel | null
+  score: number | null
+}
 
 export class TransformersEngine implements PipelineEngine {
   private worker: Worker
@@ -47,5 +55,18 @@ export class TransformersEngine implements PipelineEngine {
       this.post({ type: 'run', runId, prompt, params })
     })
     return { abort: () => this.post({ type: 'abort' }), done }
+  }
+
+  fetchHead(layer: number, head: number): Promise<HeadData> {
+    return new Promise((resolve) => {
+      const listener = (msg: WorkerResponse) => {
+        if (msg.type === 'head-response' && msg.layer === layer && msg.head === head) {
+          this.listeners.delete(listener)
+          resolve({ layer: msg.layer, head: msg.head, matrix: msg.matrix, label: msg.label, score: msg.score })
+        }
+      }
+      this.listeners.add(listener)
+      this.post({ type: 'head-request', layer, head })
+    })
   }
 }
