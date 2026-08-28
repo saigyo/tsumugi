@@ -75,9 +75,10 @@ New Zustand store `src/app/runsStore.ts`:
   fills exactly as today; sealing copies the completed event list into the
   archive. The player replays `records.find(activeId).events` — selectors,
   DetailPanel, and all viz components are unchanged for single-run viewing.
-- M2 pin state (`usePins`) resets when `activeId` changes — same semantics
-  as today's "new run replaces the trace", now also covering shelf flips
-  (an archived run cannot fetch heads anyway; see trace-only decision).
+- M2 pin state (`usePins`) resets when the USER switches runs — on Generate
+  and on shelf activation, not on the seal-driven `activeId` change at
+  run-end (a blanket activeId effect would wipe pins made mid-run; found and
+  corrected in the final branch review).
 
 ## Component 2: persistence and files
 

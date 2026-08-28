@@ -55,7 +55,6 @@ export default function App() {
   }, [])
 
   useEffect(() => { void initArchive(createIndexedDbStorage()) }, [])
-  useEffect(() => { resetPins() }, [activeId, resetPins])
 
   // trace growth → player
   useEffect(() => {
@@ -133,6 +132,7 @@ export default function App() {
     const record = useRunsStore.getState().records.find((r) => r.id === id)
     if (!record) return
     useRunsStore.getState().setActive(id)
+    resetPins()
     useTraceStore.getState().load(record.events)
     const dispatch = usePlayerStore.getState().dispatch
     dispatch({ type: 'traceGrew', length: record.events.length })
