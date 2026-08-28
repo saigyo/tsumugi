@@ -95,7 +95,7 @@ export function AttentionHeatmap({ heads, tokens, focus }: {
         {head.label === 'pinned' || head.score != null
           ? head.score != null
             ? 'Measured on this prompt — head roles detected from the attention weights, not labeled by the model.'
-            : 'Measured on this prompt — attention weights from this run.'
+            : 'Measured on this prompt — attention accumulated over the whole run (the model finishes ahead of the replay).'
           : 'Illustrative pattern (simulated) — real attention weights are not exposed by the browser model.'}
       </p>
     </div>

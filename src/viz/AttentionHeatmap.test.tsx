@@ -72,6 +72,7 @@ test('a pinned head with no score still shows the measured note, not the illustr
   const pinned = [{ layer: 1, head: 1, label: 'pinned' as const, matrix: attn.heads[0].matrix }]
   render(<AttentionHeatmap heads={pinned} tokens={tokens} />)
   expect(screen.getByTestId('attn-note')).toHaveTextContent(/measured on this prompt/i)
+  expect(screen.getByTestId('attn-note')).toHaveTextContent(/accumulated over the whole run/i)
   expect(screen.getByTestId('attn-note')).not.toHaveTextContent(/illustrative/i)
 })
 
