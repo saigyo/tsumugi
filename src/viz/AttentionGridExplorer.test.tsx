@@ -3,6 +3,9 @@ import { afterEach, expect, test, vi } from 'vitest'
 import { makeGridEvent } from '../test/fixtures'
 import { AttentionGridExplorer } from './AttentionGridExplorer'
 
+// Mock getContext to prevent jsdom stub warnings in test output
+vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null as never)
+
 afterEach(() => cleanup())
 
 test('layer sort renders one row per layer with an aggregate and all cells', () => {
