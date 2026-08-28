@@ -2,7 +2,7 @@ export interface TokenInfo { id: number; text: string }
 export interface GenParams { temperature: number; topK: number; maxNewTokens: number }
 export type Mode = 'sim' | 'real'
 
-export type AttentionLabel = 'previous-token' | 'attention-sink' | 'induction' | 'coreference'
+export type AttentionLabel = 'previous-token' | 'attention-sink' | 'induction' | 'coreference' | 'distinctive' | 'pinned'
 
 export interface AttentionHead {
   layer: number

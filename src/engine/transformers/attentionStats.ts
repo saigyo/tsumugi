@@ -52,15 +52,30 @@ export function headStats(acc: AttnAccumulator, tokens: TokenInfo[]): HeadStats[
 
 const round = (x: number) => Math.round(x * 100) / 100
 
+export type ShowcasePrev = Partial<Record<AttentionLabel, { layer: number; head: number }>>
+
 export function selectShowcaseHeads(
-  stats: HeadStats[], acc: AttnAccumulator, threshold = 0.3,
+  stats: HeadStats[], acc: AttnAccumulator, threshold = 0.3, prev?: ShowcasePrev,
 ): AttentionHead[] {
-  const pick = (label: AttentionLabel, score: (s: HeadStats) => number | null): AttentionHead | null => {
+  const pick = (
+    label: AttentionLabel, score: (s: HeadStats) => number | null, thr = threshold,
+  ): AttentionHead | null => {
     let best: HeadStats | null = null
-    let bestScore = threshold
+    let bestScore = thr
     for (const s of stats) {
       const v = score(s)
       if (v !== null && v > bestScore) { best = s; bestScore = v }
+    }
+    // hysteresis: keep last cycle's head unless the challenger beats its
+    // CURRENT score by ≥ 0.05; an incumbent fallen to ≤ thr loses its seat
+    const p = prev?.[label]
+    if (p) {
+      const inc = stats.find((s) => s.layer === p.layer && s.head === p.head)
+      const incScore = inc ? score(inc) : null
+      if (inc && incScore !== null && incScore > thr && (!best || bestScore - incScore < 0.05)) {
+        best = inc
+        bestScore = incScore
+      }
     }
     if (!best) return null
     return { layer: best.layer, head: best.head, label,
@@ -70,5 +85,6 @@ export function selectShowcaseHeads(
     pick('previous-token', (s) => s.prevTokenScore),
     pick('attention-sink', (s) => s.sinkScore),
     pick('induction', (s) => s.inductionScore),
+    pick('distinctive', (s) => s.distinctiveScore, 0.25),
   ].filter((h): h is AttentionHead => h !== null)
 }

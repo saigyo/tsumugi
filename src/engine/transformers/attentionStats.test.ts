@@ -1,7 +1,7 @@
 import { expect, test } from 'vitest'
 import type { TokenInfo } from '../../trace/types'
 import { createAccumulator } from './attentionAccum'
-import { headStats, selectShowcaseHeads } from './attentionStats'
+import { headStats, selectShowcaseHeads, type ShowcasePrev } from './attentionStats'
 
 const toks = (...t: string[]): TokenInfo[] => t.map((text, id) => ({ id, text }))
 
@@ -87,4 +87,60 @@ test('distinctive score is 0 for single-row heads', () => {
   const acc = createAccumulator(1, 1)
   acc.rows[0][0] = [[1]]
   expect(headStats(acc, toks('a'))[0].distinctiveScore).toBe(0)
+})
+
+test('fourth chip: a distinctive head above 0.25 is selected', () => {
+  const acc = createAccumulator(1, 1)
+  acc.rows[0][0] = [
+    [1], [0.5, 0.5], [1 / 3, 1 / 3, 1 / 3],
+    [0, 1, 0, 0], [0, 1, 0, 0, 0], [0, 1, 0, 0, 0, 0],
+  ]
+  const heads = selectShowcaseHeads(headStats(acc, toks('a', ' b', ' c', ' d', ' e', ' f')), acc)
+  const d = heads.find((h) => h.label === 'distinctive')
+  expect(d).toBeDefined()
+  expect(d!.score).toBeGreaterThan(0.25)
+})
+
+test('hysteresis: incumbent sticks under a <0.05 challenger lead', () => {
+  const acc = createAccumulator(2, 1)
+  // incumbent L0: prev-token score 0.96; challenger L1: 0.99 — lead 0.03 < 0.05
+  const nearDiag = (p: number) => (i: number) =>
+    i === 0 ? [1] : [...Array(Math.max(0, i - 1)).fill(0), p, 1 - p]
+  acc.rows[0][0] = fill(nearDiag(0.96), 5)
+  acc.rows[1][0] = fill(nearDiag(0.99), 5)
+  const stats = headStats(acc, toks('a', ' b', ' c', ' d', ' e'))
+  const prev: ShowcasePrev = { 'previous-token': { layer: 0, head: 0 } }
+  const kept = selectShowcaseHeads(stats, acc, 0.3, prev).find((h) => h.label === 'previous-token')
+  expect(kept!.layer).toBe(0)
+  // without prev, argmax wins
+  const argmax = selectShowcaseHeads(stats, acc).find((h) => h.label === 'previous-token')
+  expect(argmax!.layer).toBe(1)
+})
+
+test('hysteresis: challenger wins at a >=0.05 lead', () => {
+  const acc = createAccumulator(2, 1)
+  const nearDiag = (p: number) => (i: number) =>
+    i === 0 ? [1] : [...Array(Math.max(0, i - 1)).fill(0), p, 1 - p]
+  acc.rows[0][0] = fill(nearDiag(0.9), 5)
+  acc.rows[1][0] = fill(nearDiag(0.96), 5)
+  const stats = headStats(acc, toks('a', ' b', ' c', ' d', ' e'))
+  const prev: ShowcasePrev = { 'previous-token': { layer: 0, head: 0 } }
+  const winner = selectShowcaseHeads(stats, acc, 0.3, prev).find((h) => h.label === 'previous-token')
+  expect(winner!.layer).toBe(1)
+})
+
+test('hysteresis: incumbent below threshold falls back to argmax', () => {
+  const acc = createAccumulator(2, 1)
+  // incumbent decayed to uniform: prevTokenScore = mean(1/2..1/6) ≈ 0.29 < 0.3
+  acc.rows[0][0] = Array.from({ length: 6 }, (_, i) =>
+    Array.from({ length: i + 1 }, () => 1 / (i + 1)))
+  // challenger at 0.32: above threshold, but its lead over 0.29 is < 0.05 —
+  // it must still win, because a sub-threshold incumbent loses its seat
+  const nearDiag = (p: number) => (i: number) =>
+    i === 0 ? [1] : [...Array(Math.max(0, i - 1)).fill(0), p, 1 - p]
+  acc.rows[1][0] = fill(nearDiag(0.32), 6)
+  const stats = headStats(acc, toks('a', ' b', ' c', ' d', ' e', ' f'))
+  const prev: ShowcasePrev = { 'previous-token': { layer: 0, head: 0 } }
+  const winner = selectShowcaseHeads(stats, acc, 0.3, prev).find((h) => h.label === 'previous-token')
+  expect(winner!.layer).toBe(1)
 })

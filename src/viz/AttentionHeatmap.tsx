@@ -6,6 +6,8 @@ const HINTS: Record<AttentionLabel, string> = {
   'previous-token': 'A bright diagonal: this head mostly copies from the token right before.',
   induction: 'On repeated tokens, this head looks at what followed the previous occurrence — the circuit behind in-context pattern completion.',
   coreference: 'Follow the pronoun’s row: it attends back to its antecedent.',
+  distinctive: 'Focused attention that fits no textbook pattern — look for what it tracks.',
+  pinned: 'Hand-picked from the grid — compare against the patterns you know.',
 }
 
 const CELL = 20
