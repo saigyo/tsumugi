@@ -22,6 +22,8 @@ export function LayersDetail({ event, mode, attention, attentionInRun, tokens, s
   // label would duplicate its chip (and its React key) — show it once
   const heads = [...cycleHeads, ...(pinnedHeads ?? []).filter((p) =>
     !cycleHeads.some((h) => h.layer === p.layer && h.head === p.head && h.label === p.label))]
+  const lastPin = pinnedHeads?.at(-1)
+  const focus = lastPin ? { layer: lastPin.layer, head: lastPin.head, label: lastPin.label } : undefined
   return (
     <div data-testid="detail-layers" className="detail">
       <h3>Transformer layers {mode === 'real' && !attentionInRun && <em>(schematic — real internals not exposed)</em>}</h3>
@@ -37,7 +39,7 @@ export function LayersDetail({ event, mode, attention, attentionInRun, tokens, s
           </div>
         ))}
       </div>
-      {heads.length > 0 && tokens && <AttentionHeatmap heads={heads} tokens={tokens} />}
+      {heads.length > 0 && tokens && <AttentionHeatmap heads={heads} tokens={tokens} focus={focus} />}
       {pinNote && <p data-testid="pin-note" className="attn-note">{pinNote}</p>}
       {grid && (
         <button data-testid="btn-explore-heads" className="explore-toggle"

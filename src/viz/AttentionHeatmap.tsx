@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { AttentionHead, AttentionLabel, TokenInfo } from '../trace/types'
 
 const HINTS: Record<AttentionLabel, string> = {
@@ -15,10 +15,26 @@ const LABEL_W = 66
 const DIAG_PAD = 58   // room above the matrix for the slanted column labels
 const RIGHT_PAD = 70  // overhang of the right-most slanted label
 
-export function AttentionHeatmap({ heads, tokens }: { heads: AttentionHead[]; tokens: TokenInfo[] }) {
+export function AttentionHeatmap({ heads, tokens, focus }: {
+  heads: AttentionHead[]; tokens: TokenInfo[]
+  focus?: { layer: number; head: number; label: AttentionLabel }
+}) {
   const [selected, setSelected] = useState(0)
   const [hovered, setHovered] = useState<{ r: number; c: number } | null>(null)
-  const head = heads[Math.min(selected, heads.length - 1)]
+  const clampedSelected = Math.min(selected, heads.length - 1)
+  const head = heads[clampedSelected]
+  const focusKey = focus ? `${focus.layer}-${focus.head}-${focus.label}` : null
+
+  useEffect(() => {
+    if (!focusKey) return
+    const i = heads.findIndex((h) => `${h.layer}-${h.head}-${h.label}` === focusKey)
+    if (i >= 0) { setSelected(i); setHovered(null) }
+    // heads is intentionally omitted: re-focus should only fire when the
+    // requested (layer, head, label) triple changes, not on every re-render
+    // (e.g. hover state changes) while heads stays the same reference.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusKey])
+
   if (!head) return null
   const n = head.matrix.length
   const label = (i: number) => tokens[i]?.text.trim() ?? `#${i}`
@@ -27,7 +43,7 @@ export function AttentionHeatmap({ heads, tokens }: { heads: AttentionHead[]; to
     <div data-testid="attention-heatmap" className="attention-heatmap">
       <div className="head-chip-row">
         {heads.map((h, i) => (
-          <button key={`${h.layer}-${h.head}-${h.label}`} data-testid="head-chip" data-active={String(i === selected)}
+          <button key={`${h.layer}-${h.head}-${h.label}`} data-testid="head-chip" data-active={String(i === clampedSelected)}
             className="head-chip" onClick={() => { setSelected(i); setHovered(null) }}>
             {h.label} <span className="head-loc">L{h.layer}·H{h.head}</span>
             {h.score != null && <span className="head-score">· {h.score}</span>}
@@ -76,8 +92,10 @@ export function AttentionHeatmap({ heads, tokens }: { heads: AttentionHead[]; to
       </p>
       <p data-testid="attn-hint" className="attn-hint">{HINTS[head.label]}</p>
       <p data-testid="attn-note" className="attn-note">
-        {head.score != null
-          ? 'Measured on this prompt — head roles detected from the attention weights, not labeled by the model.'
+        {head.label === 'pinned' || head.score != null
+          ? head.score != null
+            ? 'Measured on this prompt — head roles detected from the attention weights, not labeled by the model.'
+            : 'Measured on this prompt — attention weights from this run.'
           : 'Illustrative pattern (simulated) — real attention weights are not exposed by the browser model.'}
       </p>
     </div>

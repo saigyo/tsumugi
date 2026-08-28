@@ -153,6 +153,20 @@ test('cell clicks reach onPin and pinned heads render as chips', () => {
   expect(chips.some((c) => c.textContent?.includes('pinned'))).toBe(true)
 })
 
+test('the last pinned head is focused (selected) in the viewer', () => {
+  const pinned: AttentionHead[] = [
+    { layer: 1, head: 1, label: 'pinned', matrix: [[1], [0.5, 0.5]] },
+    { layer: 2, head: 2, label: 'pinned', matrix: [[1], [0.4, 0.6]] },
+  ]
+  render(<DetailPanel events={trace} cursor={6} mode="real" pinnedHeads={pinned} />)
+  const chips = screen.getAllByTestId('head-chip')
+  const lastPinChip = chips.find((c) => c.textContent?.includes('L2') && c.textContent?.includes('H2'))
+  expect(lastPinChip).toBeDefined()
+  expect(lastPinChip!.dataset.active).toBe('true')
+  const otherPinChip = chips.find((c) => c.textContent?.includes('L1') && c.textContent?.includes('H1'))
+  expect(otherPinChip!.dataset.active).toBe('false')
+})
+
 test('the stale-pin note renders', () => {
   render(<DetailPanel events={traceWithGrid()} cursor={3} mode="real"
     pinNote="run data no longer available — regenerate to explore heads" />)

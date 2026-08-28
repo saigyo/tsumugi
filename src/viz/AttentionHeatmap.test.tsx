@@ -67,3 +67,29 @@ test('unscored heads keep the illustrative note', () => {
   render(<AttentionHeatmap heads={attn.heads} tokens={tokens} />)
   expect(screen.getByTestId('attn-note')).toHaveTextContent(/illustrative/i)
 })
+
+test('a pinned head with no score still shows the measured note, not the illustrative one', () => {
+  const pinned = [{ layer: 1, head: 1, label: 'pinned' as const, matrix: attn.heads[0].matrix }]
+  render(<AttentionHeatmap heads={pinned} tokens={tokens} />)
+  expect(screen.getByTestId('attn-note')).toHaveTextContent(/measured on this prompt/i)
+  expect(screen.getByTestId('attn-note')).not.toHaveTextContent(/illustrative/i)
+})
+
+test('focus prop selects the matching chip', () => {
+  const target = attn.heads[1]
+  render(<AttentionHeatmap heads={attn.heads} tokens={tokens}
+    focus={{ layer: target.layer, head: target.head, label: target.label }} />)
+  const chips = screen.getAllByTestId('head-chip')
+  expect(chips[1].dataset.active).toBe('true')
+  expect(chips[0].dataset.active).toBe('false')
+})
+
+test('data-active tracks the clamped selection after heads shrinks', () => {
+  const { rerender } = render(<AttentionHeatmap heads={attn.heads} tokens={tokens} />)
+  const chips = screen.getAllByTestId('head-chip')
+  fireEvent.click(chips[1])  // select index 1
+  rerender(<AttentionHeatmap heads={[attn.heads[0]]} tokens={tokens} />)  // heads shrinks to 1
+  const shrunkChips = screen.getAllByTestId('head-chip')
+  expect(shrunkChips).toHaveLength(1)
+  expect(shrunkChips[0].dataset.active).toBe('true')
+})
