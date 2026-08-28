@@ -320,11 +320,12 @@ representative event (Layers → its `attention` event, Logits → its
 `softmax`, Sampler → its `sample`), giving stage × cycle navigation
 together with the cycle-step buttons.
 The Layers detail panel renders the heatmap with head-selector chips,
-per-label reading hints, and an "illustrative" disclaimer. Real mode
-emits no attention events, so the panel stays schematic there; when a
-custom model export with real attention outputs exists (see
-docs/research/2026-08-27-attention-weights-in-browser.md), the same
-event and UI carry the real data.
+per-label reading hints, and an "illustrative" disclaimer. Real mode now
+carries measured data through the same event and UI: a custom model
+export with per-layer attention outputs, with head roles detected
+statistically and scored — see
+docs/superpowers/specs/2026-08-27-real-attention-export-design.md (M1,
+shipped) and docs/research/2026-08-27-attention-weights-in-browser.md.
 
 ## Out of scope (v1)
 

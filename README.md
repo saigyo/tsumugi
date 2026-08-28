@@ -25,11 +25,17 @@ controls.
   Hugging Face tokenizer files can't be fetched) plus synthetic-but-realistic
   activations, logits, and sampling, so the pipeline stages behave the way a
   real model would without needing to run one.
-- **Real** — runs an actual small model (`HuggingFaceTB/SmolLM2-135M-Instruct`)
-  in-browser via [transformers.js](https://github.com/huggingface/transformers.js),
-  in a Web Worker. First use downloads roughly **120 MB** of model weights,
-  cached by the browser afterward. It prefers WebGPU and automatically falls
-  back to WASM on browsers/devices without WebGPU support.
+- **Real** — runs an actual small model in-browser via
+  [transformers.js](https://github.com/huggingface/transformers.js), in a
+  Web Worker. It first tries a custom export of SmolLM2-135M-Instruct with
+  **real per-layer attention outputs**
+  ([`saigyo-hoshi/smollm2-135m-attn-onnx`](https://huggingface.co/saigyo-hoshi/smollm2-135m-attn-onnx),
+  ~240 MB, downloaded once and cached): the Layers stage then shows measured
+  attention heatmaps, with head roles (previous-token, attention-sink,
+  induction) detected statistically from the weights on your prompt and
+  labeled with their evidence scores. If that download fails it falls back
+  to the stock `HuggingFaceTB/SmolLM2-135M-Instruct` export (~120 MB,
+  schematic layers). Prefers WebGPU, falls back to WASM automatically.
 
 ## One matrix, end to end — the residual stream
 
@@ -104,11 +110,12 @@ The example chips under the prompt input load prompts crafted so these
 patterns visibly connect to the input; each head's caption says what to
 look for.
 
-Two honest caveats. First, the heatmaps in this app are **illustrative**:
-browser-run ONNX models don't expose their real attention weights (see
-[`docs/research/`](docs/research/) for what it would take), so simulated
-mode shows deterministic, hand-shaped patterns of the kinds real models
-exhibit. Second, even real attention weights are **not explanations** —
+Two honest caveats. First, simulated mode's heatmaps are **illustrative**
+— deterministic, hand-shaped patterns of the kinds real models exhibit —
+while real mode shows **measured** weights from the custom model export
+(the footer under each heatmap says which you're looking at; head roles
+in real mode are detected from the weights, not labeled by the model).
+Second, even real attention weights are **not explanations** —
 they show what the mechanism computes, not *why* the model produced its
 output (Jain & Wallace, "Attention is not Explanation", 2019). Read them
 as "how information flows", never as "why the model answered X".
