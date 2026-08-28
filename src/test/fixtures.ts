@@ -1,18 +1,38 @@
-import type { AttentionGridCell, TraceEvent, TokenInfo } from '../trace/types'
+import type { AttentionGridCell, Mode, RunEndReason, TraceEvent, TokenInfo } from '../trace/types'
+import type { RunRecord } from '../app/runsStore'
 
-export function makeFixtureTrace(cycles = 2, layers = 3): TraceEvent[] {
+export interface FixtureTraceOpts {
+  cycles?: number
+  layers?: number
+  prompt?: string
+  promptTokens?: TokenInfo[]
+  // one chosen token per cycle; defaults reproduce makeFixtureTrace exactly
+  chosen?: TokenInfo[]
+  temperature?: number
+  mode?: Mode
+  reason?: RunEndReason
+}
+
+const DEFAULT_WORDS = [' sat', ' on', ' the', ' mat']
+
+export function buildFixtureTrace(opts: FixtureTraceOpts = {}): TraceEvent[] {
+  const cycles = opts.cycles ?? 2
+  const layers = opts.layers ?? 3
+  const promptTokens = opts.promptTokens ?? [{ id: 10, text: 'The' }, { id: 11, text: ' cat' }]
+  const temperature = opts.temperature ?? 0.8
+  const chosenFor = (c: number): TokenInfo =>
+    opts.chosen?.[c] ?? { id: 100 + c, text: DEFAULT_WORDS[c % DEFAULT_WORDS.length] }
   const events: TraceEvent[] = [
-    { type: 'run-start', prompt: 'The cat', mode: 'sim', modelId: 'fixture',
-      params: { temperature: 0.8, topK: 10, maxNewTokens: cycles }, vocabSize: 49152 },
-    { type: 'tokenize', tokens: [{ id: 10, text: 'The' }, { id: 11, text: ' cat' }] },
+    { type: 'run-start', prompt: opts.prompt ?? 'The cat', mode: opts.mode ?? 'sim', modelId: 'fixture',
+      params: { temperature, topK: 10, maxNewTokens: cycles }, vocabSize: 49152 },
+    { type: 'tokenize', tokens: promptTokens },
   ]
-  const words = [' sat', ' on', ' the', ' mat']
   for (let c = 0; c < cycles; c++) {
-    const chosen: TokenInfo = { id: 100 + c, text: words[c % words.length] }
-    events.push({ type: 'embed', cycle: c, seqLen: 2 + c, dims: 576,
+    const chosen = chosenFor(c)
+    events.push({ type: 'embed', cycle: c, seqLen: promptTokens.length + c, dims: 576,
       preview: [[0.1, -0.2, 0.3], [0.0, 0.5, -0.1]] })
     for (let l = 0; l < layers; l++) events.push({ type: 'layer', cycle: c, index: l, total: layers })
-    const seq = 2 + c
+    const seq = promptTokens.length + c
     const row = (i: number, weights: Array<[number, number]>): number[] => {
       const w = Array.from({ length: i + 1 }, () => 0)
       for (const [pos, mass] of weights) w[Math.min(pos, i)] += mass
@@ -27,14 +47,36 @@ export function makeFixtureTrace(cycles = 2, layers = 3): TraceEvent[] {
     events.push({ type: 'logits', cycle: c, topK: [
       { ...chosen, logit: 9.1 }, { id: 200, text: ' ran', logit: 7.2 }, { id: 201, text: ' was', logit: 5.0 },
     ] })
-    events.push({ type: 'softmax', cycle: c, temperature: 0.8, topK: [
+    events.push({ type: 'softmax', cycle: c, temperature, topK: [
       { ...chosen, prob: 0.7 }, { id: 200, text: ' ran', prob: 0.2 }, { id: 201, text: ' was', prob: 0.1 },
     ] })
     events.push({ type: 'sample', cycle: c, chosen, method: 'top-k' })
     events.push({ type: 'append', cycle: c, token: chosen })
   }
-  events.push({ type: 'run-end', reason: 'max-tokens' })
+  events.push({ type: 'run-end', reason: opts.reason ?? 'max-tokens' })
   return events
+}
+
+export function makeFixtureTrace(cycles = 2, layers = 3): TraceEvent[] {
+  return buildFixtureTrace({ cycles, layers })
+}
+
+export function makeRunRecord(
+  seq: number, opts: FixtureTraceOpts & { pinned?: boolean; endedAt?: number; id?: string } = {},
+): RunRecord {
+  return {
+    id: opts.id ?? `run-${seq}`,
+    meta: {
+      seq,
+      prompt: opts.prompt ?? 'The cat',
+      params: { temperature: opts.temperature ?? 0.8, topK: 10, maxNewTokens: opts.cycles ?? 2 },
+      mode: opts.mode ?? 'sim',
+      endedAt: opts.endedAt ?? 1000 + seq,
+      reason: opts.reason ?? 'max-tokens',
+      pinned: opts.pinned ?? false,
+    },
+    events: buildFixtureTrace(opts),
+  }
 }
 
 // Grid tests use this instead of growing makeFixtureTrace — the default
