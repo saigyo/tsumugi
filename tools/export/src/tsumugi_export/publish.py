@@ -25,6 +25,12 @@ for in-browser attention visualization in
 Validation (see `validation-report.json`): logits parity with the stock
 export, row-stochastic causal attention rows, cached-vs-full-matrix
 equivalence.
+
+**Variants:** `onnx/model_fp16.onnx` is the primary artifact. A q4
+(MatMulNBits) variant was produced but failed greedy-parity validation
+against the stock export (structurally divergent output, not ordinary
+quantization noise) and is deliberately not published; consumers
+requesting `dtype: 'q4'` should expect a 404 and fall back to fp16.
 """
 
 
