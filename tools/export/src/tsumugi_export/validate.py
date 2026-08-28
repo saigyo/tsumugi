@@ -235,7 +235,11 @@ def run(args) -> int:
         path = model_dir / "onnx" / variant
         if not path.exists():
             continue
-        sess = _session(path)
+        try:
+            sess = _session(path)
+        except Exception as err:  # a broken artifact is a FAIL row, never a crash
+            checks[f"{variant}:loadable"] = {"passed": False, "detail": f"session load failed: {err}"}
+            continue
         out_names = [o.name for o in sess.get_outputs()]
         attn_names = sorted(n for n in out_names if n.startswith("attentions."))
 

@@ -23,10 +23,13 @@ def run(args) -> int:
         print(f"missing {src} — run export first")
         return 1
 
-    # fp16 variant
-    from onnxconverter_common import float16
+    # fp16 variant — onnxruntime's transformer-aware converter, not the generic
+    # onnxconverter_common one: the generic converter left inconsistent Cast
+    # node types in this graph (fp16 output feeding float-typed inputs), which
+    # ORT then refuses to load. The ORT converter fixes up Cast chains.
+    from onnxruntime.transformers.float16 import convert_float_to_float16
     model = onnx.load(str(src))
-    fp16_model = float16.convert_float_to_float16(model, keep_io_types=True)
+    fp16_model = convert_float_to_float16(model, keep_io_types=True)
     onnx.save(fp16_model, str(onnx_dir / "model_fp16.onnx"))
     print("wrote model_fp16.onnx")
 
