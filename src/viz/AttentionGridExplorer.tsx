@@ -28,7 +28,7 @@ function topStat(c: GridCell): string {
 // One canvas pixel per thumb bucket, upscaled by CSS (image-rendering:
 // pixelated). Canvas here is a recorded amendment to the v1 "SVG + CSS only"
 // constraint: 270 SVG thumbnails would jank; the main heatmap stays SVG.
-function Thumb({ thumb }: { thumb: number[][] }) {
+export function Thumb({ thumb }: { thumb: number[][] }) {
   const ref = useRef<HTMLCanvasElement>(null)
   useEffect(() => {
     const canvas = ref.current
