@@ -45,8 +45,11 @@ export function DetailPanel({ events, cursor, mode, pinnedHeads, onPin, pinNote 
       // data at all), not a per-cycle one — so it looks at the whole event list, not cursor
       const attentionInRun = latestOfType(events, events.length - 1, 'attention') !== undefined
       const rows = inCycle?.heads[0]?.matrix.length ?? 0
-      const { prompt, generated } = visibleTokens(events, cursor)
-      const tokens = [...prompt, ...generated].slice(0, rows)
+      // pinned matrices span the whole run, not just this cycle — when one is
+      // longer than the cycle's kv length, label its rows from the run's tokens
+      const pinnedRows = Math.max(0, ...(pinnedHeads ?? []).map((p) => p.matrix.length))
+      const { prompt, generated } = visibleTokens(events, pinnedRows > rows ? events.length - 1 : cursor)
+      const tokens = [...prompt, ...generated].slice(0, Math.max(rows, pinnedRows))
       const embed = latestOfType(events, cursor, 'embed')
       const streamShape = embed ? { seqLen: embed.seqLen, dims: embed.dims } : undefined
       // run-level, like attentionInRun: the grid is a whole-run snapshot

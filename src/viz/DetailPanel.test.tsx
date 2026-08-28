@@ -167,6 +167,16 @@ test('the last pinned head is focused (selected) in the viewer', () => {
   expect(otherPinChip!.dataset.active).toBe('false')
 })
 
+test('pinned-head rows are labeled with run tokens, not indices', () => {
+  // cursor 3: a layer event before the cycle's attention event, so the cycle
+  // contributes no token sizing (rows = 0) — labels must come from the run
+  const pinned: AttentionHead[] = [{ layer: 0, head: 0, label: 'pinned', matrix: [[1], [0.5, 0.5]] }]
+  render(<DetailPanel events={trace} cursor={3} mode="real" pinnedHeads={pinned} />)
+  expect(screen.getAllByText('The').length).toBeGreaterThan(0)
+  expect(screen.getAllByText('cat').length).toBeGreaterThan(0)
+  expect(screen.queryByText('#0')).toBeNull()
+})
+
 test('the stale-pin note renders', () => {
   render(<DetailPanel events={traceWithGrid()} cursor={3} mode="real"
     pinNote="run data no longer available — regenerate to explore heads" />)
