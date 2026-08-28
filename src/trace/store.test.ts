@@ -1,4 +1,5 @@
 import { beforeEach, expect, test } from 'vitest'
+import { makeFixtureTrace } from '../test/fixtures'
 import { useTraceStore } from './store'
 
 beforeEach(() => useTraceStore.getState().clear())
@@ -15,4 +16,12 @@ test('clear empties the trace', () => {
   useTraceStore.getState().append({ type: 'run-end', reason: 'max-tokens' })
   useTraceStore.getState().clear()
   expect(useTraceStore.getState().events).toEqual([])
+})
+
+test('load replaces the buffer wholesale', () => {
+  useTraceStore.getState().clear()
+  useTraceStore.getState().append({ type: 'run-end', reason: 'eos' })
+  const events = makeFixtureTrace()
+  useTraceStore.getState().load(events)
+  expect(useTraceStore.getState().events).toEqual(events)
 })

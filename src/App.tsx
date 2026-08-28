@@ -14,6 +14,12 @@ import type { GenParams, Mode } from './trace/types'
 import { DetailPanel } from './viz/DetailPanel'
 import { PipelineBand } from './viz/PipelineBand'
 import { TokenStream } from './viz/TokenStream'
+import { RunShelf } from './app/RunShelf'
+import { archiveImport, archiveRemove, archiveSeal, archiveTogglePin, initArchive } from './app/runArchive'
+import { parseRunFile, serializeRun } from './app/runFiles'
+import { createIndexedDbStorage } from './app/runStorage'
+import { useRunsStore } from './app/runsStore'
+import { CompareView } from './viz/compare/CompareView'
 
 export default function App() {
   usePlaybackTicker()
@@ -29,6 +35,12 @@ export default function App() {
   const [device, setDevice] = useState<'webgpu' | 'wasm' | null>(null)
   const [realReady, setRealReady] = useState(false)
   const [attn, setAttn] = useState(false)
+  const records = useRunsStore((s) => s.records)
+  const activeId = useRunsStore((s) => s.activeId)
+  const persistFailed = useRunsStore((s) => s.persistFailed)
+  const [compare, setCompare] = useState<{ aId: string; bId: string } | null>(null)
+  const [compareArmed, setCompareArmed] = useState(false)
+  const [importError, setImportError] = useState<string | null>(null)
   const { pins, note: pinNote, pin: handlePin, reset: resetPins } = usePins((layer, head) => {
     const engine = realEngineRef.current
     return engine
@@ -41,6 +53,9 @@ export default function App() {
     loadTokenizer().then((t) => { if (live) tokenizerRef.current = t })
     return () => { live = false }
   }, [])
+
+  useEffect(() => { void initArchive(createIndexedDbStorage()) }, [])
+  useEffect(() => { resetPins() }, [activeId, resetPins])
 
   // trace growth → player
   useEffect(() => {
@@ -83,16 +98,71 @@ export default function App() {
     useTraceStore.getState().clear()
     usePlayerStore.getState().dispatch({ type: 'reset' })
     resetPins()
+    setCompare(null)
+    setCompareArmed(false)
     const engine: PipelineEngine =
       mode === 'real' && realEngineRef.current
         ? realEngineRef.current
         : new SimulatedEngine(tokenizerRef.current)
     try {
-      const handle = engine.run(prompt, params, (e) => useTraceStore.getState().append(e))
+      const handle = engine.run(prompt, params, (e) => {
+        useTraceStore.getState().append(e)
+        if (e.type === 'run-end') {
+          // seal metadata comes from the trace itself — run-start carries
+          // prompt/params/mode/modelId; the archive is trace-derived by design
+          const events = useTraceStore.getState().events
+          const start = events.find((x) => x.type === 'run-start')
+          if (start && start.type === 'run-start') {
+            archiveSeal({
+              prompt: start.prompt, params: start.params, mode: start.mode,
+              ...(start.mode === 'real' ? { modelId: start.modelId } : {}),
+              endedAt: Date.now(), reason: e.reason,
+            }, events)
+          }
+        }
+      })
       runRef.current = handle
     } catch (err) {
       setModelError(err instanceof Error ? err.message : String(err))
     }
+  }
+
+  const handleActivate = async (id: string) => {
+    runRef.current?.abort()
+    await runRef.current?.done
+    const record = useRunsStore.getState().records.find((r) => r.id === id)
+    if (!record) return
+    useRunsStore.getState().setActive(id)
+    useTraceStore.getState().load(record.events)
+    const dispatch = usePlayerStore.getState().dispatch
+    dispatch({ type: 'traceGrew', length: record.events.length })
+    dispatch({ type: 'seek', index: record.events.length - 1 })
+    dispatch({ type: 'pause' })
+  }
+
+  const handleRemove = (id: string) => {
+    archiveRemove(id)
+    setCompare((c) => (c && (c.aId === id || c.bId === id) ? null : c))
+  }
+
+  const handleExport = (id: string) => {
+    const record = useRunsStore.getState().records.find((r) => r.id === id)
+    if (!record) return
+    const { filename, json } = serializeRun(record)
+    const url = URL.createObjectURL(new Blob([json], { type: 'application/json' }))
+    const anchor = document.createElement('a')
+    anchor.href = url
+    anchor.download = filename
+    anchor.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const handleImportFile = (file: File) => {
+    void file.text().then((text) => {
+      const parsed = parseRunFile(text)
+      if (parsed.ok) { setImportError(null); archiveImport({ meta: parsed.meta, events: parsed.events }) }
+      else setImportError(parsed.error)
+    })
   }
 
   return (
@@ -103,14 +173,34 @@ export default function App() {
         status={<ModelStatus progress={progress} device={mode === 'real' ? device : null} error={modelError}
           attentions={mode === 'real' && attn}
           onFallback={() => { setModelError(null); setMode('sim') }} />} />
-      <TokenStream events={events} cursor={cursor} />
-      <PipelineBand events={events} cursor={cursor} onStageClick={(index) => {
-        usePlayerStore.getState().dispatch({ type: 'seek', index })
-        usePlayerStore.getState().dispatch({ type: 'pause' })
-      }} />
-      <Controls />
-      <DetailPanel events={events} cursor={cursor} mode={mode}
-        pinnedHeads={pins} onPin={handlePin} pinNote={pinNote} />
+      <RunShelf records={records} activeId={activeId} compare={compare} armed={compareArmed}
+        persistFailed={persistFailed} importError={importError}
+        onActivate={(id) => { void handleActivate(id) }}
+        onSelectCompareB={(id) => {
+          setCompareArmed(false)
+          setCompare((c) => c ? { ...c, bId: id } : activeId ? { aId: activeId, bId: id } : null)
+        }}
+        onArmCompare={() => setCompareArmed(true)}
+        onExitCompare={() => { setCompare(null); setCompareArmed(false) }}
+        onTogglePin={archiveTogglePin} onRemove={handleRemove}
+        onExport={handleExport} onImportFile={handleImportFile} />
+      {(() => {
+        const cmpA = compare && records.find((r) => r.id === compare.aId)
+        const cmpB = compare && records.find((r) => r.id === compare.bId)
+        if (cmpA && cmpB) return <CompareView a={cmpA} b={cmpB} />
+        return (
+          <>
+            <TokenStream events={events} cursor={cursor} />
+            <PipelineBand events={events} cursor={cursor} onStageClick={(index) => {
+              usePlayerStore.getState().dispatch({ type: 'seek', index })
+              usePlayerStore.getState().dispatch({ type: 'pause' })
+            }} />
+            <Controls />
+            <DetailPanel events={events} cursor={cursor} mode={mode}
+              pinnedHeads={pins} onPin={handlePin} pinNote={pinNote} />
+          </>
+        )
+      })()}
     </div>
   )
 }
