@@ -1,4 +1,4 @@
-import type { Mode, TraceEvent } from '../trace/types'
+import type { AttentionHead, Mode, TraceEvent } from '../trace/types'
 import { activeStage, eventAt, latestOfType } from './selectors'
 import { EmbeddingsDetail } from './details/EmbeddingsDetail'
 import { LayersDetail } from './details/LayersDetail'
@@ -8,7 +8,12 @@ import { SamplerDetail } from './details/SamplerDetail'
 import { RunEndDetail } from './details/RunEndDetail'
 import { visibleTokens } from './selectors'
 
-export function DetailPanel({ events, cursor, mode }: { events: TraceEvent[]; cursor: number; mode: Mode }) {
+export function DetailPanel({ events, cursor, mode, pinnedHeads, onPin, pinNote }: {
+  events: TraceEvent[]; cursor: number; mode: Mode
+  pinnedHeads?: AttentionHead[]
+  onPin?: (layer: number, head: number) => void
+  pinNote?: string | null
+}) {
   const current = eventAt(events, cursor)
   const stage = activeStage(current)
   const empty = <div data-testid="detail-empty" className="detail">Press Generate, then step through the pipeline.</div>
@@ -44,8 +49,11 @@ export function DetailPanel({ events, cursor, mode }: { events: TraceEvent[]; cu
       const tokens = [...prompt, ...generated].slice(0, rows)
       const embed = latestOfType(events, cursor, 'embed')
       const streamShape = embed ? { seqLen: embed.seqLen, dims: embed.dims } : undefined
+      // run-level, like attentionInRun: the grid is a whole-run snapshot
+      const grid = latestOfType(events, events.length - 1, 'attention-grid')
       return <LayersDetail event={e} mode={mode} attention={inCycle} attentionInRun={attentionInRun}
-        tokens={tokens} streamShape={streamShape} />
+        tokens={tokens} streamShape={streamShape}
+        grid={grid} pinnedHeads={pinnedHeads} onPin={onPin} pinNote={pinNote} />
     }
     case 'logits': {
       const logits = latestOfType(events, cursor, 'logits')

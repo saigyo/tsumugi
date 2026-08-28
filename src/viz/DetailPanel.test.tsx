@@ -1,11 +1,16 @@
-import { cleanup, render, screen } from '@testing-library/react'
-import { afterEach, expect, test } from 'vitest'
-import { makeFixtureTrace } from '../test/fixtures'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { afterEach, expect, test, vi } from 'vitest'
+import { makeFixtureTrace, makeGridEvent } from '../test/fixtures'
+import type { AttentionHead } from '../trace/types'
 import { DetailPanel } from './DetailPanel'
 
 const trace = makeFixtureTrace()  // cursor 1=tokenize, 2=embed, 3..5=layers, 6=attention
 
 afterEach(() => cleanup())
+
+// Mock getContext to prevent jsdom stub warnings in test output (the grid
+// explorer's canvas thumbnails), same as AttentionGridExplorer.test.tsx.
+vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null as never)
 
 test('tokenizer detail shows token chips with ids', () => {
   render(<DetailPanel events={trace} cursor={1} mode="sim" />)
@@ -115,4 +120,41 @@ test('logits detail frames scores as a dot-product readout', () => {
   expect(formula).toHaveTextContent('[1×576]')
   expect(formula).toHaveTextContent('[576×49 152]')
   expect(screen.getByTestId('detail-logits')).toHaveTextContent(/dot product/i)
+})
+
+function traceWithGrid() {
+  const t = makeFixtureTrace()
+  t.splice(t.length - 1, 0, makeGridEvent(2, 2))
+  return t
+}
+
+test('layers detail offers the explorer toggle when the run has a grid', () => {
+  render(<DetailPanel events={traceWithGrid()} cursor={3} mode="real" />)
+  const toggle = screen.getByTestId('btn-explore-heads')
+  expect(toggle).toHaveTextContent('Explore all heads (4)')
+  fireEvent.click(toggle)
+  expect(screen.getByTestId('grid-explorer')).toBeInTheDocument()
+})
+
+test('no explorer toggle without a grid event', () => {
+  render(<DetailPanel events={trace} cursor={3} mode="sim" />)
+  expect(screen.queryByTestId('btn-explore-heads')).toBeNull()
+})
+
+test('cell clicks reach onPin and pinned heads render as chips', () => {
+  const onPin = vi.fn()
+  const pinned: AttentionHead[] = [{ layer: 1, head: 1, label: 'pinned', matrix: [[1], [0.5, 0.5]] }]
+  render(<DetailPanel events={traceWithGrid()} cursor={6} mode="real"
+    pinnedHeads={pinned} onPin={onPin} pinNote={null} />)
+  fireEvent.click(screen.getByTestId('btn-explore-heads'))
+  fireEvent.click(screen.getAllByTestId('grid-cell')[0])
+  expect(onPin).toHaveBeenCalledWith(0, 0)
+  const chips = screen.getAllByTestId('head-chip')
+  expect(chips.some((c) => c.textContent?.includes('pinned'))).toBe(true)
+})
+
+test('the stale-pin note renders', () => {
+  render(<DetailPanel events={traceWithGrid()} cursor={3} mode="real"
+    pinNote="run data no longer available — regenerate to explore heads" />)
+  expect(screen.getByTestId('pin-note')).toHaveTextContent('regenerate')
 })

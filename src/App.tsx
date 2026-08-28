@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Controls } from './app/Controls'
 import { ModelStatus } from './app/ModelStatus'
 import { PromptBar } from './app/PromptBar'
+import { usePins } from './app/usePins'
 import { CURATED_EXAMPLES } from './engine/simulated/examples'
 import { SimulatedEngine } from './engine/simulated/SimulatedEngine'
 import { fallbackTokenizer, loadTokenizer, type Tokenizer } from './engine/tokenizer'
@@ -28,6 +29,12 @@ export default function App() {
   const [device, setDevice] = useState<'webgpu' | 'wasm' | null>(null)
   const [realReady, setRealReady] = useState(false)
   const [attn, setAttn] = useState(false)
+  const { pins, note: pinNote, pin: handlePin, reset: resetPins } = usePins((layer, head) => {
+    const engine = realEngineRef.current
+    return engine
+      ? engine.fetchHead(layer, head)
+      : Promise.resolve({ layer, head, matrix: [], label: null, score: null })
+  })
 
   useEffect(() => {
     let live = true
@@ -75,6 +82,7 @@ export default function App() {
     await runRef.current?.done
     useTraceStore.getState().clear()
     usePlayerStore.getState().dispatch({ type: 'reset' })
+    resetPins()
     const engine: PipelineEngine =
       mode === 'real' && realEngineRef.current
         ? realEngineRef.current
@@ -100,7 +108,8 @@ export default function App() {
         usePlayerStore.getState().dispatch({ type: 'seek', index })
         usePlayerStore.getState().dispatch({ type: 'pause' })
       }} />
-      <DetailPanel events={events} cursor={cursor} mode={mode} />
+      <DetailPanel events={events} cursor={cursor} mode={mode}
+        pinnedHeads={pins} onPin={handlePin} pinNote={pinNote} />
       <Controls />
     </div>
   )
