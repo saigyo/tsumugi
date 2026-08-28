@@ -88,3 +88,23 @@ export function selectShowcaseHeads(
     pick('distinctive', (s) => s.distinctiveScore, 0.25),
   ].filter((h): h is AttentionHead => h !== null)
 }
+
+// Label a single head for the pin flow: best TEMPLATE score at/above the
+// threshold ('distinctive' is not a template and is never assigned here).
+export function resolveHeadLabel(
+  stats: HeadStats[], layer: number, head: number, threshold = 0.3,
+): { label: AttentionLabel | null; score: number | null } {
+  const s = stats.find((x) => x.layer === layer && x.head === head)
+  if (!s) return { label: null, score: null }
+  const candidates: Array<[AttentionLabel, number | null]> = [
+    ['previous-token', s.prevTokenScore],
+    ['attention-sink', s.sinkScore],
+    ['induction', s.inductionScore],
+  ]
+  let label: AttentionLabel | null = null
+  let best = threshold
+  for (const [lab, v] of candidates) {
+    if (v !== null && v >= best) { label = lab; best = v }
+  }
+  return label ? { label, score: round(best) } : { label: null, score: null }
+}

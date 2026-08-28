@@ -1,7 +1,7 @@
 import { expect, test } from 'vitest'
 import type { TokenInfo } from '../../trace/types'
 import { createAccumulator } from './attentionAccum'
-import { headStats, selectShowcaseHeads, type ShowcasePrev } from './attentionStats'
+import { headStats, resolveHeadLabel, selectShowcaseHeads, type ShowcasePrev } from './attentionStats'
 
 const toks = (...t: string[]): TokenInfo[] => t.map((text, id) => ({ id, text }))
 
@@ -143,4 +143,33 @@ test('hysteresis: incumbent below threshold falls back to argmax', () => {
   const prev: ShowcasePrev = { 'previous-token': { layer: 0, head: 0 } }
   const winner = selectShowcaseHeads(stats, acc, 0.3, prev).find((h) => h.label === 'previous-token')
   expect(winner!.layer).toBe(1)
+})
+
+test('resolveHeadLabel returns the best template at or above 0.3', () => {
+  const acc = createAccumulator(2, 1)
+  acc.rows[0][0] = fill(diagRow, 5)
+  acc.rows[1][0] = fill(sinkRow, 5)
+  const stats = headStats(acc, toks('a', ' b', ' c', ' d', ' e'))
+  expect(resolveHeadLabel(stats, 0, 0)).toEqual({ label: 'previous-token', score: 1 })
+  expect(resolveHeadLabel(stats, 1, 0)).toEqual({ label: 'attention-sink', score: 1 })
+})
+
+test('resolveHeadLabel returns nulls below threshold or for unknown heads', () => {
+  const acc = createAccumulator(1, 1)
+  // NOTE: brief's original fixture here used the uniform 1/(i+1) rows (as in
+  // the "distinctive score is 0 for uniform" test), but that yields
+  // prevTokenScore = sinkScore ≈ 0.3208 — ABOVE the 0.3 threshold, so
+  // resolveHeadLabel correctly returns a non-null label for it. Reused
+  // instead the low, evenly-scattered rows from "heads below threshold are
+  // not selected" above, which genuinely score 0.2 on every template.
+  acc.rows[0][0] = [
+    [1],
+    [0.2, 0.8],
+    [0.2, 0.2, 0.6],
+    [0.2, 0.2, 0.2, 0.4],
+    [0.2, 0.2, 0.2, 0.2, 0.2],
+  ]
+  const stats = headStats(acc, toks('a', ' b', ' c', ' d', ' e'))
+  expect(resolveHeadLabel(stats, 0, 0)).toEqual({ label: null, score: null })
+  expect(resolveHeadLabel(stats, 7, 7)).toEqual({ label: null, score: null })
 })

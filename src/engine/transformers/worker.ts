@@ -1,10 +1,11 @@
 /// <reference lib="webworker" />
-import type { GenParams, TokenInfo, TraceEvent } from '../../trace/types'
+import type { GenParams, RunEndReason, TokenInfo, TraceEvent } from '../../trace/types'
 import { ATTN_MODEL_ID } from '../tokenizer'
 import { sampleIndex, softmax, topK } from '../math'
-import { addAttentionOutput, createAccumulator } from './attentionAccum'
+import { addAttentionOutput, createAccumulator, type AttnAccumulator } from './attentionAccum'
 import type { WorkerRequest, WorkerResponse } from './protocol'
-import { headStats, selectShowcaseHeads } from './attentionStats'
+import { headStats, resolveHeadLabel, selectShowcaseHeads, type HeadStats, type ShowcasePrev } from './attentionStats'
+import { buildGridCells } from './attentionThumbs'
 
 const post = (msg: WorkerResponse) => (self as unknown as Worker).postMessage(msg)
 
@@ -21,6 +22,9 @@ let model: any = null
 let loadedModelId = 'unknown'
 let hasAttentions = false
 let aborted = false
+// finished run kept for the head-request side channel until the next run
+// starts (memory already bounded by ATTN_MAX_SEQ)
+let lastRun: { acc: AttnAccumulator; stats: HeadStats[] } | null = null
 
 async function prepare(modelId: string) {
   loadedModelId = modelId
@@ -87,6 +91,7 @@ function updateCache(DynamicCacheCtor: any, output: any, prevCache: any): any {
 
 async function run(runId: number, prompt: string, params: GenParams) {
   aborted = false
+  lastRun = null
   const emit = (event: TraceEvent) => post({ type: 'trace', runId, event })
   const { Tensor, DynamicCache } = await import('@huggingface/transformers')
 
@@ -118,10 +123,25 @@ async function run(runId: number, prompt: string, params: GenParams) {
     ? createAccumulator(numLayers, numHeads)
     : null
   let attnBroken = false
+  let stats: HeadStats[] | null = null
+  let prevSel: ShowcasePrev = {}
+
+  // Grid emission shares the never-fail policy: a failure flips attnBroken
+  // and the run still ends normally, just without a grid.
+  const endRun = (reason: RunEndReason) => {
+    if (acc && !attnBroken && stats) {
+      try {
+        emit({ type: 'attention-grid', layers: acc.layers, heads: acc.heads,
+          cells: buildGridCells(acc, stats) })
+        lastRun = { acc, stats }
+      } catch { attnBroken = true }
+    }
+    emit({ type: 'run-end', reason })
+  }
 
   try {
     for (let cycle = 0; cycle < params.maxNewTokens; cycle++) {
-      if (aborted) { emit({ type: 'run-end', reason: 'aborted' }); break }
+      if (aborted) { endRun('aborted'); break }
 
       // schematic embed preview (real hidden states not exposed; spec-accepted compromise)
       emit({ type: 'embed', cycle, seqLen: allIds.length, dims,
@@ -149,7 +169,9 @@ async function run(runId: number, prompt: string, params: GenParams) {
       // schematic instead, same as the accumulation try/catch above.
       if (acc && !attnBroken) {
         try {
-          const heads = selectShowcaseHeads(headStats(acc, allIds.map(tokenInfo)), acc)
+          stats = headStats(acc, allIds.map(tokenInfo))
+          const heads = selectShowcaseHeads(stats, acc, 0.3, prevSel)
+          prevSel = Object.fromEntries(heads.map((h) => [h.label, { layer: h.layer, head: h.head }]))
           if (heads.length > 0) emit({ type: 'attention', cycle, heads })
         } catch { attnBroken = true }
       }
@@ -171,8 +193,8 @@ async function run(runId: number, prompt: string, params: GenParams) {
 
       allIds.push(chosen.id)
       nextInputIds = [chosen.id]
-      if (eosIds.includes(chosen.id)) { emit({ type: 'run-end', reason: 'eos' }); break }
-      if (cycle === params.maxNewTokens - 1) emit({ type: 'run-end', reason: 'max-tokens' })
+      if (eosIds.includes(chosen.id)) { endRun('eos'); break }
+      if (cycle === params.maxNewTokens - 1) endRun('max-tokens')
     }
   } finally {
     // Every exit path (eos/max-tokens/aborted break, or an exception) must release the final
@@ -190,6 +212,16 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
     if (msg.type === 'prepare') await prepare(msg.modelId)
     if (msg.type === 'run') await run(msg.runId, msg.prompt, msg.params)
     if (msg.type === 'abort') aborted = true
+    if (msg.type === 'head-request') {
+      const r = lastRun
+      const ok = r !== null
+        && msg.layer >= 0 && msg.layer < r.acc.layers
+        && msg.head >= 0 && msg.head < r.acc.heads
+      const resolved = ok ? resolveHeadLabel(r.stats, msg.layer, msg.head) : { label: null, score: null }
+      post({ type: 'head-response', layer: msg.layer, head: msg.head,
+        matrix: ok ? r.acc.rows[msg.layer][msg.head] : [],
+        label: resolved.label, score: resolved.score })
+    }
   } catch (err) {
     post({ type: 'fatal', message: err instanceof Error ? err.message : String(err) })
   }
