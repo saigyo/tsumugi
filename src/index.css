@@ -227,6 +227,22 @@ input[type="number"] { width: 4rem; }
   padding: .25rem .6rem; cursor: pointer; }
 .explore-toggle:hover { background: var(--ai-wash-strong); }
 
+.run-shelf { display: flex; flex-wrap: wrap; align-items: center; gap: .35rem; margin: .5rem 0; }
+.run-chip { display: inline-flex; align-items: center; border: 1px solid var(--line-strong);
+  border-radius: 999px; background: var(--card); padding: 0 .3rem 0 0; }
+.run-chip[data-active="true"] { border-color: var(--ai); background: var(--ai-wash); }
+.run-chip[data-role="a"], .run-chip[data-role="b"] { border-color: var(--shu); background: var(--shu-wash); }
+.run-chip-main { font: inherit; font-size: .76rem; background: none; border: none; cursor: pointer;
+  padding: .18rem .3rem .18rem .55rem; color: var(--ink); }
+.run-chip-glyph { color: var(--ai); margin-right: .3rem; }
+.run-chip-action { font-size: .68rem; background: none; border: none; cursor: pointer;
+  color: var(--ink-faint); padding: .1rem .15rem; }
+.run-chip-action:hover { color: var(--shu); }
+.run-shelf-btn { font: inherit; font-size: .76rem; color: var(--ai-deep); background: var(--ai-wash);
+  border: 1px solid var(--line-strong); border-radius: 6px; padding: .15rem .5rem; cursor: pointer; }
+.run-shelf-btn:disabled { opacity: .5; cursor: default; }
+.run-shelf-note { font-size: .72rem; color: var(--ink-faint); }
+
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; }
 }
