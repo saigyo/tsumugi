@@ -213,6 +213,11 @@ Layout (three bands + controls):
 └─────────────────────────────────────────────────────────────┘
 ```
 
+> **Amendment (2026-08-28, M2):** the player-controls row moved above the
+> detail panel and became sticky — the panel's height varies too much
+> (especially with the head-explorer grid) for a below-panel scrubber to be
+> an easy target.
+
 - **Pipeline band**: five stage cards with arrows and a drawn **loop
   arrow** back to the token stream (the loop is the single most
   important idea — drawn, not implied). The cursor's event determines

@@ -185,7 +185,9 @@ input[type="number"] { width: 4rem; }
 .slice-chosen { fill: var(--shu); }
 .chosen-marker { color: var(--shu); font-weight: 600; }
 
-.controls { display: flex; gap: .5rem; align-items: center; padding: .6rem 0; flex-wrap: wrap; }
+.controls { display: flex; gap: .5rem; align-items: center; padding: .6rem 0; flex-wrap: wrap;
+  position: sticky; top: 0; z-index: 3; background: var(--washi);
+  border-bottom: 1px solid var(--line); }
 .controls input[type="range"] { flex: 1; min-width: 10rem; accent-color: var(--ai); }
 .controls select { font: inherit; background: var(--card); border: 1px solid var(--line-strong); border-radius: 6px; padding: .25rem; }
 

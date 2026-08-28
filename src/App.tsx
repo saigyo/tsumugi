@@ -108,9 +108,9 @@ export default function App() {
         usePlayerStore.getState().dispatch({ type: 'seek', index })
         usePlayerStore.getState().dispatch({ type: 'pause' })
       }} />
+      <Controls />
       <DetailPanel events={events} cursor={cursor} mode={mode}
         pinnedHeads={pins} onPin={handlePin} pinNote={pinNote} />
-      <Controls />
     </div>
   )
 }
