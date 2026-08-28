@@ -33,7 +33,7 @@ async function prepare(modelId: string) {
 
   // WebGPU->WASM fallback for a single (modelId, dtype) attempt; returns the device that
   // actually succeeded, since a caught GPU failure means the load happened on WASM instead.
-  const loadOn = async (id: string, dtype: 'q4' | 'fp16'): Promise<{ m: any; device: 'webgpu' | 'wasm' }> => {
+  const loadOn = async (id: string, dtype: 'q4' | 'q8' | 'fp16'): Promise<{ m: any; device: 'webgpu' | 'wasm' }> => {
     try {
       return { m: await AutoModelForCausalLM.from_pretrained(id, { dtype, device: preferred, progress_callback }), device: preferred }
     } catch {
@@ -43,7 +43,10 @@ async function prepare(modelId: string) {
 
   let device: 'webgpu' | 'wasm'
   try {
-    ;({ m: model, device } = await loadOn(ATTN_MODEL_ID, 'q4'))
+    // q8 is the attn repo's sole published variant: greedy-token-identical to
+    // fp32 (lm_head excluded from quantization). q4/fp16 were disqualified
+    // during validation — see tools/export/src/tsumugi_export/quantize.py.
+    ;({ m: model, device } = await loadOn(ATTN_MODEL_ID, 'q8'))
     loadedModelId = ATTN_MODEL_ID
     hasAttentions = true
   } catch {

@@ -1,19 +1,23 @@
-"""Produce the q4 (primary) and fp16 (insurance) variants.
+"""Produce the quantized variant for publication.
 
-API-shape caveat: the installed onnxruntime (1.29.0) renamed the weights-only
-quantizer class and moved its module: `MatMul4BitsQuantizer` in
-`onnxruntime.quantization.matmul_4bits_quantizer` (as assumed by the original
-brief) is now `MatMulNBitsQuantizer` in
-`onnxruntime.quantization.matmul_nbits_quantizer`, taking an explicit `bits`
-argument (we pass bits=4 to keep the q4 semantics explicit). That module also
-now imports `onnx_ir` at import time, which is not pulled in transitively by
-onnxruntime — added as an explicit direct dependency. q4 here matches what
-transformers.js dtype:'q4' loads (model_q4.onnx, MatMulNBits weights).
-Whether q4 preserves attention-output correctness is decided by `validate`,
-not assumed here."""
+Outcome of the operator-run validation campaign (2026-08-28), preserved here
+so the choices aren't re-litigated blind:
+
+- q8 dynamic int8 (this file's output, `model_quantized.onnx`, loaded by
+  transformers.js `dtype: 'q8'`) with `/lm_head/MatMul` EXCLUDED is
+  token-identical to the stock fp32 export over the 8-step greedy check —
+  better than the official stock q4, which diverges at step 4.
+- Excluding the lm_head matmul is the load-bearing detail: SmolLM2 ties the
+  lm_head to the input embeddings, and quantizing it degraded every variant
+  (q4 MatMulNBits, plain q8) far beyond normal quantization noise.
+- q4 MatMulNBits with the same exclusion reaches parity with the official
+  stock q4 (3-token greedy prefix, then benign divergence) but is strictly
+  worse than q8 at a similar size — not published.
+- fp16 via onnxruntime.transformers.float16 loads and validates on Python
+  CPU but computes garbage on the WebGPU EP (and is rejected outright by
+  ORT-node): a marginal graph — disqualified, not published.
+"""
 from pathlib import Path
-
-import onnx
 
 
 def run(args) -> int:
@@ -23,24 +27,9 @@ def run(args) -> int:
         print(f"missing {src} — run export first")
         return 1
 
-    # fp16 variant — onnxruntime's transformer-aware converter, not the generic
-    # onnxconverter_common one: the generic converter left inconsistent Cast
-    # node types in this graph (fp16 output feeding float-typed inputs), which
-    # ORT then refuses to load. The ORT converter fixes up Cast chains.
-    from onnxruntime.transformers.float16 import convert_float_to_float16
-    model = onnx.load(str(src))
-    fp16_model = convert_float_to_float16(model, keep_io_types=True)
-    onnx.save(fp16_model, str(onnx_dir / "model_fp16.onnx"))
-    print("wrote model_fp16.onnx")
-
-    # q4 variant (weights-only MatMulNBits)
-    from onnxruntime.quantization.matmul_nbits_quantizer import MatMulNBitsQuantizer
-    model = onnx.load(str(src))
-    # accuracy_level=4 (int8 arithmetic for the quantized matmuls) matches the
-    # official transformers.js conversion recipe; without it this graph's q4
-    # greedy output diverged badly from stock (found during the operator run)
-    quant = MatMulNBitsQuantizer(model, bits=4, block_size=32, is_symmetric=True, accuracy_level=4)
-    quant.process()
-    onnx.save_model(quant.model.model, str(onnx_dir / "model_q4.onnx"))
-    print("wrote model_q4.onnx")
+    from onnxruntime.quantization import QuantType, quantize_dynamic
+    quantize_dynamic(str(src), str(onnx_dir / "model_quantized.onnx"),
+                     weight_type=QuantType.QInt8,
+                     nodes_to_exclude=["/lm_head/MatMul"])
+    print("wrote model_quantized.onnx (q8, lm_head excluded)")
     return 0

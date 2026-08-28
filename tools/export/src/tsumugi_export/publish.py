@@ -26,11 +26,13 @@ Validation (see `validation-report.json`): logits parity with the stock
 export, row-stochastic causal attention rows, cached-vs-full-matrix
 equivalence.
 
-**Variants:** `onnx/model_fp16.onnx` is the primary artifact. A q4
-(MatMulNBits) variant was produced but failed greedy-parity validation
-against the stock export (structurally divergent output, not ordinary
-quantization noise) and is deliberately not published; consumers
-requesting `dtype: 'q4'` should expect a 404 and fall back to fp16.
+**Variants:** `onnx/model_quantized.onnx` (dynamic int8, `dtype: 'q8'`,
+with `/lm_head/MatMul` excluded from quantization) is the sole published
+variant: it is greedy-token-identical to the stock fp32 export on the
+validation prompts — better than the official stock q4, which diverges
+at step 4. q4 and fp16 variants were produced and deliberately withheld
+(q4: on par with stock q4 but strictly worse than this q8; fp16:
+computes incorrectly on the WebGPU execution provider despite loading).
 """
 
 
@@ -92,7 +94,10 @@ def run(args) -> int:
     # The fp32 onnx/model.onnx (~½ GB) is a validation baseline, not part of
     # the spec's shipped repo layout (model_q4.onnx is primary, model_fp16.onnx
     # is insurance) — its hash still lives in validation-report.json.
+    # delete_patterns removes previously-published variants that later
+    # failed disqualification (the marginal fp16 from the first publish).
     api.upload_folder(folder_path=str(model_dir), repo_id=repo_id,
-                       ignore_patterns=["onnx/model.onnx"])
+                       ignore_patterns=["onnx/model.onnx"],
+                       delete_patterns=["onnx/model_fp16.onnx", "onnx/model_q4.onnx"])
     print(f"published → https://huggingface.co/{repo_id}")
     return 0
