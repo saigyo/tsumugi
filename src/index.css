@@ -281,6 +281,10 @@ input[type="number"] { width: 4rem; }
 .cmp-bar-row[data-chosen="true"] .cmp-bar { background: var(--shu); }
 .cmp-bar { display: inline-block; height: .55rem; background: var(--ai-soft); border-radius: 3px; }
 .cmp-bar-prob { font-family: var(--mono); font-size: .68rem; color: var(--ink-faint); }
+/* breathing room between the compare view's inspection sections — the
+   attention header must visually claim its own diagrams, not hang off the
+   distributions above */
+.compare-view h3 { margin-top: 1.6rem; }
 .cmp-dist-controls { display: flex; align-items: baseline; gap: .3rem; margin: .1rem 0 .45rem; }
 .cmp-mode-btn { font: inherit; font-size: .74rem; color: var(--ink-soft); background: var(--card);
   border: 1px solid var(--line-strong); border-radius: 6px; padding: .12rem .5rem; cursor: pointer; }
