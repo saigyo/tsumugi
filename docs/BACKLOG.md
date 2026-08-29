@@ -15,7 +15,7 @@ they are IDs, not positions.
   next to each other: "do heads keep their jobs across runs/prompts?" at a
   glance. Data is already in the traces (`attention-grid` events); the cost
   is screen real estate, and it is real-mode only. *(M3 spec, out of scope)*
-- [ ] **#2 Probability-delta view** — computed diff at the selected cycle:
+- [x] **#2 Probability-delta view** — computed diff at the selected cycle:
   which tokens gained/lost probability between the runs, sorted by delta.
   Most quantitative comparison panel; needs a small derived-data layer the
   current panels don't have. Teaches best on same-prompt pairs at
@@ -46,7 +46,7 @@ they are IDs, not positions.
 
 ## Housekeeping / parked minors
 
-- [ ] **#6 Storage-consistency follow-up** — two parked M3 minors together:
+- [x] **#6 Storage-consistency follow-up** — two parked M3 minors together:
   (a) after merge-hydrate re-sequences concurrently-sealed records, write
   the new seqs back to IndexedDB (stale seq can collide into duplicate
   chip labels on the next reload); (b) one shared IndexedDB connection
