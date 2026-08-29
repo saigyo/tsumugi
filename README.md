@@ -169,6 +169,10 @@ ruler or a word chip) to inspect it:
 Comparison is pure trace inspection — no playback, no model in the loop —
 so it works identically for live, reloaded, and imported runs.
 
+(The screenshots in this README are regenerated with `npm run screenshots`
+— a headed-Chromium Playwright script that drives sim and real mode;
+the first run downloads the model into a cached local profile.)
+
 ## Running it
 
 ```bash

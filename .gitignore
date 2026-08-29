@@ -5,6 +5,7 @@ dist/
 # Playwright
 test-results/
 playwright-report/
+.screenshots-profile/
 
 # Logs
 logs
