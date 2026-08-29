@@ -18,6 +18,8 @@ You type a prompt, hit generate, and watch the pipeline stages light up as
 each token is produced — live, or one step at a time via manual playback
 controls.
 
+![The pipeline at the end of a run: token stream, stage band, playback controls, and the run summary](docs/screenshots/pipeline.png)
+
 ## Modes
 
 - **Simulated (default)** — instant, fully offline, no model download.
@@ -110,6 +112,18 @@ The example chips under the prompt input load prompts crafted so these
 patterns visibly connect to the input; each head's caption says what to
 look for.
 
+![The Layers detail with an attention heatmap and detected head chips](docs/screenshots/real-attention.png)
+
+In real mode the detected chips are only the textbook specimens — the
+model has 30 layers × 9 heads = 270 heads in total, and **Explore all
+heads** opens a small-multiples grid of every one of them (mean-pooled
+thumbnails of the attention accumulated over the whole run, plus a
+per-layer average column). Sort by the detection scores to surface heads
+the chips missed, and click any thumbnail to pin its exact matrix into
+the viewer above.
+
+![The 270-head explorer grid with per-layer aggregates](docs/screenshots/head-explorer.png)
+
 Two honest caveats. First, simulated mode's heatmaps are **illustrative**
 — deterministic, hand-shaped patterns of the kinds real models exhibit —
 while real mode shows **measured** weights from the custom model export
@@ -119,6 +133,41 @@ Second, even real attention weights are **not explanations** —
 they show what the mechanism computes, not *why* the model produced its
 output (Jain & Wallace, "Attention is not Explanation", 2019). Read them
 as "how information flows", never as "why the model answered X".
+
+## Comparing runs
+
+Every completed run is kept on a **run shelf** under the prompt bar —
+generation stops being fire-and-forget. Runs survive page reloads
+(IndexedDB), the eight most recent are kept automatically, a pin (📌)
+protects a run from falling off, and any run can be exported as a JSON
+trace file and imported back later — on another machine, or into a bug
+report.
+
+Select two runs (**⇄ compare**, then click a second chip) and everything
+below the shelf becomes a comparison view: both runs' parameters with
+differences highlighted, the two token streams aligned cycle by cycle,
+and — for runs with the same prompt — the **fork** marked: the first
+cycle where the two runs chose different tokens. Click any cycle (on the
+ruler or a word chip) to inspect it:
+
+- **Paired distributions** — both runs' top-k probabilities at that
+  cycle, with the sampled token marked. This is where sampling becomes
+  visible: at the fork of two same-prompt runs the two distributions are
+  often *identical* — same beliefs, different draw. Compare different
+  temperatures on one prompt to watch the distribution itself change
+  instead.
+- **Paired attention** — the detected heads of both runs at that cycle,
+  side by side. Where only one run promoted a head to a full-resolution
+  snapshot, the other side falls back to its run-level thumbnail — an
+  asymmetry that is itself informative (that run's content didn't
+  activate the circuit strongly enough to win a chip).
+
+![Two same-prompt runs forking at cycle 1 with identical distributions](docs/screenshots/compare.png)
+
+![Paired attention matrices for the selected cycle](docs/screenshots/compare-attention.png)
+
+Comparison is pure trace inspection — no playback, no model in the loop —
+so it works identically for live, reloaded, and imported runs.
 
 ## Running it
 
