@@ -259,6 +259,12 @@ input[type="number"] { width: 4rem; }
   padding: .05rem .3rem; font-size: .8rem; white-space: pre; }
 .cmp-token-prompt { color: var(--ink-soft); }
 .cmp-token[data-fork="true"] { border-color: var(--shu); background: var(--shu-wash); font-weight: 600; }
+.cmp-token-generated { font: inherit; font-size: .8rem; cursor: pointer; }
+.cmp-token-generated:hover { border-color: var(--ai); }
+.cmp-token[data-selected="true"] { border-color: var(--ai); background: var(--ai-wash); font-weight: 600; }
+.cmp-meta-head { margin-bottom: .15rem; }
+/* the embedded single-head heatmap's own chip row duplicates the union chips above */
+.cmp-attn-side .head-chip-row { display: none; }
 .cmp-stream-divider { width: 1px; align-self: stretch; background: var(--line-strong); margin: 0 .3rem; }
 .cmp-ruler { display: flex; gap: .2rem; margin: .4rem 0 .6rem; flex-wrap: wrap; }
 .cmp-tick { font-family: var(--mono); font-size: .7rem; border: 1px solid var(--line-strong);

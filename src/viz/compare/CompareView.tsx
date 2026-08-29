@@ -82,6 +82,10 @@ export function CompareView({ a, b }: { a: RunRecord; b: RunRecord }) {
   const [headKey, setHeadKey] = useState<string | null>(null)
   const heads = cycle !== null ? pairedHeads(a.events, b.events, cycle) : []
   const selectedPair = heads.find((h) => `${h.layer}-${h.head}` === headKey) ?? heads[0]
+  // every panel carries the run identity, matching the stream labels
+  const nameA = `A #${a.meta.seq}`
+  const nameB = `B #${b.meta.seq}`
+  const selectCycle = (c: number) => { setCycle(c); setHeadKey(null) }
 
   const stream = (which: 'a' | 'b') => {
     const record = which === 'a' ? a : b
@@ -93,8 +97,9 @@ export function CompareView({ a, b }: { a: RunRecord; b: RunRecord }) {
         {prompt.map((t, i) => <span key={`p${i}`} className="cmp-token cmp-token-prompt">{t.text}</span>)}
         <span className="cmp-stream-divider" aria-hidden="true" />
         {chosen.map((t, c) => (
-          <span key={`c${c}`} data-testid="cmp-token" data-fork={String(aligned.forkCycle === c)}
-            className="cmp-token">{t.text}</span>
+          <button key={`c${c}`} data-testid="cmp-token" data-fork={String(aligned.forkCycle === c)}
+            data-selected={String(cycle === c)} className="cmp-token cmp-token-generated"
+            title={`inspect cycle ${c}`} onClick={() => selectCycle(c)}>{t.text}</button>
         ))}
       </div>
     )
@@ -103,6 +108,11 @@ export function CompareView({ a, b }: { a: RunRecord; b: RunRecord }) {
   return (
     <div data-testid="compare-view" className="compare-view">
       <div className="cmp-header">
+        <div className="cmp-meta-row cmp-meta-head" aria-hidden="true">
+          <span className="cmp-meta-label" />
+          <span className="cmp-side-name">{nameA}</span>
+          <span className="cmp-side-name">{nameB}</span>
+        </div>
         <MetaRow label="prompt" a={a.meta.prompt} b={b.meta.prompt} />
         <MetaRow label="T" a={String(a.meta.params.temperature)} b={String(b.meta.params.temperature)} />
         <MetaRow label="top-k" a={String(a.meta.params.topK)} b={String(b.meta.params.topK)} />
@@ -124,15 +134,15 @@ export function CompareView({ a, b }: { a: RunRecord; b: RunRecord }) {
         {Array.from({ length: aligned.maxCycles }, (_, c) => (
           <button key={c} data-testid="cmp-tick" data-selected={String(cycle === c)}
             data-fork={String(aligned.forkCycle === c)} className="cmp-tick"
-            onClick={() => { setCycle(c); setHeadKey(null) }}>{c}</button>
+            onClick={() => selectCycle(c)}>{c}</button>
         ))}
       </div>
       {cycle !== null && (
         <>
           <h3>cycle {cycle} · distributions</h3>
           <div className="cmp-pair">
-            <DistSide events={a.events} cycle={cycle} name="A" lastCycle={aligned.chosenA.length - 1} />
-            <DistSide events={b.events} cycle={cycle} name="B" lastCycle={aligned.chosenB.length - 1} />
+            <DistSide events={a.events} cycle={cycle} name={nameA} lastCycle={aligned.chosenA.length - 1} />
+            <DistSide events={b.events} cycle={cycle} name={nameB} lastCycle={aligned.chosenB.length - 1} />
           </div>
           <h3>cycle {cycle} · attention</h3>
           {heads.length === 0 ? (
@@ -144,16 +154,16 @@ export function CompareView({ a, b }: { a: RunRecord; b: RunRecord }) {
                   <button key={`${h.layer}-${h.head}`} data-testid="cmp-head-chip"
                     data-active={String(selectedPair === h)} className="head-chip"
                     onClick={() => setHeadKey(`${h.layer}-${h.head}`)}>
-                    L{h.layer}·H{h.head}
-                    <span className="head-loc">{h.a?.label ?? h.b?.label}</span>
+                    {h.a?.label ?? h.b?.label}
+                    <span className="head-loc">L{h.layer}·H{h.head}</span>
                   </button>
                 ))}
               </div>
               {selectedPair && (
                 <div className="cmp-pair">
-                  <AttnSide events={a.events} head={selectedPair.a} pair={selectedPair} name="A"
+                  <AttnSide events={a.events} head={selectedPair.a} pair={selectedPair} name={nameA}
                     cycle={cycle} lastCycle={aligned.chosenA.length - 1} />
-                  <AttnSide events={b.events} head={selectedPair.b} pair={selectedPair} name="B"
+                  <AttnSide events={b.events} head={selectedPair.b} pair={selectedPair} name={nameB}
                     cycle={cycle} lastCycle={aligned.chosenB.length - 1} />
                 </div>
               )}

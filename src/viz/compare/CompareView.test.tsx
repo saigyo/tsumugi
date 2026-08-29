@@ -69,7 +69,7 @@ test('paired attention: shared heads render two heatmaps; a missing head falls b
   render(<CompareView a={a} b={b} />)
   fireEvent.click(screen.getAllByTestId('cmp-tick')[0])
   const chips = screen.getAllByTestId('cmp-head-chip')
-  expect(chips.map((c) => c.textContent)).toEqual(['L0·H3attention-sink', 'L2·H1previous-token'])
+  expect(chips.map((c) => c.textContent)).toEqual(['attention-sinkL0·H3', 'previous-tokenL2·H1'])
   // default selection = first chip (L0·H3): A side full heatmap, B side sim fallback note
   expect(screen.getAllByTestId('attention-heatmap')).toHaveLength(1)
   expect(screen.getByTestId('cmp-fallback')).toHaveTextContent('not captured in this run')
@@ -90,4 +90,28 @@ test('a run with a grid uses the run-level thumbnail as fallback', () => {
   render(<CompareView a={a} b={b} />)
   fireEvent.click(screen.getAllByTestId('cmp-tick')[0])
   expect(screen.getByTestId('cmp-fallback')).toHaveTextContent('run-level thumbnail')
+})
+
+test('clicking a generated stream token selects its cycle', () => {
+  render(<CompareView a={makeRunRecord(1)} b={makeRunRecord(2)} />)
+  fireEvent.click(screen.getAllByTestId('cmp-token')[1])   // run A, cycle 1
+  const selectedTokens = screen.getAllByTestId('cmp-token').filter((t) => t.dataset.selected === 'true')
+  expect(selectedTokens).toHaveLength(2)                   // one per stream
+  expect(screen.getAllByTestId('cmp-tick')[1].dataset.selected).toBe('true')
+  expect(screen.getAllByTestId('cmp-dist-side')).toHaveLength(2)
+})
+
+test('ruler selection highlights the matching word chips in both streams', () => {
+  render(<CompareView a={makeRunRecord(1)} b={makeRunRecord(2)} />)
+  fireEvent.click(screen.getAllByTestId('cmp-tick')[0])
+  const selected = screen.getAllByTestId('cmp-token').filter((t) => t.dataset.selected === 'true')
+  expect(selected.map((t) => t.textContent)).toEqual([' sat', ' sat'])
+})
+
+test('panel sides carry the run identity labels', () => {
+  render(<CompareView a={makeRunRecord(3)} b={makeRunRecord(1)} />)
+  fireEvent.click(screen.getAllByTestId('cmp-tick')[0])
+  const sides = screen.getAllByTestId('cmp-dist-side')
+  expect(sides[0]).toHaveTextContent('A #3')
+  expect(sides[1]).toHaveTextContent('B #1')
 })
