@@ -50,7 +50,8 @@ export function AttentionHeatmap({ heads, tokens, focus }: {
           </button>
         ))}
       </div>
-      <svg width={LABEL_W + n * CELL + RIGHT_PAD} height={DIAG_PAD + n * CELL + 4} role="img"
+      <svg width={LABEL_W + n * CELL + RIGHT_PAD} height={DIAG_PAD + n * CELL + 4}
+        viewBox={`0 0 ${LABEL_W + n * CELL + RIGHT_PAD} ${DIAG_PAD + n * CELL + 4}`} role="img"
         aria-label={`attention weights, ${head.label} head`}>
         {head.matrix.map((_, i) => {
           const cx = LABEL_W + i * CELL + CELL / 2

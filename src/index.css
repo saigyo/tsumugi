@@ -266,6 +266,8 @@ input[type="number"] { width: 4rem; }
 .cmp-meta-head { margin-bottom: .15rem; }
 /* the embedded single-head heatmap's own chip row duplicates the union chips above */
 .cmp-attn-side .head-chip-row { display: none; }
+/* long-run matrices scale down to their column instead of clipping (viewBox makes the svg vector-scalable) */
+.cmp-attn-side svg { max-width: 100%; height: auto; }
 .cmp-stream-divider { width: 1px; align-self: stretch; background: var(--line-strong); margin: 0 .3rem; }
 .cmp-ruler { display: flex; gap: .2rem; margin: .4rem 0 .6rem; flex-wrap: wrap; }
 .cmp-tick { font-family: var(--mono); font-size: .7rem; border: 1px solid var(--line-strong);
