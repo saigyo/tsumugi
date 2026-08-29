@@ -233,9 +233,10 @@ input[type="number"] { width: 4rem; }
 .run-chip[data-active="true"] { border-color: var(--ai); background: var(--ai-wash); }
 .run-chip[data-role="a"], .run-chip[data-role="b"] { border-color: var(--shu); background: var(--shu-wash); }
 .run-chip-main { font: inherit; font-size: .76rem; background: none; border: none; cursor: pointer;
-  padding: .18rem .3rem .18rem .55rem; color: var(--ink); }
+  padding: .18rem .3rem .18rem .55rem; color: var(--ink);
+  border-radius: 999px 0 0 999px; /* hover wash follows the pill's left curve */ }
 .run-chip-glyph { color: var(--ai); margin-right: .3rem; }
-.run-chip-action { font-size: .68rem; background: none; border: none; cursor: pointer;
+.run-chip-action { font-size: .68rem; background: none; border: none; cursor: pointer; border-radius: 999px;
   color: var(--ink-faint); padding: .1rem .15rem; }
 .run-chip-action:hover { color: var(--shu); }
 /* the pin button IS the pin state: washed out when unpinned, full color when pinned */
