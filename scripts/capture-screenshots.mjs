@@ -35,6 +35,12 @@ const context = await chromium.launchPersistentContext(PROFILE, {
   headless: false,
   viewport: { width: 1380, height: 940 },
 })
+// Scenes can be selected: `npm run screenshots -- pipeline attention compare`
+// (default: all). Skipping a scene preserves its existing images — useful when
+// a previous capture caught a specimen worth keeping (e.g. a great fork).
+const only = process.argv.slice(2)
+const want = (scene) => only.length === 0 || only.includes(scene)
+
 try {
   await waitForServer()
   const page = context.pages()[0] ?? await context.newPage()
@@ -47,29 +53,40 @@ try {
   while (await $('btn-chip-remove').count()) await $('btn-chip-remove').first().click()
 
   // ---- pipeline.png: simulated run at run end -------------------------------
-  await $('example-chip').first().click()                    // auto-generates
-  await $('run-chip').first().waitFor({ timeout: 15000 })
-  await $('btn-live').click()
-  await page.screenshot({ path: `${DIR}/pipeline.png` })
-  console.log('pipeline.png')
+  if (want('pipeline')) {
+    await $('example-chip').first().click()                  // auto-generates
+    await $('run-chip').first().waitFor({ timeout: 15000 })
+    await $('btn-live').click()
+    await page.screenshot({ path: `${DIR}/pipeline.png` })
+    console.log('pipeline.png')
+  }
+
+  // real mode serves both remaining scenes
+  if (want('attention') || want('compare')) {
+    await $('mode-toggle').check()
+    await $('model-status-slot').getByText(/attn/).waitFor({ timeout: 300000 })  // first run downloads the model
+  }
 
   // ---- real-attention.png + head-explorer.png: real mode --------------------
-  await $('mode-toggle').check()
-  await $('model-status-slot').getByText(/attn/).waitFor({ timeout: 300000 })  // first run downloads the model
-  await $('example-chip').first().click()
-  await $('run-chip').nth(1).waitFor({ timeout: 120000 })
-  await $('btn-live').click()
-  await $('stage-card').nth(2).click()                       // Layers
-  await $('detail-layers').scrollIntoViewIfNeeded()
-  await page.screenshot({ path: `${DIR}/real-attention.png` })
-  console.log('real-attention.png')
-  await $('btn-explore-heads').click()
-  await $('grid-explorer').scrollIntoViewIfNeeded()
-  await page.waitForTimeout(500)                             // let the canvases paint
-  await page.screenshot({ path: `${DIR}/head-explorer.png` })
-  console.log('head-explorer.png')
+  if (want('attention')) {
+    const before = await $('run-chip').count()
+    await $('example-chip').first().click()
+    await $('run-chip').nth(before).waitFor({ timeout: 120000 })
+    await $('btn-live').click()
+    await $('stage-card').nth(2).click()                     // Layers
+    await $('detail-layers').scrollIntoViewIfNeeded()
+    await page.screenshot({ path: `${DIR}/real-attention.png` })
+    console.log('real-attention.png')
+    await $('btn-explore-heads').click()
+    await $('grid-explorer').scrollIntoViewIfNeeded()
+    await page.waitForTimeout(500)                           // let the canvases paint
+    await page.screenshot({ path: `${DIR}/head-explorer.png` })
+    console.log('head-explorer.png')
+  }
 
   // ---- compare.png + compare-attention.png: same-prompt fork ----------------
+  if (want('compare')) {
+  await $('prompt-input').fill('The cat sat on the mat because it was tired')
   await $('temp-input').fill('0.9')
   {
     const before = await $('run-chip').count()               // baseline T=0.9 run,
@@ -96,6 +113,7 @@ try {
   await $('cmp-attn-side').first().scrollIntoViewIfNeeded()
   await page.screenshot({ path: `${DIR}/compare-attention.png` })
   console.log('compare-attention.png')
+  }
 } finally {
   await context.close()
   server.kill()
