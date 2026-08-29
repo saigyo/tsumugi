@@ -39,9 +39,11 @@ export function RunShelf(p: RunShelfProps) {
           <button data-testid="run-chip-main" className="run-chip-main" onClick={() => chipClick(r.id)}
             title={`${r.meta.prompt} — ${r.meta.mode} · ended: ${r.meta.reason}`}>
             <span className="run-chip-glyph" aria-hidden="true">{r.meta.mode === 'real' ? '●' : '○'}</span>
-            {label(r)}{r.meta.pinned && ' 📌'}
+            {label(r)}
           </button>
-          <button data-testid="btn-chip-pin" className="run-chip-action"
+          <button data-testid="btn-chip-pin" className="run-chip-action run-chip-pin"
+            data-pinned={String(r.meta.pinned)} aria-pressed={r.meta.pinned}
+            aria-label={r.meta.pinned ? 'unpin run' : 'pin run'}
             title={r.meta.pinned ? 'unpin' : 'pin — never evicted'} onClick={() => p.onTogglePin(r.id)}>📌</button>
           <button data-testid="btn-chip-export" className="run-chip-action"
             title="download run as JSON" onClick={() => p.onExport(r.id)}>⇩</button>

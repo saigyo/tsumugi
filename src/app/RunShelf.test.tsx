@@ -63,6 +63,10 @@ test('pinned marker, pin/remove/export actions', () => {
   const p = props({ records: [makeRunRecord(1, { pinned: true })], activeId: 'run-1' })
   render(<RunShelf {...p} />)
   expect(screen.getByTestId('run-chip').dataset.pinned).toBe('true')
+  // the single pin button is the toggle AND the state cue — no second pin in the label
+  expect(screen.getByTestId('btn-chip-pin').dataset.pinned).toBe('true')
+  expect(screen.getByTestId('btn-chip-pin')).toHaveAttribute('aria-pressed', 'true')
+  expect(screen.getByTestId('run-chip-main').textContent).not.toContain('📌')
   fireEvent.click(screen.getByTestId('btn-chip-pin'))
   expect(p.onTogglePin).toHaveBeenCalledWith('run-1')
   fireEvent.click(screen.getByTestId('btn-chip-export'))

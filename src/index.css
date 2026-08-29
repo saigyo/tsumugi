@@ -238,6 +238,10 @@ input[type="number"] { width: 4rem; }
 .run-chip-action { font-size: .68rem; background: none; border: none; cursor: pointer;
   color: var(--ink-faint); padding: .1rem .15rem; }
 .run-chip-action:hover { color: var(--shu); }
+/* the pin button IS the pin state: washed out when unpinned, full color when pinned */
+.run-chip-pin { filter: grayscale(1); opacity: .35; }
+.run-chip-pin:hover { filter: none; opacity: .7; }
+.run-chip-pin[data-pinned="true"] { filter: none; opacity: 1; }
 .run-shelf-btn { font: inherit; font-size: .76rem; color: var(--ai-deep); background: var(--ai-wash);
   border: 1px solid var(--line-strong); border-radius: 6px; padding: .15rem .5rem; cursor: pointer; }
 .run-shelf-btn:disabled { opacity: .5; cursor: default; }
