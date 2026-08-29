@@ -16,7 +16,15 @@ const mirror = (op: (s: RunStorage) => Promise<unknown>) => {
 export async function initArchive(s: RunStorage): Promise<void> {
   storage = s
   try {
-    useRunsStore.getState().hydrate(await s.loadAll())
+    const loaded = await s.loadAll()
+    useRunsStore.getState().hydrate(loaded)
+    // runs sealed while the load was pending were re-sequenced by the merge
+    // (and mirrored under their old seq) — write them back so stored seqs
+    // can't collide into duplicate chip labels on the next startup
+    const loadedIds = new Set(loaded.map((r) => r.id))
+    for (const r of useRunsStore.getState().records) {
+      if (!loadedIds.has(r.id)) mirror((adapter) => adapter.put(r))
+    }
   } catch {
     markFailed()
   }

@@ -19,23 +19,27 @@ export function createMemoryStorage(opts: { failing?: boolean } = {}): RunStorag
 
 // IndexedDB-backed storage. Every rejection is treated by callers as non-fatal
 // (session-only archive) — including environments without indexedDB (jsdom, old browsers).
+// One connection is opened lazily and shared by all operations: per-op opens
+// gave adjacent put/delete calls on the same id no ordering guarantee across
+// connections (a lost delete could resurrect a removed run on reload).
 export function createIndexedDbStorage(): RunStorage {
-  const open = (): Promise<IDBDatabase> => new Promise((resolve, reject) => {
+  let dbPromise: Promise<IDBDatabase> | null = null
+  const open = (): Promise<IDBDatabase> => (dbPromise ??= new Promise((resolve, reject) => {
     if (typeof indexedDB === 'undefined') { reject(new Error('indexedDB unavailable')); return }
+    // no onblocked handler: harmless at version 1 forever, but a future
+    // schema bump must add one or the open hangs silently (see backlog)
     const req = indexedDB.open('tsumugi', 1)
     req.onupgradeneeded = () => { req.result.createObjectStore('runs', { keyPath: 'id' }) }
     req.onsuccess = () => resolve(req.result)
     req.onerror = () => reject(req.error ?? new Error('indexedDB open failed'))
-  })
+  }))
   const inTx = async <T,>(mode: IDBTransactionMode, op: (store: IDBObjectStore) => IDBRequest<T>): Promise<T> => {
     const db = await open()
-    try {
-      return await new Promise<T>((resolve, reject) => {
-        const request = op(db.transaction('runs', mode).objectStore('runs'))
-        request.onsuccess = () => resolve(request.result)
-        request.onerror = () => reject(request.error ?? new Error('indexedDB request failed'))
-      })
-    } finally { db.close() }
+    return await new Promise<T>((resolve, reject) => {
+      const request = op(db.transaction('runs', mode).objectStore('runs'))
+      request.onsuccess = () => resolve(request.result)
+      request.onerror = () => reject(request.error ?? new Error('indexedDB request failed'))
+    })
   }
   return {
     loadAll: () => inTx('readonly', (s) => s.getAll() as IDBRequest<RunRecord[]>),

@@ -50,6 +50,26 @@ test('initArchive hydrates the store from storage', async () => {
   expect(state.nextSeq).toBe(5)
 })
 
+test('a run sealed during a pending hydrate is written back with its re-sequenced seq', async () => {
+  const storage = createMemoryStorage()
+  const old = { id: 'old', meta: { ...meta({ endedAt: 5 }), seq: 7, pinned: false }, events: makeFixtureTrace() }
+  storage.map.set('old', old)
+  // gate loadAll so a seal lands while hydration is pending; the snapshot
+  // deliberately excludes the concurrently-sealed record (as a real
+  // readonly transaction opened before the put would)
+  let release!: () => void
+  const gate = new Promise<void>((r) => { release = r })
+  const delayed = { ...storage, loadAll: () => gate.then(() => [old]) }
+  const init = initArchive(delayed)
+  const sealed = archiveSeal(meta({ endedAt: 99 }), makeFixtureTrace())   // seq 1, mirrored as seq 1
+  expect(storage.map.get(sealed.id)?.meta.seq).toBe(1)
+  release()
+  await init
+  const kept = useRunsStore.getState().records.find((r) => r.id === sealed.id)
+  expect(kept?.meta.seq).toBe(8)                                          // re-sequenced past loaded max
+  await vi.waitFor(() => expect(storage.map.get(sealed.id)?.meta.seq).toBe(8))  // written back
+})
+
 test('a failing adapter degrades to session-only without throwing', async () => {
   await initArchive(createMemoryStorage({ failing: true }))
   expect(useRunsStore.getState().persistFailed).toBe(true)
