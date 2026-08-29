@@ -4,7 +4,7 @@ import type { AttentionHead, TokenInfo, TraceEvent } from '../../trace/types'
 import { AttentionHeatmap } from '../AttentionHeatmap'
 import { Thumb } from '../AttentionGridExplorer'
 import { distributionFor, latestOfType, visibleTokens } from '../selectors'
-import { alignRuns, pairedHeads, type PairedHead } from './compareSelectors'
+import { alignRuns, combinedDistribution, pairedHeads, type CombinedRow, type PairedHead } from './compareSelectors'
 
 const runTokens = (events: TraceEvent[]): TokenInfo[] => {
   const { prompt, generated } = visibleTokens(events, events.length - 1)
@@ -46,6 +46,46 @@ function DistSide({ events, cycle, name, lastCycle }: {
   )
 }
 
+type DeltaSort = 'delta' | 'a' | 'b'
+
+const pct = (p: number | null) => (p === null ? '—' : `${Math.round(p * 100)}%`)
+
+function CombinedDist({ rows, chosenA, chosenB, sort, nameA, nameB }: {
+  rows: CombinedRow[]; chosenA: number; chosenB: number; sort: DeltaSort
+  nameA: string; nameB: string
+}) {
+  const sorted = [...rows].sort((x, y) =>
+    sort === 'a' ? (y.pA ?? 0) - (x.pA ?? 0)
+      : sort === 'b' ? (y.pB ?? 0) - (x.pB ?? 0)
+        : Math.abs(y.delta) - Math.abs(x.delta))
+  return (
+    <div className="cmp-combined">
+      <div className="cmp-delta-row cmp-delta-head" aria-hidden="true">
+        <span /><span className="cmp-side-name">{nameA}</span><span /><span>Δ</span>
+        <span className="cmp-side-name">{nameB}</span>
+      </div>
+      {sorted.map((r) => (
+        <div key={r.id} data-testid="cmp-delta-row" data-token={r.text} data-approx={String(r.approx)}
+          data-chosen-a={String(r.id === chosenA)} data-chosen-b={String(r.id === chosenB)}
+          className="cmp-delta-row">
+          <span className="cmp-bar-token">{r.text.trim() || '·'}</span>
+          <span className="cmp-delta-p" data-chosen={String(r.id === chosenA)}>{pct(r.pA)}</span>
+          <span className="cmp-delta-bar">
+            <span className="cmp-delta-fill" data-sign={r.delta > 0 ? 'a' : r.delta < 0 ? 'b' : 'zero'}
+              style={{ width: `${Math.abs(r.delta) * 50}%` }} />
+          </span>
+          <span className="cmp-delta-value">{r.approx ? '~' : ''}{r.delta > 0 ? '+' : ''}{Math.round(r.delta * 100)}%</span>
+          <span className="cmp-delta-p" data-chosen={String(r.id === chosenB)}>{pct(r.pB)}</span>
+        </div>
+      ))}
+      {rows.some((r) => r.approx) && (
+        <p data-testid="cmp-approx-note" className="attn-note">tokens outside a run's stored top-k
+          count as 0% — those deltas are lower bounds</p>
+      )}
+    </div>
+  )
+}
+
 function AttnSide({ events, head, pair, name, cycle, lastCycle }: {
   events: TraceEvent[]; head?: AttentionHead; pair: PairedHead; name: string
   cycle: number; lastCycle: number
@@ -82,6 +122,8 @@ export function CompareView({ a, b }: { a: RunRecord; b: RunRecord }) {
   const aligned = alignRuns(a.events, b.events)
   const [cycle, setCycle] = useState<number | null>(null)
   const [headKey, setHeadKey] = useState<string | null>(null)
+  const [distMode, setDistMode] = useState<'side' | 'combined'>('side')
+  const [deltaSort, setDeltaSort] = useState<DeltaSort>('delta')
   const heads = cycle !== null ? pairedHeads(a.events, b.events, cycle) : []
   const selectedPair = heads.find((h) => `${h.layer}-${h.head}` === headKey) ?? heads[0]
   // every panel carries the run identity, matching the stream labels
@@ -142,10 +184,50 @@ export function CompareView({ a, b }: { a: RunRecord; b: RunRecord }) {
       {cycle !== null && (
         <>
           <h3>cycle {cycle} · distributions</h3>
-          <div className="cmp-pair">
-            <DistSide events={a.events} cycle={cycle} name={nameA} lastCycle={aligned.chosenA.length - 1} />
-            <DistSide events={b.events} cycle={cycle} name={nameB} lastCycle={aligned.chosenB.length - 1} />
-          </div>
+          {(() => {
+            const combined = distMode === 'combined' ? combinedDistribution(a.events, b.events, cycle) : undefined
+            // prefixes are identical up to and including the fork cycle's input;
+            // past it (or with different prompts) each distribution conditions
+            // on its own text and token deltas stop being apples-to-apples
+            const diverged = !aligned.samePrompt
+              || (aligned.forkCycle !== null && cycle > aligned.forkCycle)
+            return (
+              <>
+                <div className="cmp-dist-controls">
+                  <button data-testid="dist-mode-side" className="cmp-mode-btn"
+                    data-active={String(distMode === 'side')} onClick={() => setDistMode('side')}>side by side</button>
+                  <button data-testid="dist-mode-combined" className="cmp-mode-btn"
+                    data-active={String(distMode === 'combined')} onClick={() => setDistMode('combined')}>combined</button>
+                  {combined && (
+                    <label className="grid-sort-label">sort{' '}
+                      <select data-testid="dist-sort" value={deltaSort}
+                        onChange={(e) => setDeltaSort(e.target.value as DeltaSort)}>
+                        <option value="delta">|Δ|</option>
+                        <option value="a">A</option>
+                        <option value="b">B</option>
+                      </select>
+                    </label>
+                  )}
+                </div>
+                {combined && diverged && (
+                  <p data-testid="cmp-divergence-note" className="cmp-badge">
+                    {aligned.samePrompt
+                      ? `the runs' prefixes differ from cycle ${(aligned.forkCycle ?? 0) + 1} on — each distribution conditions on its own text`
+                      : 'the prompts differ — the distributions condition on different text'}
+                  </p>
+                )}
+                {combined ? (
+                  <CombinedDist rows={combined.rows} chosenA={combined.chosenA} chosenB={combined.chosenB}
+                    sort={deltaSort} nameA={nameA} nameB={nameB} />
+                ) : (
+                  <div className="cmp-pair">
+                    <DistSide events={a.events} cycle={cycle} name={nameA} lastCycle={aligned.chosenA.length - 1} />
+                    <DistSide events={b.events} cycle={cycle} name={nameB} lastCycle={aligned.chosenB.length - 1} />
+                  </div>
+                )}
+              </>
+            )
+          })()}
           <h3>cycle {cycle} · attention</h3>
           {heads.length === 0 ? (
             <p className="attn-note">no detected heads recorded at this cycle</p>

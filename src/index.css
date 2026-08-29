@@ -281,6 +281,26 @@ input[type="number"] { width: 4rem; }
 .cmp-bar-row[data-chosen="true"] .cmp-bar { background: var(--shu); }
 .cmp-bar { display: inline-block; height: .55rem; background: var(--ai-soft); border-radius: 3px; }
 .cmp-bar-prob { font-family: var(--mono); font-size: .68rem; color: var(--ink-faint); }
+.cmp-dist-controls { display: flex; align-items: baseline; gap: .3rem; margin: .1rem 0 .45rem; }
+.cmp-mode-btn { font: inherit; font-size: .74rem; color: var(--ink-soft); background: var(--card);
+  border: 1px solid var(--line-strong); border-radius: 6px; padding: .12rem .5rem; cursor: pointer; }
+.cmp-mode-btn[data-active="true"] { color: var(--washi); background: var(--ai); border-color: var(--ai); }
+.cmp-dist-controls .grid-sort-label { margin-left: .4rem; }
+.cmp-combined { display: grid; gap: .15rem; max-width: 46rem; }
+.cmp-delta-row { display: grid; grid-template-columns: 4.5rem 3.2rem 1fr 3.5rem 3.2rem;
+  align-items: center; gap: .4rem; font-size: .76rem; }
+.cmp-delta-head { color: var(--ink-faint); font-size: .7rem; }
+.cmp-delta-head > span:nth-child(4) { text-align: center; }
+.cmp-delta-p { font-family: var(--mono); font-size: .72rem; color: var(--ink-soft); text-align: right; }
+.cmp-delta-p[data-chosen="true"] { color: var(--shu); font-weight: 700; }
+.cmp-delta-bar { position: relative; height: .55rem; background: var(--washi);
+  border-radius: 3px; overflow: hidden; }
+.cmp-delta-bar::before { content: ''; position: absolute; left: 50%; top: 0; bottom: 0;
+  width: 1px; background: var(--line-strong); }
+.cmp-delta-fill { position: absolute; top: 0; bottom: 0; border-radius: 2px; }
+.cmp-delta-fill[data-sign="a"] { right: 50%; background: var(--ai); }      /* extends toward A */
+.cmp-delta-fill[data-sign="b"] { left: 50%; background: var(--shu); }      /* extends toward B */
+.cmp-delta-value { font-family: var(--mono); font-size: .7rem; color: var(--ink-faint); text-align: center; }
 .cmp-ended, .cmp-fallback { font-size: .78rem; color: var(--ink-soft); }
 .cmp-fallback .grid-thumb { width: 120px; height: 120px; }
 @media (max-width: 720px) { .cmp-pair { grid-template-columns: 1fr; } }

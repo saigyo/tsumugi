@@ -1,7 +1,7 @@
 import { expect, test } from 'vitest'
 import { buildFixtureTrace } from '../../test/fixtures'
 import type { TraceEvent } from '../../trace/types'
-import { alignRuns, pairedDistributions, pairedHeads } from './compareSelectors'
+import { alignRuns, combinedDistribution, pairedDistributions, pairedHeads } from './compareSelectors'
 
 test('identical runs: same prompt, no fork, cycle counts', () => {
   const r = alignRuns(buildFixtureTrace(), buildFixtureTrace())
@@ -53,4 +53,32 @@ test('pairedDistributions returns per-side data, undefined past a run end', () =
   const d = pairedDistributions(buildFixtureTrace(), short, 1)
   expect(d.a?.sample.chosen.text).toBe(' on')
   expect(d.b).toBeUndefined()
+})
+
+test('combinedDistribution merges identical top-k lists with zero deltas', () => {
+  const c = combinedDistribution(buildFixtureTrace(), buildFixtureTrace(), 0)
+  expect(c).toBeDefined()
+  if (!c) return
+  expect(c.rows.map((r) => [r.text, r.pA, r.pB, r.delta, r.approx])).toEqual([
+    [' sat', 0.7, 0.7, 0, false], [' ran', 0.2, 0.2, 0, false], [' was', 0.1, 0.1, 0, false],
+  ])
+  expect(c.chosenA).toBe(100)
+  expect(c.chosenB).toBe(100)
+})
+
+test('combinedDistribution marks one-sided tokens approximate with 0 on the missing side', () => {
+  const b = buildFixtureTrace({ chosen: [{ id: 100, text: ' sat' }, { id: 999, text: ' off' }] })
+  const c = combinedDistribution(buildFixtureTrace(), b, 1)
+  expect(c).toBeDefined()
+  if (!c) return
+  const byId = new Map(c.rows.map((r) => [r.id, r]))
+  expect(byId.get(101)).toMatchObject({ pA: 0.7, pB: null, delta: 0.7, approx: true })   // ' on', A only
+  expect(byId.get(999)).toMatchObject({ pA: null, pB: 0.7, delta: -0.7, approx: true })  // ' off', B only
+  expect(byId.get(200)).toMatchObject({ pA: 0.2, pB: 0.2, delta: 0, approx: false })
+  expect(c.chosenA).toBe(101)
+  expect(c.chosenB).toBe(999)
+})
+
+test('combinedDistribution is undefined when either side lacks the cycle', () => {
+  expect(combinedDistribution(buildFixtureTrace(), buildFixtureTrace({ cycles: 1 }), 1)).toBeUndefined()
 })

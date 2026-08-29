@@ -92,6 +92,58 @@ test('a run with a grid uses the run-level thumbnail as fallback', () => {
   expect(screen.getByTestId('cmp-fallback')).toHaveTextContent('run-level thumbnail')
 })
 
+test('distributions toggle switches to the combined token-aligned view and persists across cycles', () => {
+  render(<CompareView a={makeRunRecord(1)} b={divergentB()} />)
+  fireEvent.click(screen.getAllByTestId('cmp-tick')[1])
+  expect(screen.getAllByTestId('cmp-dist-side')).toHaveLength(2)      // side-by-side is the default
+  expect(screen.queryAllByTestId('cmp-delta-row')).toHaveLength(0)
+  fireEvent.click(screen.getByTestId('dist-mode-combined'))
+  // sorted by |Δ| desc; ties keep A-first insertion order
+  const rows = screen.getAllByTestId('cmp-delta-row')
+  expect(rows.map((r) => r.dataset.token)).toEqual([' on', ' off', ' ran', ' was'])
+  expect(rows[0].dataset.chosenA).toBe('true')
+  expect(rows[1].dataset.chosenB).toBe('true')
+  expect(rows[0].dataset.approx).toBe('true')                         // ' on' missing from B's top-k
+  expect(rows[2].dataset.approx).toBe('false')
+  expect(screen.getByTestId('cmp-approx-note')).toHaveTextContent('lower bounds')
+  expect(screen.queryAllByTestId('cmp-dist-side')).toHaveLength(0)
+  // persists across cycle clicks
+  fireEvent.click(screen.getAllByTestId('cmp-tick')[0])
+  expect(screen.getAllByTestId('cmp-delta-row').length).toBeGreaterThan(0)
+})
+
+test('combined view sorts by a single run when asked', () => {
+  render(<CompareView a={makeRunRecord(1)} b={divergentB()} />)
+  fireEvent.click(screen.getAllByTestId('cmp-tick')[1])
+  fireEvent.click(screen.getByTestId('dist-mode-combined'))
+  fireEvent.change(screen.getByTestId('dist-sort'), { target: { value: 'b' } })
+  const rows = screen.getAllByTestId('cmp-delta-row')
+  expect(rows[0].dataset.token).toBe(' off')                          // B's top token first
+  expect(rows.at(-1)?.dataset.token).toBe(' on')                      // absent from B → last
+})
+
+test('combined view warns once prefixes diverge, not at the fork itself', () => {
+  render(<CompareView a={makeRunRecord(1)} b={divergentB()} />)
+  fireEvent.click(screen.getAllByTestId('cmp-tick')[1])               // the fork cycle
+  fireEvent.click(screen.getByTestId('dist-mode-combined'))
+  expect(screen.queryByTestId('cmp-divergence-note')).toBeNull()      // same prefix up to here
+  // no later cycle exists in the fixture, so different prompts cover the other branch
+  cleanup()
+  const b = makeRunRecord(2, { prompt: 'A dog', promptTokens: [{ id: 20, text: 'A' }, { id: 21, text: ' dog' }] })
+  render(<CompareView a={makeRunRecord(1)} b={b} />)
+  fireEvent.click(screen.getAllByTestId('cmp-tick')[0])
+  fireEvent.click(screen.getByTestId('dist-mode-combined'))
+  expect(screen.getByTestId('cmp-divergence-note')).toHaveTextContent('condition on different text')
+})
+
+test('combined mode falls back to per-side rendering when one run ended', () => {
+  render(<CompareView a={makeRunRecord(1)} b={makeRunRecord(2, { cycles: 1 })} />)
+  fireEvent.click(screen.getAllByTestId('cmp-tick')[1])
+  fireEvent.click(screen.getByTestId('dist-mode-combined'))
+  expect(screen.queryAllByTestId('cmp-delta-row')).toHaveLength(0)
+  expect(screen.getAllByTestId('cmp-ended').length).toBeGreaterThanOrEqual(1)
+})
+
 test('clicking a generated stream token selects its cycle', () => {
   render(<CompareView a={makeRunRecord(1)} b={makeRunRecord(2)} />)
   fireEvent.click(screen.getAllByTestId('cmp-token')[1])   // run A, cycle 1
