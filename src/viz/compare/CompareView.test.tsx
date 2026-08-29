@@ -72,7 +72,7 @@ test('paired attention: shared heads render two heatmaps; a missing head falls b
   expect(chips.map((c) => c.textContent)).toEqual(['attention-sinkL0·H3', 'previous-tokenL2·H1'])
   // default selection = first chip (L0·H3): A side full heatmap, B side sim fallback note
   expect(screen.getAllByTestId('attention-heatmap')).toHaveLength(1)
-  expect(screen.getByTestId('cmp-fallback')).toHaveTextContent('not captured in this run')
+  expect(screen.getByTestId('cmp-fallback')).toHaveTextContent("not among this run's detected heads")
   // select the shared head: both sides render full heatmaps
   fireEvent.click(chips[1])
   expect(screen.getAllByTestId('attention-heatmap')).toHaveLength(2)

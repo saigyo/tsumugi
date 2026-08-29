@@ -67,10 +67,12 @@ function AttnSide({ events, head, pair, name, cycle, lastCycle }: {
       {thumb ? (
         <div data-testid="cmp-fallback" className="cmp-fallback">
           <Thumb thumb={thumb} />
-          <p className="attn-note">run-level thumbnail — full matrix not captured in this run</p>
+          <p className="attn-note">not among this run's detected heads at this cycle — run-level thumbnail shown
+            (full matrices are kept only for each cycle's showcase heads)</p>
         </div>
       ) : (
-        <p data-testid="cmp-fallback" className="cmp-fallback attn-note">not captured in this run</p>
+        <p data-testid="cmp-fallback" className="cmp-fallback attn-note">not among this run's detected heads
+          at this cycle — no full matrix captured</p>
       )}
     </div>
   )
