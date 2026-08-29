@@ -195,6 +195,9 @@ downloads or runs the real model, so it works fully offline and in CI. Run
 
 ## Docs
 
+Ideas for future milestones are collected in
+[`docs/BACKLOG.md`](docs/BACKLOG.md).
+
 The original design spec and implementation plan live under
 [`docs/superpowers/`](docs/superpowers/):
 
