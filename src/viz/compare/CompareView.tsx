@@ -156,7 +156,7 @@ export function CompareView({ a, b }: { a: RunRecord; b: RunRecord }) {
                   <button key={`${h.layer}-${h.head}`} data-testid="cmp-head-chip"
                     data-active={String(selectedPair === h)} className="head-chip"
                     onClick={() => setHeadKey(`${h.layer}-${h.head}`)}>
-                    {h.a?.label ?? h.b?.label}
+                    {h.a?.label ?? h.b?.label}{' '}
                     <span className="head-loc">L{h.layer}·H{h.head}</span>
                   </button>
                 ))}
