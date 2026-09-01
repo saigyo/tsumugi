@@ -46,3 +46,14 @@ def test_without_use_past_in_inputs_no_past_key_values_inputs():
     cfg = AttnLlamaOnnxConfig(make_config(), task="text-generation", use_past=True)
     ins = cfg.inputs
     assert not any(k.startswith("past_key_values") for k in ins)
+
+
+def test_hidden_states_declared_between_cache_and_attentions():
+    cfg = AttnLlamaOnnxConfig(make_config(), task="text-generation", use_past=True)
+    keys = list(cfg.outputs)
+    hidden = [k for k in keys if k.startswith("hidden_states.")]
+    assert hidden == [f"hidden_states.{i}" for i in range(31)]   # 30 layers + 1
+    assert cfg.outputs["hidden_states.0"] == {0: "batch_size", 1: "sequence_length"}
+    # positional contract: every hidden_states.* precedes every attentions.*
+    assert keys.index("hidden_states.30") < keys.index("attentions.0")
+    assert keys.index("present.0.key") < keys.index("hidden_states.0")
