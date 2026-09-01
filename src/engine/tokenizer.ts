@@ -8,6 +8,11 @@ export interface Tokenizer {
 export const MODEL_ID = 'HuggingFaceTB/SmolLM2-135M-Instruct'
 export const ATTN_MODEL_ID = 'saigyo-hoshi/smollm2-135m-attn-onnx'
 
+// Both ids share the same weights, so one geometry asset covers both.
+export const GEOMETRY_MODEL_IDS: readonly string[] = [MODEL_ID, ATTN_MODEL_ID]
+export const GEOMETRY_BASE_URL: string =
+  import.meta.env.VITE_GEOMETRY_BASE_URL ?? `https://huggingface.co/${ATTN_MODEL_ID}/resolve/main/geometry`
+
 function hashId(text: string): number {
   let h = 0x811c9dc5
   for (const ch of text) {
