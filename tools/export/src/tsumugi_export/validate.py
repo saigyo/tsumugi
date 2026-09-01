@@ -5,6 +5,8 @@
    both variants are present in out/; otherwise reported as skipped)
 4. cache integrity: present.* outputs exist and multi-step cached logits
    match single-shot full-context logits
+5. inputs_embeds parity with the stock embedding table
+6. geometry/ spot-check against exact neighbours and the tokenizer
 Writes validation-report.json with artifact hashes; publish refuses to
 upload without a passing report."""
 import hashlib
@@ -226,6 +228,60 @@ def _check_cache_integrity(sess, model_dir: Path, tol: float, strict: bool = Tru
     }
 
 
+def _check_inputs_embeds_parity(sess, model_dir: Path, E: np.ndarray, tol: float) -> dict:
+    """inputs_embeds must be exactly the embedding-table rows of the fed ids
+    (within quantization noise for the int8 variant)."""
+    out_names = [o.name for o in sess.get_outputs()]
+    if "inputs_embeds" not in out_names:
+        return {"passed": False, "detail": "graph has no inputs_embeds output"}
+    ids = _tokenize(model_dir, PROMPTS[0])
+    outputs = dict(zip(out_names, sess.run(None, _feeds(sess, ids))))
+    got = outputs["inputs_embeds"]
+    expected = E[ids[0]][None, :, :]
+    if got.shape != expected.shape:
+        return {"passed": False, "detail": f"inputs_embeds shape {got.shape}, expected {expected.shape}"}
+    diff = float(np.max(np.abs(got - expected)))
+    return {"passed": diff <= tol, "detail": f"max|Δembed|={diff:.2e} (atol {tol})"}
+
+
+def check_geometry_files(model_dir: Path, E: np.ndarray, texts: list[str], sample: int = 32) -> dict:
+    """Spot-check geometry/ against the stock matrix: file sizes match the
+    manifest, every listed neighbour of a sampled token is within uint8
+    resolution of the exact k-th best cosine, the top similarity round-trips,
+    and tokens.json matches the tokenizer."""
+    gdir = model_dir / "geometry"
+    if not (gdir / "manifest.json").exists():
+        return {"passed": False, "detail": "no geometry/ — run geometry first"}
+    m = json.loads((gdir / "manifest.json").read_text())
+    for name, size in m["files"].items():
+        actual = (gdir / name).stat().st_size if (gdir / name).exists() else -1
+        if actual != size:
+            return {"passed": False, "detail": f"{name}: {actual} bytes, manifest says {size}"}
+    vocab, k = m["vocabSize"], m["k"]
+    if vocab != E.shape[0] or len(texts) != vocab:
+        return {"passed": False, "detail": f"vocab {vocab} vs stock {E.shape[0]} / {len(texts)} texts"}
+    raw = (gdir / "neighbors.bin").read_bytes()
+    ids = np.frombuffer(raw[: vocab * k * 2], dtype="<u2").reshape(vocab, k)
+    sims = np.frombuffer(raw[vocab * k * 2:], dtype=np.uint8).reshape(vocab, k)
+    tokens = json.loads((gdir / "tokens.json").read_text())
+    U = E / np.maximum(np.linalg.norm(E, axis=1, keepdims=True), 1e-12)
+    rng = np.random.default_rng(0)
+    for t in rng.choice(vocab, size=min(sample, vocab), replace=False):
+        if tokens[t] != texts[t]:
+            return {"passed": False, "detail": f"tokens.json[{t}]={tokens[t]!r} != tokenizer {texts[t]!r}"}
+        for j in ids[t]:
+            if j >= vocab:
+                return {"passed": False, "detail": f"token {t}: neighbour id {j} outside vocabulary"}
+        s = U[t] @ U.T
+        s[t] = -np.inf
+        kth = np.sort(s)[-k]
+        if any(s[j] < kth - 1 / 255 for j in ids[t]):
+            return {"passed": False, "detail": f"token {t}: listed neighbour below the exact k-th best"}
+        if abs(np.rint(max(s[ids[t][0]], 0) * 255) - sims[t][0]) > 1:
+            return {"passed": False, "detail": f"token {t}: top similarity does not round-trip"}
+    return {"passed": True, "detail": f"{min(sample, vocab)} sampled tokens match exact neighbours and texts"}
+
+
 def run(args) -> int:
     from huggingface_hub import hf_hub_download
     from tsumugi_export import STOCK_MODEL_ID
@@ -240,6 +296,10 @@ def run(args) -> int:
 
     stock_path = Path(hf_hub_download(STOCK_MODEL_ID, "onnx/model.onnx"))
     stock = _session(stock_path)
+
+    from tsumugi_export.stock import stock_embeddings, stock_token_texts
+    E = stock_embeddings()
+    texts = stock_token_texts(E.shape[0])
 
     for variant in ["model.onnx", "model_quantized.onnx", "model_q4.onnx", "model_fp16.onnx"]:
         path = model_dir / "onnx" / variant
@@ -306,6 +366,9 @@ def run(args) -> int:
         checks[f"{variant}:cache-integrity"] = _check_cache_integrity(
             sess, model_dir, ci_tol, strict=(variant == "model.onnx"))
 
+        pe_tol = 1e-3 if variant in ("model.onnx", "model_fp16.onnx") else TOL
+        checks[f"{variant}:inputs-embeds-parity"] = _check_inputs_embeds_parity(sess, model_dir, E, pe_tol)
+
     # A≡B equivalence when the operator exported both variants
     nc = model_dir.parent / "model-nocache" / "onnx" / "model.onnx"
     if nc.exists():
@@ -322,10 +385,16 @@ def run(args) -> int:
             "detail": "SKIPPED (no no-cache export present)",
         }
 
+    checks["geometry"] = check_geometry_files(model_dir, E, texts)
+
     passed = all(c["passed"] for c in checks.values())
     report = {
         "checks": checks,
-        "artifacts": {p.name: _sha256(p) for p in (model_dir / "onnx").glob("*.onnx")},
+        "artifacts": {
+            str(p.relative_to(model_dir)): _sha256(p)
+            for p in [*sorted((model_dir / "onnx").glob("*.onnx")),
+                      *(sorted((model_dir / "geometry").glob("*")) if (model_dir / "geometry").exists() else [])]
+        },
     }
     (model_dir / "validation-report.json").write_text(json.dumps(report, indent=2))
 

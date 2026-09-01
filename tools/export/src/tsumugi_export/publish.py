@@ -22,6 +22,11 @@ graph re-exported with per-layer attention-probability outputs
 for in-browser attention visualization in
 [Tsumugi](https://github.com/saigyo/tsumugi).
 
+Also exposes the embedding lookup as `inputs_embeds` (`[batch, seq, 576]`),
+and ships `geometry/` — exact top-12 cosine neighbours, a PCA-64 int8 copy of
+the embedding table, decoded token texts and a manifest — for the Embeddings
+card in Tsumugi.
+
 Validation (see `validation-report.json`): logits parity with the stock
 export, row-stochastic causal attention rows, cached-vs-full-matrix
 equivalence.
@@ -42,6 +47,11 @@ def _sha256(path: Path) -> str:
         for chunk in iter(lambda: f.read(1 << 20), b""):
             h.update(chunk)
     return h.hexdigest()
+
+
+def artifact_path(model_dir: Path, name: str) -> Path:
+    """validation-report.json keys are model-dir-relative (onnx/…, geometry/…)."""
+    return model_dir / name
 
 
 def is_blocking(check: dict, allow_skipped_equivalence: bool = False) -> bool:
@@ -78,7 +88,7 @@ def run(args) -> int:
             print(f"  {reason}  {name}: {c['detail']}")
         return 1
     for name, expected in report["artifacts"].items():
-        actual = _sha256(model_dir / "onnx" / name)
+        actual = _sha256(artifact_path(model_dir, name))
         if actual != expected:
             print(f"{name} changed since validation (hash mismatch) — re-run validate")
             return 1
