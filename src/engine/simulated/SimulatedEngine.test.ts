@@ -72,12 +72,16 @@ test('topK is clamped to [1, 10]', async () => {
   expect(tooHigh.topK).toHaveLength(10)
 })
 
-test('embed preview is capped at 4 tokens × 16 dims', async () => {
+test('embed events are asset-sourced and carry no vectors (sim stays instant)', async () => {
   const events = await collect('one two three four five six')
-  const embed = events.find((e) => e.type === 'embed')
-  if (embed?.type !== 'embed') throw new Error('missing embed')
-  expect(embed.preview.length).toBeLessThanOrEqual(4)
-  expect(embed.preview[0]).toHaveLength(16)
+  const embeds = events.filter((e) => e.type === 'embed')
+  expect(embeds.length).toBeGreaterThan(0)
+  for (const e of embeds) {
+    if (e.type !== 'embed') continue
+    expect(e.source).toBe('asset')
+    expect(e.rows).toBeUndefined()
+    expect(e.dims).toBe(576)
+  }
 })
 
 test('emits one attention event per cycle, after layers and before logits', async () => {

@@ -26,10 +26,16 @@ export interface AttentionGridCell {
 }
 
 export type RunEndReason = 'eos' | 'max-tokens' | 'aborted' | 'error'
+
+// Where a run's embedding vectors come from: 'model' = exact rows emitted into
+// the trace (real mode with the inputs_embeds export); 'asset' = the view looks
+// vectors up by id in the Hub geometry asset (sim mode, or an old cached model).
+export type EmbedSource = 'model' | 'asset'
+
 export type TraceEvent =
   | { type: 'run-start'; prompt: string; mode: Mode; modelId: string; params: GenParams; vocabSize?: number }
   | { type: 'tokenize'; tokens: TokenInfo[]; truncated?: boolean }
-  | { type: 'embed'; cycle: number; seqLen: number; dims: number; preview: number[][] }
+  | { type: 'embed'; cycle: number; seqLen: number; dims: number; source: EmbedSource; rows?: number[][] }
   | { type: 'layer'; cycle: number; index: number; total: number; activationNorm?: number }
   | { type: 'attention'; cycle: number; heads: AttentionHead[] }
   | { type: 'logits'; cycle: number; topK: Array<TokenInfo & { logit: number }> }

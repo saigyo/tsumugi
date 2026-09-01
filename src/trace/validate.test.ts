@@ -1,6 +1,7 @@
 import { expect, test } from 'vitest'
-import { makeFixtureTrace, makeGridEvent } from '../test/fixtures'
+import { buildFixtureTrace, makeFixtureTrace, makeGridEvent } from '../test/fixtures'
 import { validateTrace } from './validate'
+import type { TraceEvent } from './types'
 
 test('fixture trace is valid', () => {
   expect(validateTrace(makeFixtureTrace())).toEqual([])
@@ -73,4 +74,29 @@ test('attention-grid thumbs must be ≤12×12 with values in [0,1]', () => {
   const errs = validateTrace(t)
   expect(errs.some((v) => v.includes('[0, 1]'))).toBe(true)
   expect(errs.some((v) => v.includes('12'))).toBe(true)
+})
+
+test('embed rows must be dims-long finite numbers', () => {
+  const t = makeFixtureTrace()
+  const e = t.find((x) => x.type === 'embed')
+  if (e?.type === 'embed') { e.source = 'model'; e.rows = [[0.1, 0.2]] }   // dims is 576
+  expect(validateTrace(t).some((v) => v.includes('embed'))).toBe(true)
+})
+
+test('model-source embed without rows is flagged', () => {
+  const t = makeFixtureTrace()
+  const e = t.find((x) => x.type === 'embed')
+  if (e?.type === 'embed') e.source = 'model'
+  expect(validateTrace(t).some((v) => v.includes('embed'))).toBe(true)
+})
+
+test('model-source embed with well-formed rows is valid', () => {
+  expect(validateTrace(buildFixtureTrace({ embedRows: true }))).toEqual([])
+})
+
+test('legacy embed events carrying preview and no source still validate', () => {
+  const t = makeFixtureTrace()
+  const i = t.findIndex((x) => x.type === 'embed')
+  t[i] = { type: 'embed', cycle: 0, seqLen: 2, dims: 576, preview: [[0.1, 0.2]] } as unknown as TraceEvent
+  expect(validateTrace(t)).toEqual([])
 })

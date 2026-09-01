@@ -44,9 +44,7 @@ export class SimulatedEngine implements PipelineEngine {
       await new Promise((r) => setTimeout(r, 0))
       if (isAborted()) { emit({ type: 'run-end', reason: 'aborted' }); return }
 
-      const preview = seq.slice(-4).map(() =>
-        Array.from({ length: 16 }, () => Math.round((rand() * 2 - 1) * 100) / 100))
-      emit({ type: 'embed', cycle, seqLen: seq.length, dims: this.dims, preview })
+      emit({ type: 'embed', cycle, seqLen: seq.length, dims: this.dims, source: 'asset' })
 
       for (let i = 0; i < this.layers; i++)
         emit({ type: 'layer', cycle, index: i, total: this.layers,

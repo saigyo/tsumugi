@@ -143,9 +143,7 @@ async function run(runId: number, prompt: string, params: GenParams) {
     for (let cycle = 0; cycle < params.maxNewTokens; cycle++) {
       if (aborted) { endRun('aborted'); break }
 
-      // schematic embed preview (real hidden states not exposed; spec-accepted compromise)
-      emit({ type: 'embed', cycle, seqLen: allIds.length, dims,
-        preview: allIds.slice(-4).map((id) => Array.from({ length: 16 }, (_, d) => Math.sin(id * 0.7 + d))) })
+      emit({ type: 'embed', cycle, seqLen: allIds.length, dims, source: 'asset' })
       for (let l = 0; l < numLayers; l++) emit({ type: 'layer', cycle, index: l, total: numLayers })
 
       const input_ids = new Tensor('int64', BigInt64Array.from(nextInputIds.map(BigInt)), [1, nextInputIds.length])

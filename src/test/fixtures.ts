@@ -11,9 +11,15 @@ export interface FixtureTraceOpts {
   temperature?: number
   mode?: Mode
   reason?: RunEndReason
+  embedRows?: boolean
 }
 
 const DEFAULT_WORDS = [' sat', ' on', ' the', ' mat']
+
+// Deterministic 576-dim "embedding" for a token id, for model-source fixtures.
+export function fixtureEmbedding(id: number): number[] {
+  return Array.from({ length: 576 }, (_, d) => Math.round(Math.sin(id * 0.37 + d * 0.11) * 1000) / 1000)
+}
 
 export function buildFixtureTrace(opts: FixtureTraceOpts = {}): TraceEvent[] {
   const cycles = opts.cycles ?? 2
@@ -29,8 +35,11 @@ export function buildFixtureTrace(opts: FixtureTraceOpts = {}): TraceEvent[] {
   ]
   for (let c = 0; c < cycles; c++) {
     const chosen = chosenFor(c)
-    events.push({ type: 'embed', cycle: c, seqLen: promptTokens.length + c, dims: 576,
-      preview: [[0.1, -0.2, 0.3], [0.0, 0.5, -0.1]] })
+    // the rows fed this cycle: the whole prompt at cycle 0, then the token chosen last cycle
+    const fed = c === 0 ? promptTokens.map((t) => t.id) : [chosenFor(c - 1).id]
+    events.push(opts.embedRows
+      ? { type: 'embed', cycle: c, seqLen: promptTokens.length + c, dims: 576, source: 'model', rows: fed.map(fixtureEmbedding) }
+      : { type: 'embed', cycle: c, seqLen: promptTokens.length + c, dims: 576, source: 'asset' })
     for (let l = 0; l < layers; l++) events.push({ type: 'layer', cycle: c, index: l, total: layers })
     const seq = promptTokens.length + c
     const row = (i: number, weights: Array<[number, number]>): number[] => {

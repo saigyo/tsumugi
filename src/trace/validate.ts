@@ -30,7 +30,16 @@ export function validateTrace(events: TraceEvent[]): string[] {
       }
       continue
     }
-    if (e.type === 'embed' && phase === 'embed') { phase = 'layer'; layerIdx = 0; continue }
+    if (e.type === 'embed' && phase === 'embed') {
+      if (e.rows) {
+        e.rows.forEach((row, i) => {
+          if (!Array.isArray(row) || row.length !== e.dims || row.some((v) => typeof v !== 'number' || !Number.isFinite(v)))
+            errs.push(`embed cycle ${e.cycle} row ${i} is not ${e.dims} finite numbers`)
+        })
+      }
+      if (e.source === 'model' && !e.rows) errs.push(`embed cycle ${e.cycle} claims model source without rows`)
+      phase = 'layer'; layerIdx = 0; continue
+    }
     if (e.type === phase) {
       phase = CYCLE[(CYCLE.indexOf(phase) + 1) % CYCLE.length]
       continue
