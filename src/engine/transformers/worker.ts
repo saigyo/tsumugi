@@ -3,6 +3,7 @@ import type { GenParams, RunEndReason, TokenInfo, TraceEvent } from '../../trace
 import { ATTN_MODEL_ID } from '../tokenizer'
 import { sampleIndex, softmax, topK } from '../math'
 import { addAttentionOutput, createAccumulator, type AttnAccumulator } from './attentionAccum'
+import { extractEmbedRows } from './embedRows'
 import type { WorkerRequest, WorkerResponse } from './protocol'
 import { headStats, resolveHeadLabel, selectShowcaseHeads, type HeadStats, type ShowcasePrev } from './attentionStats'
 import { buildGridCells } from './attentionThumbs'
@@ -123,6 +124,7 @@ async function run(runId: number, prompt: string, params: GenParams) {
     ? createAccumulator(numLayers, numHeads)
     : null
   let attnBroken = false
+  let embedsBroken = false
   let stats: HeadStats[] | null = null
   let prevSel: ShowcasePrev = {}
 
@@ -143,13 +145,27 @@ async function run(runId: number, prompt: string, params: GenParams) {
     for (let cycle = 0; cycle < params.maxNewTokens; cycle++) {
       if (aborted) { endRun('aborted'); break }
 
-      emit({ type: 'embed', cycle, seqLen: allIds.length, dims, source: 'asset' })
-      for (let l = 0; l < numLayers; l++) emit({ type: 'layer', cycle, index: l, total: numLayers })
-
       const input_ids = new Tensor('int64', BigInt64Array.from(nextInputIds.map(BigInt)), [1, nextInputIds.length])
       const attention_mask = new Tensor('int64', BigInt64Array.from(allIds.map(() => 1n)), [1, allIds.length])
       const out = await model({ input_ids, attention_mask, past_key_values: pastKeyValues })
       pastKeyValues = updateCache(DynamicCache, out, pastKeyValues)
+
+      // Real embedding rows for the tokens fed this cycle (whole prompt at cycle 0,
+      // one token afterwards). Absent output = old cached export → 'asset' quietly;
+      // a wrong shape flips embedsBroken for the run — never-fail, like attention.
+      let rows: number[][] | undefined
+      if (!embedsBroken) {
+        const r = extractEmbedRows(out.inputs_embeds, nextInputIds.length, dims)
+        if (r.status === 'ok') rows = r.rows
+        else if (r.status === 'bad-shape') {
+          embedsBroken = true
+          console.warn(`inputs_embeds has shape [${r.dims.join(', ')}], expected [1, ${nextInputIds.length}, ${dims}] — using asset vectors`)
+        }
+      }
+      emit(rows
+        ? { type: 'embed', cycle, seqLen: allIds.length, dims, source: 'model', rows }
+        : { type: 'embed', cycle, seqLen: allIds.length, dims, source: 'asset' })
+      for (let l = 0; l < numLayers; l++) emit({ type: 'layer', cycle, index: l, total: numLayers })
 
       if (acc && !attnBroken) {
         try {
