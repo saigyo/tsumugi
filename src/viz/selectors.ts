@@ -1,4 +1,4 @@
-import type { TokenInfo, TraceEvent } from '../trace/types'
+import type { EmbedSource, TokenInfo, TraceEvent } from '../trace/types'
 
 export type StageId = 'tokenizer' | 'embeddings' | 'layers' | 'logits' | 'sampler' | null
 
@@ -57,7 +57,7 @@ export interface FlowShapes {
   loop?: string     // Sampler → token stream
 }
 
-const thousands = (n: number) => n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
+export const thousands = (n: number) => n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
 
 export function flowShapes(events: TraceEvent[], cursor: number): FlowShapes {
   const shapes: FlowShapes = {}
@@ -101,4 +101,30 @@ export function stageEventIndex(events: TraceEvent[], cursor: number, stage: Exc
     fallback = i
   }
   return fallback
+}
+
+export interface EmbeddingRows {
+  tokens: TokenInfo[]
+  rows?: number[][]     // one per token, only when every visible position has a model row
+  source: EmbedSource
+}
+
+// The visible sequence and, when the run recorded exact rows for all of it,
+// those rows in position order. Cycle c's embed event carries the rows fed
+// that cycle (the prompt at cycle 0, the previous chosen token after), so at
+// an embed cursor the rows cover exactly the visible tokens. Any asset-source
+// cycle, or a position without a row yet, degrades the whole run to 'asset'
+// so the card never mixes exact and reduced vectors.
+export function embeddingRows(events: TraceEvent[], cursor: number): EmbeddingRows {
+  const { prompt, generated } = visibleTokens(events, cursor)
+  const tokens: TokenInfo[] = [...prompt, ...generated.map(({ id, text }) => ({ id, text }))]
+  const rows: number[][] = []
+  let model = true
+  for (const e of events.slice(0, cursor + 1)) {
+    if (e.type !== 'embed') continue
+    if (e.source !== 'model' || !e.rows) { model = false; break }
+    rows.push(...e.rows)
+  }
+  if (!model || rows.length < tokens.length) return { tokens, source: 'asset' }
+  return { tokens, rows: rows.slice(0, tokens.length), source: 'model' }
 }

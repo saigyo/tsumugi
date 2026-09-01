@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest'
-import { makeFixtureTrace } from '../test/fixtures'
-import { activeStage, cycleTickIndices, distributionFor, eventAt, flowShapes, latestOfType, stageEventIndex, visibleTokens } from './selectors'
+import { buildFixtureTrace, fixtureEmbedding, makeFixtureTrace } from '../test/fixtures'
+import { activeStage, cycleTickIndices, distributionFor, embeddingRows, eventAt, flowShapes, latestOfType, stageEventIndex, visibleTokens } from './selectors'
 
 const trace = makeFixtureTrace()  // 2 cycles, 3 layers
 
@@ -89,4 +89,39 @@ test('stageEventIndex falls back to the latest existing event when the cycle lac
 
 test('stageEventIndex returns -1 when no event exists at all', () => {
   expect(stageEventIndex(trace.slice(0, 2), 1, 'layers')).toBe(-1)
+})
+
+// fixture indices: 2 = cycle-0 embed, 10 = cycle-0 append, 11 = cycle-1 embed
+test('embeddingRows: asset-source runs return tokens only', () => {
+  const r = embeddingRows(makeFixtureTrace(), 2)
+  expect(r.source).toBe('asset')
+  expect(r.rows).toBeUndefined()
+  expect(r.tokens.map((t) => t.id)).toEqual([10, 11])
+})
+
+test('embeddingRows: model-source runs return one row per visible token', () => {
+  const t = buildFixtureTrace({ embedRows: true })
+  const c0 = embeddingRows(t, 2)
+  expect(c0.source).toBe('model')
+  expect(c0.rows).toHaveLength(2)
+  expect(c0.rows?.[1]).toEqual(fixtureEmbedding(11))
+  const c1 = embeddingRows(t, 11)
+  expect(c1.tokens).toHaveLength(3)
+  expect(c1.rows).toHaveLength(3)
+  expect(c1.rows?.[2]).toEqual(fixtureEmbedding(100))
+})
+
+test('embeddingRows: a later asset-source cycle degrades the whole run to asset', () => {
+  const t = buildFixtureTrace({ embedRows: true })
+  const e = t[11]
+  if (e.type === 'embed') { e.source = 'asset'; delete e.rows }
+  expect(embeddingRows(t, 2).source).toBe('model')
+  expect(embeddingRows(t, 11).source).toBe('asset')
+})
+
+test('embeddingRows: a token without a known row yet (cursor on append) falls back to asset', () => {
+  const t = buildFixtureTrace({ embedRows: true })
+  const r = embeddingRows(t, 10)
+  expect(r.tokens).toHaveLength(3)
+  expect(r.source).toBe('asset')
 })
