@@ -32,6 +32,12 @@ test('renderableNeighbors skips unrenderable entries and returns n', () => {
   expect(n[0].sim).toBeGreaterThan(0.9)
 })
 
+test('renderableNeighbors returns empty array when n <= 0', () => {
+  const a = makeGeometryAsset()
+  expect(renderableNeighbors(a, 6, 0)).toEqual([])
+  expect(renderableNeighbors(a, 6, -1)).toEqual([])
+})
+
 test('poolRow mean-pools into buckets and is the identity for short rows', () => {
   expect(poolRow([1, 2, 3, 4, 5, 6], 3)).toEqual([1.5, 3.5, 5.5])
   expect(poolRow([1, 2, 3], 8)).toEqual([1, 2, 3])
