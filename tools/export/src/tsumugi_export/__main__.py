@@ -15,6 +15,9 @@ def main() -> int:
     p_quant = sub.add_parser("quantize", help="produce q4 and fp16 variants")
     p_quant.add_argument("--model-dir", default="out/model")
 
+    p_geo = sub.add_parser("geometry", help="build the vocabulary-geometry asset (geometry/)")
+    p_geo.add_argument("--model-dir", default="out/model")
+
     p_val = sub.add_parser("validate", help="validate exported artifacts against stock")
     p_val.add_argument("--model-dir", default="out/model")
 
