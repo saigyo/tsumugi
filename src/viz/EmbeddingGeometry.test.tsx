@@ -65,3 +65,13 @@ test('provenance caption follows the source', () => {
     loading={false} retry={noop} source="asset" />)
   expect(screen.getByTestId('embed-provenance')).toHaveTextContent('reduced to 64 dimensions offline; similarities are approximate.')
 })
+
+test('a leading space in a token is shown as a visible marker, with a note explaining it', () => {
+  const tokens: TokenInfo[] = [{ id: 6, text: ' t6' }]
+  render(<EmbeddingGeometry tokens={tokens} selected={0} vectorFor={vecFor(tokens)} asset={asset}
+    loading={false} retry={noop} source="asset" />)
+  expect(screen.getByTestId('embed-neighbors')).toHaveTextContent('Nearest to ␣t6')
+  // fixture texts carry no leading space, so neighbour labels stay bare
+  expect(screen.getAllByTestId('embed-neighbor')[0]).toHaveTextContent(/^t5/)
+  expect(screen.getByTestId('embed-space-note').getAttribute('title')).toMatch(/leading space/)
+})
