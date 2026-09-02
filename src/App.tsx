@@ -34,6 +34,9 @@ export default function App() {
   const preparingRef = useRef<{ engine: TransformersEngine; promise: Promise<void> } | null>(null)
   const [device, setDevice] = useState<'webgpu' | 'wasm' | null>(null)
   const [realReady, setRealReady] = useState(false)
+  // a run is being computed (real mode: seconds of silent prefill before the
+  // first token) — Generate is disabled and shows activity, Stop appears
+  const [generating, setGenerating] = useState(false)
   const [attn, setAttn] = useState(false)
   const records = useRunsStore((s) => s.records)
   const activeId = useRunsStore((s) => s.activeId)
@@ -121,10 +124,16 @@ export default function App() {
         }
       })
       runRef.current = handle
+      setGenerating(true)
+      // settles on completion, EOS, abort and error alike
+      void handle.done.finally(() => { if (runRef.current === handle) setGenerating(false) })
     } catch (err) {
+      setGenerating(false)
       setModelError(err instanceof Error ? err.message : String(err))
     }
   }
+
+  const handleStop = () => { runRef.current?.abort() }
 
   const handleActivate = async (id: string) => {
     runRef.current?.abort()
@@ -169,7 +178,8 @@ export default function App() {
     <div className="app">
       <h1><span className="app-mark">紬</span> Tsumugi <span className="app-subtitle">LLM Pipeline Visualizer</span></h1>
       <PromptBar mode={mode} onModeChange={handleModeChange} onGenerate={handleGenerate}
-        busy={mode === 'real' && !realReady} examples={CURATED_EXAMPLES}
+        busy={mode === 'real' && !realReady} generating={generating} onStop={handleStop}
+        examples={CURATED_EXAMPLES}
         status={<ModelStatus progress={progress} device={mode === 'real' ? device : null} error={modelError}
           attentions={mode === 'real' && attn}
           onFallback={() => { setModelError(null); setMode('sim') }} />} />

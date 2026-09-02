@@ -309,8 +309,19 @@ input[type="number"] { width: 4rem; }
 .cmp-fallback .grid-thumb { width: 120px; height: 120px; }
 @media (max-width: 720px) { .cmp-pair { grid-template-columns: 1fr; } }
 
+/* Generate while a run is computing: a pulsing indigo dot in the button, and a Stop next to it */
+.generate-activity { display: inline-block; width: .55em; height: .55em; margin-right: .5em; border-radius: 50%;
+  background: var(--ai); vertical-align: middle; animation: generate-pulse 1s ease-in-out infinite; }
+@keyframes generate-pulse {
+  0%, 100% { opacity: .25; transform: scale(.8); }
+  50% { opacity: 1; transform: scale(1.15); }
+}
+.btn-stop { color: var(--shu); border-color: var(--shu-soft); }
+.btn-stop:hover { background: var(--shu-wash); }
+
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; }
+  .generate-activity { animation: none; opacity: 1; }
 }
 
 /* ── Embeddings card ─────────────────────────────────────────────────── */

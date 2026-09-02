@@ -49,7 +49,7 @@ test('generate in sim mode fills the trace and plays', async () => {
   expect(usePlayerStore.getState().status).toBe('playing')
 })
 
-test('clicking Generate during an active run aborts it and starts a fresh one', async () => {
+test('while a run is in flight, Generate is disabled and shows activity; it re-enables afterwards', async () => {
   render(<App />)
   fireEvent.change(screen.getByTestId('prompt-input'), { target: { value: 'The cat sat' } })
   fireEvent.change(screen.getByTestId('maxtok-input'), { target: { value: '100' } })
@@ -58,17 +58,37 @@ test('clicking Generate during an active run aborts it and starts a fresh one', 
   await waitFor(() => {
     expect(useTraceStore.getState().events.length).toBeGreaterThan(0)
   })
-
-  // Re-click mid-run: the old run must be aborted and a new one started, not blocked.
-  expect(screen.getByTestId('btn-generate')).not.toBeDisabled()
-  fireEvent.click(screen.getByTestId('btn-generate'))
+  const btn = screen.getByTestId('btn-generate')
+  expect(btn).toBeDisabled()
+  expect(btn).toHaveTextContent('Generating…')
+  expect(btn.querySelector('[data-testid="generate-activity"]')).not.toBeNull()
+  expect(screen.getAllByTestId('example-chip')[0]).toBeDisabled()
 
   await waitFor(() => {
     expect(useTraceStore.getState().events.at(-1)?.type).toBe('run-end')
   })
+  await waitFor(() => expect(screen.getByTestId('btn-generate')).not.toBeDisabled())
+  expect(screen.getByTestId('btn-generate')).toHaveTextContent('Generate')
+  expect(screen.queryByTestId('btn-stop')).toBeNull()
+})
 
-  const finalEvents = useTraceStore.getState().events
-  expect(finalEvents.filter((e) => e.type === 'run-start')).toHaveLength(1)
+test('Stop aborts the run in flight; the trace ends with reason aborted and Generate is back', async () => {
+  render(<App />)
+  fireEvent.change(screen.getByTestId('prompt-input'), { target: { value: 'The cat sat' } })
+  fireEvent.change(screen.getByTestId('maxtok-input'), { target: { value: '100' } })
+
+  fireEvent.click(screen.getByTestId('btn-generate'))
+  await waitFor(() => {
+    expect(useTraceStore.getState().events.length).toBeGreaterThan(0)
+  })
+  fireEvent.click(screen.getByTestId('btn-stop'))
+
+  await waitFor(() => {
+    const last = useTraceStore.getState().events.at(-1)
+    expect(last?.type === 'run-end' && last.reason).toBe('aborted')
+  })
+  await waitFor(() => expect(screen.getByTestId('btn-generate')).not.toBeDisabled())
+  expect(useTraceStore.getState().events.filter((e) => e.type === 'run-start')).toHaveLength(1)
 })
 
 test('generate is disabled while real mode is still loading the model', async () => {
@@ -85,10 +105,13 @@ test('generate is disabled while real mode is still loading the model', async ()
 
 async function generateAndFinish(prompt: string) {
   fireEvent.change(screen.getByTestId('prompt-input'), { target: { value: prompt } })
+  // Generate is disabled while a run is in flight; a previous call may still be settling
+  await waitFor(() => expect(screen.getByTestId('btn-generate')).not.toBeDisabled())
   fireEvent.click(screen.getByTestId('btn-generate'))
   await waitFor(() => {
     expect(useTraceStore.getState().events.at(-1)?.type).toBe('run-end')
   })
+  await waitFor(() => expect(screen.getByTestId('btn-generate')).not.toBeDisabled())
 }
 
 test('completed runs are sealed onto the shelf', async () => {

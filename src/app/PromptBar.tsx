@@ -13,6 +13,9 @@ export interface PromptBarProps {
   onModeChange(mode: Mode): void
   onGenerate(prompt: string, params: GenParams): void
   busy: boolean
+  // a run is being computed: Generate shows activity and a Stop button appears
+  generating?: boolean
+  onStop?(): void
   examples?: PromptExample[]
   status?: ReactNode
 }
@@ -23,7 +26,7 @@ const clampOrKeep = (raw: string, min: number, max: number, prev: number): numbe
   return Math.min(max, Math.max(min, n))
 }
 
-export function PromptBar({ mode, onModeChange, onGenerate, busy, examples, status }: PromptBarProps) {
+export function PromptBar({ mode, onModeChange, onGenerate, busy, generating = false, onStop, examples, status }: PromptBarProps) {
   const [prompt, setPrompt] = useState('')
   const [temperature, setTemperature] = useState(0.8)
   const [topK, setTopK] = useState(10)
@@ -34,10 +37,19 @@ export function PromptBar({ mode, onModeChange, onGenerate, busy, examples, stat
       <div className="prompt-row">
         <input data-testid="prompt-input" value={prompt} placeholder="Type a prompt…"
           onChange={(e) => setPrompt(e.target.value)} />
-        <button data-testid="btn-generate" disabled={prompt.trim() === '' || busy}
+        <button data-testid="btn-generate" disabled={prompt.trim() === '' || busy || generating}
+          aria-busy={generating || undefined}
           onClick={() => onGenerate(prompt, { temperature, topK, maxNewTokens })}>
-          Generate
+          {generating
+            ? <><span data-testid="generate-activity" className="generate-activity" aria-hidden="true" />Generating…</>
+            : 'Generate'}
         </button>
+        {generating && onStop && (
+          <button data-testid="btn-stop" className="btn-stop" onClick={onStop}
+            title="Abort the run in flight; what was generated so far is kept">
+            Stop
+          </button>
+        )}
       </div>
       <div className="config-row">
         <label title="Temperature: divides the logits before softmax. Below 1 sharpens the distribution toward the favorite (safer, more repetitive); above 1 flattens it (more varied, more error-prone); exactly 0 always picks the top candidate (greedy). It changes how concentrated the odds are, never the ranking.">
@@ -62,7 +74,7 @@ export function PromptBar({ mode, onModeChange, onGenerate, busy, examples, stat
           <span className="example-chip-label">Try:</span>
           {examples.map((ex) => (
             <button key={ex.id} data-testid="example-chip" className="example-chip" title={ex.hint}
-              disabled={busy}
+              disabled={busy || generating}
               onClick={() => {
                 setPrompt(ex.prompt)
                 onGenerate(ex.prompt, { temperature, topK, maxNewTokens })
