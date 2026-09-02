@@ -105,6 +105,21 @@ similarity, and a similarity matrix of the visible tokens against each
 other — what the model "knows" about these tokens *before any context is
 applied*, a useful contrast with the attention heatmaps one stage later.
 
+![Nearest neighbours of “ able”: capable, unable, ability, Ability, 能, capability, willing, abilities](docs/screenshots/embeddings-neighbours-able.png)
+
+A specimen worth pausing on: the neighbours of ` able`. Two lessons sit in
+one list. First, **distance knows no language** — 能, the Chinese/Japanese
+character for "can, ability", lands among the English *ability* words. It
+has its own token because it is frequent enough in the training mix, and it
+occurs in the same kinds of contexts as *able* and *ability* do, so training
+pushed its row toward theirs; nobody told the model these are translations.
+Second, ` unable` is the second-closest neighbour: embedding similarity is
+about *shared contexts*, not agreement in meaning. Antonyms are near-perfect
+substitutes distributionally, so they sit side by side here, and the
+negation has to be resolved later, by the layers. (The `␣` marks a leading
+space — byte-level BPE keeps ` able` and `able` as different tokens, and the
+card shows both kinds side by side with their own similarities.)
+
 In real mode the rows are the exact vectors from the running model (the
 custom ONNX export exposes the embedding lookup as `inputs_embeds`). In
 simulated mode, and for archived runs, they come from a small
