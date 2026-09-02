@@ -33,7 +33,7 @@ export function DetailPanel({ events, cursor, mode, pinnedHeads, onPin, pinNote 
     }
     case 'embeddings': {
       const e = latestOfType(events, cursor, 'embed')
-      return e ? <EmbeddingsDetail event={e} /> : empty
+      return e ? <EmbeddingsDetail events={events} cursor={cursor} /> : empty
     }
     case 'layers': {
       const e = latestOfType(events, cursor, 'layer')

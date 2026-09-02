@@ -12,15 +12,18 @@ afterEach(() => cleanup())
 // explorer's canvas thumbnails), same as AttentionGridExplorer.test.tsx.
 vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null as never)
 
+vi.mock('../geometry/useGeometry', () => ({ useGeometry: () => ({ status: 'loading', retry: () => {} }) }))
+
 test('tokenizer detail shows token chips with ids', () => {
   render(<DetailPanel events={trace} cursor={1} mode="sim" />)
   expect(screen.getByTestId('detail-tokenizer')).toHaveTextContent('The')
   expect(screen.getByTestId('detail-tokenizer')).toHaveTextContent('10')  // token id
 })
 
-test('embeddings detail shows dims caption and heat cells', () => {
+test('embeddings detail shows the embedding-table shape', () => {
   render(<DetailPanel events={trace} cursor={2} mode="sim" />)
-  expect(screen.getByTestId('detail-embeddings')).toHaveTextContent('576')
+  expect(screen.getByTestId('detail-embeddings')).toHaveTextContent('49 152 × 576')
+  expect(screen.getAllByTestId('embed-token')).toHaveLength(2)
 })
 
 test('layers detail lights the active layer; sim shows norms', () => {
