@@ -118,14 +118,28 @@ try {
   // ---- embeddings.png: real mode, Embeddings stage — lookup + neighbours + matrix
   if (want('embeddings')) {
     await $('prompt-input').fill('The cat sat on the mat because the cat was tired')
+    await $('maxtok-input').fill('8')                               // short run: the card stays one screen tall
     const before = await $('run-chip').count()
     await $('btn-generate').click()
     await $('run-chip').nth(before).waitFor({ timeout: 120000 })   // wait for the run to SEAL
     await $('btn-live').click()
     await $('stage-card').nth(1).click()                            // Embeddings
     await $('embed-neighbors').waitFor({ timeout: 60000 })          // geometry asset fetched from the Hub
-    await $('detail-embeddings').scrollIntoViewIfNeeded()
-    await page.screenshot({ path: `${DIR}/embeddings.png` })
+    // the card (chips + strips + neighbours + matrix) is taller than the default
+    // viewport; crop to the playback controls plus the card, like the other shots
+    await page.setViewportSize({ width: 1380, height: 1500 })
+    const controls = page.locator('.controls')
+    await controls.evaluate((el) => el.scrollIntoView({ block: 'start' }))
+    await page.waitForTimeout(300)
+    const top = await controls.boundingBox()
+    const card = await $('detail-embeddings').boundingBox()
+    const pad = 12
+    const topPad = 4   // tight: the pipeline band's loop arrow sits just above the controls
+    await page.screenshot({ path: `${DIR}/embeddings.png`, clip: {
+      x: card.x - pad, y: top.y - topPad, width: card.width + 2 * pad, height: card.y + card.height - top.y + topPad + pad,
+    } })
+    await page.setViewportSize({ width: 1380, height: 940 })
+    await $('maxtok-input').fill('20')                              // restore the default for later scenes
     console.log('embeddings.png')
   }
 } finally {
