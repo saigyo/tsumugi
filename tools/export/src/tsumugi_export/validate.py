@@ -246,9 +246,10 @@ def _check_inputs_embeds_parity(sess, model_dir: Path, E: np.ndarray, tol: float
 
 def check_geometry_files(model_dir: Path, E: np.ndarray, texts: list[str], sample: int = 32) -> dict:
     """Spot-check geometry/ against the stock matrix: file sizes match the
-    manifest, every listed neighbour of a sampled token is within uint8
-    resolution of the exact k-th best cosine, the top similarity round-trips,
-    and tokens.json matches the tokenizer."""
+    manifest, every sampled token's listed neighbour ids are distinct, each
+    equals the exact top-k set (or, for a uint8 tie, is within 1/255 of the
+    k-th best exact cosine), the stored similarities are non-increasing, and
+    tokens.json matches the tokenizer."""
     gdir = model_dir / "geometry"
     if not (gdir / "manifest.json").exists():
         return {"passed": False, "detail": "no geometry/ — run geometry first"}
@@ -274,11 +275,21 @@ def check_geometry_files(model_dir: Path, E: np.ndarray, texts: list[str], sampl
                 return {"passed": False, "detail": f"token {t}: neighbour id {j} outside vocabulary"}
         s = U[t] @ U.T
         s[t] = -np.inf
-        kth = np.sort(s)[-k]
-        if any(s[j] < kth - 1 / 255 for j in ids[t]):
-            return {"passed": False, "detail": f"token {t}: listed neighbour below the exact k-th best"}
-        if abs(np.rint(max(s[ids[t][0]], 0) * 255) - sims[t][0]) > 1:
-            return {"passed": False, "detail": f"token {t}: top similarity does not round-trip"}
+        listed = [int(j) for j in ids[t]]
+        if len(set(listed)) != len(listed):
+            return {"passed": False, "detail": f"token {t}: listed neighbour ids are not distinct"}
+        exact_order = np.argsort(-s, kind="stable")
+        exact_top = exact_order[:k]
+        exact_set = {int(j) for j in exact_top}
+        kth_sim = float(s[exact_top[-1]])
+        for j in listed:
+            if j not in exact_set and s[j] < kth_sim - 1 / 255:
+                return {"passed": False,
+                        "detail": f"token {t}: neighbour {j} (sim {s[j]:.4f}) is not among the exact "
+                                  f"top-{k} (k-th best {kth_sim:.4f}) and not a uint8 tie"}
+        row_sims = [int(x) for x in sims[t]]
+        if any(row_sims[i] < row_sims[i + 1] for i in range(len(row_sims) - 1)):
+            return {"passed": False, "detail": f"token {t}: stored similarities are not non-increasing"}
     return {"passed": True, "detail": f"{min(sample, vocab)} sampled tokens match exact neighbours and texts"}
 
 

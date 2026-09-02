@@ -28,6 +28,11 @@ def build_geometry(E: np.ndarray, texts: list[str], k: int = K, pca_dims: int = 
     ids = np.empty((vocab, k), dtype="<u2")
     sims = np.empty((vocab, k), dtype=np.uint8)
     for start in range(0, vocab, block):          # 49152² cosines at once is ~10 GB; block it
+        # Peak memory per block at the default block=2048 is ~1.6 GB: S and its
+        # negation are each block × vocab float32 (~384 MB apiece), plus the
+        # int64 index np.argpartition returns for the whole row (not just the
+        # top-k), block × vocab × 8 bytes (~768 MB). All three scale linearly
+        # with block, so block=512 roughly quarters the peak.
         S = U[start:start + block] @ U.T
         rows = np.arange(S.shape[0])
         S[rows, start + rows] = -np.inf           # a token is not its own neighbour
