@@ -24,7 +24,7 @@ test('cards show micro-summaries once their data exists', () => {
   const summaryOf = (stage: string) =>
     screen.getAllByTestId('stage-card').find((c) => c.dataset.stage === stage)?.textContent
   expect(summaryOf('tokenizer')).toContain('2 tokens')
-  expect(summaryOf('embeddings')).toContain('576 dims')
+  expect(summaryOf('embeddings')).toContain('49 152 × 576')
   expect(summaryOf('layers')).toContain('3 layers')
   expect(summaryOf('logits')).toContain('on')      // top candidate of latest cycle
   expect(summaryOf('sampler')).toContain('on')     // chosen token of latest cycle
@@ -64,4 +64,9 @@ test('cards without a target are not clickable', () => {
   fireEvent.click(card)
   expect(onStageClick).not.toHaveBeenCalled()
   expect(card.dataset.clickable).toBe('false')
+})
+
+test('embeddings summary shows the embedding-table shape', () => {
+  render(<PipelineBand events={makeFixtureTrace()} cursor={2} />)
+  expect(screen.getAllByTestId('stage-card')[1]).toHaveTextContent('49 152 × 576')
 })

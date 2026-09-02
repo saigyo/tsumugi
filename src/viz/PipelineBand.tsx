@@ -1,5 +1,5 @@
 import type { TraceEvent } from '../trace/types'
-import { activeStage, eventAt, flowShapes, latestOfType, stageEventIndex, type FlowShapes, type StageId } from './selectors'
+import { activeStage, eventAt, flowShapes, latestOfType, stageEventIndex, thousands, type FlowShapes, type StageId } from './selectors'
 
 // what travels along the connector INTO stage i (see FlowShapes)
 const CONNECTOR_SHAPE: Array<keyof FlowShapes> = ['ids', 'ids', 'stream', 'lastRow', 'vocab']
@@ -20,7 +20,9 @@ function summaryFor(stage: Exclude<StageId, null>, events: TraceEvent[], cursor:
     }
     case 'embeddings': {
       const e = latestOfType(events, cursor, 'embed')
-      return e ? `${e.dims} dims` : null
+      if (!e) return null
+      const vocab = latestOfType(events, cursor, 'run-start')?.vocabSize
+      return vocab ? `${thousands(vocab)} × ${e.dims}` : `${e.dims} dims`
     }
     case 'layers': {
       const e = latestOfType(events, cursor, 'layer')
