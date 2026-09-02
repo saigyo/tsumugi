@@ -2,3 +2,5 @@
 out/
 __pycache__/
 *.onnx
+# session marker some tooling drops when commands run in this directory
+:memory:.ses
