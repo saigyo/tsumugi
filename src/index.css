@@ -324,10 +324,11 @@ input[type="number"] { width: 4rem; }
 .embed-strip-wrap { overflow-x: auto; }
 .embed-strip-missing { font-size: .78rem; color: var(--ink-faint); padding: .2rem 0; }
 .embed-caption { font-size: .72rem; color: var(--ink-soft); margin-top: .25rem; }
-.embed-stack-rows { display: flex; flex-direction: column; gap: 2px; width: 6rem; }
-.embed-stack-row { height: 4px; background: var(--ai-soft); border-radius: 1px; }
-.embed-stack-row[data-selected="true"] { background: var(--shu); }
-.embed-stack-row[data-newest="true"] { outline: 1px solid var(--ai-deep); }
+.embed-stack-rows { display: block; }
+.embed-stack-placeholder { fill: var(--ai-soft); }
+.embed-stack-frame { fill: none; stroke: none; stroke-width: 1; }
+.embed-stack-row[data-newest="true"] .embed-stack-frame { stroke: var(--ai-deep); }
+.embed-stack-row[data-selected="true"] .embed-stack-frame { stroke: var(--shu); stroke-width: 1.5; }
 .embed-callouts { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: .4rem 1.2rem;
   font-size: .78rem; color: var(--ai-deep); }
 .embed-callout { border-bottom: 1px dotted var(--ai-soft); }

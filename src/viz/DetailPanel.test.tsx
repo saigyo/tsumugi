@@ -18,6 +18,9 @@ test('tokenizer detail shows token chips with ids', () => {
   render(<DetailPanel events={trace} cursor={1} mode="sim" />)
   expect(screen.getByTestId('detail-tokenizer')).toHaveTextContent('The')
   expect(screen.getByTestId('detail-tokenizer')).toHaveTextContent('10')  // token id
+  // ' cat' carries a leading space: shown as a marker, and explained once
+  expect(screen.getByTestId('detail-tokenizer')).toHaveTextContent('␣cat')
+  expect(screen.getByTestId('tokenizer-space-note')).toHaveTextContent(/leading space/)
 })
 
 test('embeddings detail shows the embedding-table shape', () => {

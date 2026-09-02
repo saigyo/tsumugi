@@ -1,10 +1,16 @@
 import { poolRow } from '../geometry/math'
 import type { EmbedSource, TokenInfo } from '../trace/types'
 import { thousands } from './selectors'
+import { markLeadingSpace } from './spaceMarker'
 
 const STRIP_CELLS = 96
 const CELL_W = 5
 const CELL_H = 14
+// the stacked stream: each token's vector as a miniature strip
+const STACK_CELLS = 48
+const STACK_CELL_W = 2
+const STACK_ROW_H = 4
+const STACK_GAP = 2
 
 const CALLOUTS: Array<{ label: string; text: string }> = [
   { label: 'learned, not designed',
@@ -14,6 +20,17 @@ const CALLOUTS: Array<{ label: string; text: string }> = [
   { label: 'tied with Logits',
     text: 'The same 49152 × 576 matrix is reused at the end: the final vector is compared against every row to score each token (tie_word_embeddings).' },
 ]
+
+// Diverging fill: indigo for positive, vermillion for negative, intensity
+// relative to the row's own peak magnitude.
+function cellFill(v: number, peak: number): string {
+  const t = Math.abs(v) / peak
+  return v >= 0
+    ? `hsl(211 45% ${Math.round(88 - t * 50)}%)`
+    : `hsl(13 55% ${Math.round(90 - t * 40)}%)`
+}
+
+const peakOf = (cells: number[]) => cells.reduce((m, v) => Math.max(m, Math.abs(v)), 0) || 1
 
 // The mechanism half of the Embeddings card: ids → one row of E → the stacked
 // residual stream x. Pure presentation; the container decides where vectors
@@ -31,9 +48,15 @@ export function EmbeddingLookup({ tokens, dims, vocabSize, selected, onSelect, v
   const token = tokens[selected]
   const vec = token ? vectorFor(selected) : undefined
   const cells = vec ? poolRow(vec, STRIP_CELLS) : []
-  const peak = cells.reduce((m, v) => Math.max(m, Math.abs(v)), 0) || 1
+  const peak = peakOf(cells)
   const vocab = vocabSize ? thousands(vocabSize) : '?'
   const rowY = token ? 40 + (token.id % 41) : 0   // a schematic position inside E
+  const stackRows = tokens.map((_, i) => {
+    const v = vectorFor(i)
+    return v ? poolRow(v, STACK_CELLS) : null
+  })
+  const stackW = STACK_CELLS * STACK_CELL_W
+  const stackH = tokens.length * (STACK_ROW_H + STACK_GAP)
   return (
     <div data-testid="embed-lookup" className="embed-lookup">
       <div className="embed-ids">
@@ -43,7 +66,7 @@ export function EmbeddingLookup({ tokens, dims, vocabSize, selected, onSelect, v
             <button key={i} type="button" data-testid="embed-token" data-selected={String(i === selected)}
               className={`token-chip embed-chip hue-${i % 6}`} onClick={() => onSelect(i)}
               title={`Show row ${t.id} of E`}>
-              <span className="chip-text">{t.text}</span>
+              <span className="chip-text">{markLeadingSpace(t.text)}</span>
               <span className="chip-id">{t.id}</span>
             </button>
           ))}
@@ -66,9 +89,7 @@ export function EmbeddingLookup({ tokens, dims, vocabSize, selected, onSelect, v
             aria-label={`embedding row of token ${token?.text ?? ''}`}>
             {cells.map((v, c) => (
               <rect key={c} data-testid="embed-strip-cell" x={c * CELL_W} y={0} width={CELL_W - 1} height={CELL_H}
-                fill={v >= 0
-                  ? `hsl(211 45% ${Math.round(88 - (Math.abs(v) / peak) * 50)}%)`
-                  : `hsl(13 55% ${Math.round(90 - (Math.abs(v) / peak) * 40)}%)`} />
+                fill={cellFill(v, peak)} />
             ))}
           </svg>
         ) : (
@@ -77,20 +98,37 @@ export function EmbeddingLookup({ tokens, dims, vocabSize, selected, onSelect, v
         {cells.length > 0 && (
           <div className="embed-caption">
             {source === 'model'
-              ? `${dims} values, mean-pooled into ${STRIP_CELLS} cells`
-              : `${cells.length} of ${dims} dimensions (PCA-reduced, offline)`}
+              ? `${dims} values, mean-pooled into ${STRIP_CELLS} cells; blue positive, red negative`
+              : `${cells.length} of ${dims} dimensions (PCA-reduced, offline) — these are PCA components, ordered by variance, so the first cells are always the strongest; blue positive, red negative`}
           </div>
         )}
       </div>
       <div className="embed-stack">
         <div className="embed-col-label">x [{tokens.length} × {dims}]</div>
-        <div data-testid="embed-stack" className="embed-stack-rows">
-          {tokens.map((_, i) => (
-            <div key={i} data-testid="embed-stack-row" data-newest={String(i === tokens.length - 1)}
-              data-selected={String(i === selected)} className="embed-stack-row" />
-          ))}
+        <svg data-testid="embed-stack" className="embed-stack-rows" width={stackW} height={stackH}
+          viewBox={`0 0 ${stackW} ${stackH}`} role="img"
+          aria-label={`the residual stream: one row per token, ${tokens.length} rows`}>
+          {stackRows.map((row, i) => {
+            const y = i * (STACK_ROW_H + STACK_GAP)
+            const rowPeak = row ? peakOf(row) : 1
+            return (
+              <g key={i} data-testid="embed-stack-row" data-newest={String(i === tokens.length - 1)}
+                data-selected={String(i === selected)} data-filled={String(row !== null)}
+                className="embed-stack-row">
+                {row
+                  ? row.map((v, c) => (
+                    <rect key={c} data-testid="embed-stack-cell" x={c * STACK_CELL_W} y={y}
+                      width={STACK_CELL_W} height={STACK_ROW_H} fill={cellFill(v, rowPeak)} />
+                  ))
+                  : <rect x={0} y={y} width={stackW} height={STACK_ROW_H} className="embed-stack-placeholder" />}
+                <rect x={0.5} y={y + 0.5} width={stackW - 1} height={STACK_ROW_H - 1} className="embed-stack-frame" />
+              </g>
+            )
+          })}
+        </svg>
+        <div className="embed-caption">
+          one row per token, each a miniature of its vector; the newest was added this cycle
         </div>
-        <div className="embed-caption">one row per token; the newest was added this cycle</div>
       </div>
       <div className="embed-callouts">
         {CALLOUTS.map((c) => (

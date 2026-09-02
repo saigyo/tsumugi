@@ -66,6 +66,33 @@ test('stack has one row per token with the newest marked', () => {
   expect(rows[2].dataset.newest).toBe('true')
 })
 
+test('stack rows are miniature strips of each token\'s vector when vectors are available', () => {
+  render(<EmbeddingsDetail events={makeFixtureTrace()} cursor={11} />)   // asset vectors: 4 dims
+  const rows = screen.getAllByTestId('embed-stack-row')
+  expect(rows.every((r) => r.dataset.filled === 'true')).toBe(true)
+  expect(rows[0].querySelectorAll('[data-testid="embed-stack-cell"]')).toHaveLength(4)
+})
+
+test('stack rows without a vector stay schematic placeholders', () => {
+  geo = { status: 'error', error: 'offline', retry: () => {} }
+  render(<EmbeddingsDetail events={makeFixtureTrace()} cursor={11} />)
+  const rows = screen.getAllByTestId('embed-stack-row')
+  expect(rows.every((r) => r.dataset.filled === 'false')).toBe(true)
+  expect(screen.queryAllByTestId('embed-stack-cell')).toHaveLength(0)
+})
+
+test('chips show a leading token space as a visible marker', () => {
+  render(<EmbeddingsDetail events={makeFixtureTrace()} cursor={11} />)   // ' cat' and ' sat' carry spaces
+  const chips = screen.getAllByTestId('embed-token')
+  expect(chips[0]).toHaveTextContent(/^The/)
+  expect(chips[1]).toHaveTextContent(/^␣cat/)
+})
+
+test('asset caption says the cells are PCA components ordered by variance', () => {
+  render(<EmbeddingsDetail events={makeFixtureTrace()} cursor={2} />)
+  expect(screen.getByTestId('embed-lookup')).toHaveTextContent(/PCA components, ordered by variance/)
+})
+
 test('geometry section shows neighbours of the selected token and the matrix', () => {
   render(<EmbeddingsDetail events={makeFixtureTrace()} cursor={11} />)
   expect(screen.getAllByTestId('embed-neighbor')).toHaveLength(8)
