@@ -74,11 +74,13 @@ export function EmbeddingLookup({ tokens, dims, vocabSize, selected, onSelect, v
         ) : (
           <div data-testid="embed-strip-missing" className="embed-strip-missing">{missingNote}</div>
         )}
-        <div className="embed-caption">
-          {source === 'model'
-            ? `${dims} values, mean-pooled into ${STRIP_CELLS} cells`
-            : `${cells.length || 64} of ${dims} dimensions (PCA-reduced, offline)`}
-        </div>
+        {cells.length > 0 && (
+          <div className="embed-caption">
+            {source === 'model'
+              ? `${dims} values, mean-pooled into ${STRIP_CELLS} cells`
+              : `${cells.length} of ${dims} dimensions (PCA-reduced, offline)`}
+          </div>
+        )}
       </div>
       <div className="embed-stack">
         <div className="embed-col-label">x [{tokens.length} × {dims}]</div>

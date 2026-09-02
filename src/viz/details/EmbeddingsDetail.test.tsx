@@ -43,6 +43,7 @@ test('asset source without geometry shows the offline placeholder', () => {
   geo = { status: 'error', error: 'offline', retry: () => {} }
   render(<EmbeddingsDetail events={makeFixtureTrace()} cursor={2} />)
   expect(screen.getByTestId('embed-strip-missing')).toHaveTextContent('unavailable offline')
+  expect(screen.getByTestId('embed-lookup')).not.toHaveTextContent(/dimensions/)
 })
 
 test('asset source while geometry loads says so', () => {
