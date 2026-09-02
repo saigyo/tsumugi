@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { coversModel } from '../../geometry/asset'
 import { useGeometry } from '../../geometry/useGeometry'
 import type { TraceEvent } from '../../trace/types'
+import { EmbeddingGeometry } from '../EmbeddingGeometry'
 import { EmbeddingLookup } from '../EmbeddingLookup'
 import { embeddingRows, latestOfType, thousands } from '../selectors'
 
@@ -20,6 +21,8 @@ export function EmbeddingsDetail({ events, cursor }: { events: TraceEvent[]; cur
     && coversModel(geo.asset.manifest, runStart.modelId)
   const asset = covered ? geo.asset : undefined
   const pending = geo.status === 'loading'
+  const geoError = geo.status === 'error' ? (geo.error ?? 'load failed')
+    : geo.status === 'ready' && !covered ? 'asset does not cover this model' : undefined
   if (!embed) return null
   const dims = embed.dims
   const vocab = runStart?.vocabSize
@@ -36,6 +39,8 @@ export function EmbeddingsDetail({ events, cursor }: { events: TraceEvent[]; cur
       <EmbeddingLookup tokens={tokens} dims={dims} vocabSize={vocab} selected={selected} onSelect={setPicked}
         vectorFor={vectorFor} source={source}
         missingNote={pending ? 'loading vocabulary geometry…' : 'vector values unavailable offline'} />
+      <EmbeddingGeometry tokens={tokens} selected={selected} vectorFor={vectorFor} asset={asset}
+        loading={pending} error={geoError} retry={geo.retry} source={source} />
     </div>
   )
 }

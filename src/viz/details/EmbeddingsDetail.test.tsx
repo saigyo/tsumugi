@@ -65,3 +65,17 @@ test('stack has one row per token with the newest marked', () => {
   expect(rows).toHaveLength(3)
   expect(rows[2].dataset.newest).toBe('true')
 })
+
+test('geometry section shows neighbours of the selected token and the matrix', () => {
+  render(<EmbeddingsDetail events={makeFixtureTrace()} cursor={11} />)
+  expect(screen.getAllByTestId('embed-neighbor')).toHaveLength(8)
+  expect(screen.getAllByTestId('sim-cell')).toHaveLength(9)
+  fireEvent.click(screen.getAllByTestId('embed-token')[0])            // id 10
+  expect(screen.getAllByTestId('embed-neighbor')[0]).toHaveTextContent(/t(9|11)/)
+})
+
+test('geometry error is shown in the geometry section with a retry', () => {
+  geo = { status: 'error', error: 'offline', retry: () => {} }
+  render(<EmbeddingsDetail events={makeFixtureTrace()} cursor={2} />)
+  expect(screen.getByTestId('embed-geometry-error')).toBeInTheDocument()
+})
