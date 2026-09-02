@@ -26,8 +26,11 @@ export function EmbeddingsDetail({ events, cursor }: { events: TraceEvent[]; cur
   if (!embed) return null
   const dims = embed.dims
   const vocab = runStart?.vocabSize
-  const vectorFor = (pos: number): ArrayLike<number> | undefined =>
-    rows ? rows[pos] : asset?.vector(tokens[pos].id)
+  const vectorFor = (pos: number): ArrayLike<number> | undefined => {
+    if (rows) return rows[pos]
+    const id = tokens[pos].id
+    return asset && id >= 0 && id < asset.manifest.vocabSize ? asset.vector(id) : undefined
+  }
   return (
     <div data-testid="detail-embeddings" className="detail">
       <h3>Embeddings</h3>
@@ -38,9 +41,9 @@ export function EmbeddingsDetail({ events, cursor }: { events: TraceEvent[]; cur
       </p>
       <EmbeddingLookup tokens={tokens} dims={dims} vocabSize={vocab} selected={selected} onSelect={setPicked}
         vectorFor={vectorFor} source={source}
-        missingNote={pending ? 'loading vocabulary geometry…' : 'vector values unavailable offline'} />
+        missingNote={pending ? 'loading vocabulary geometry…' : 'vector values unavailable'} />
       <EmbeddingGeometry tokens={tokens} selected={selected} vectorFor={vectorFor} asset={asset}
-        loading={pending} error={geoError} retry={geo.retry} source={source} />
+        loading={pending} error={geoError} retry={geo.retry} canRetry={geo.status === 'error'} source={source} />
     </div>
   )
 }

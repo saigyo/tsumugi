@@ -42,7 +42,7 @@ test('asset-source rows come from the geometry asset (fixture vectors have 4 dim
 test('asset source without geometry shows the offline placeholder', () => {
   geo = { status: 'error', error: 'offline', retry: () => {} }
   render(<EmbeddingsDetail events={makeFixtureTrace()} cursor={2} />)
-  expect(screen.getByTestId('embed-strip-missing')).toHaveTextContent('unavailable offline')
+  expect(screen.getByTestId('embed-strip-missing')).toHaveTextContent('unavailable')
   expect(screen.getByTestId('embed-lookup')).not.toHaveTextContent(/dimensions/)
 })
 
@@ -78,4 +78,23 @@ test('geometry error is shown in the geometry section with a retry', () => {
   geo = { status: 'error', error: 'offline', retry: () => {} }
   render(<EmbeddingsDetail events={makeFixtureTrace()} cursor={2} />)
   expect(screen.getByTestId('embed-geometry-error')).toBeInTheDocument()
+})
+
+test('model mismatch shows the error but no retry button — retrying cannot fix it', () => {
+  const asset = makeGeometryAsset()
+  asset.manifest.modelId = 'other'
+  geo = { status: 'ready', asset, retry: () => {} }
+  render(<EmbeddingsDetail events={makeFixtureTrace()} cursor={2} />)
+  expect(screen.getByTestId('embed-geometry-error')).toBeInTheDocument()
+  expect(screen.queryByTestId('embed-geometry-retry')).toBeNull()
+})
+
+test('a token id outside the asset vocabulary does not crash and hides its geometry', () => {
+  const events = buildFixtureTrace({ promptTokens: [{ id: 60000, text: 'zz' }, { id: 11, text: ' cat' }] })
+  render(<EmbeddingsDetail events={events} cursor={11} />)
+  expect(screen.getByTestId('detail-embeddings')).toBeInTheDocument()
+  fireEvent.click(screen.getAllByTestId('embed-token')[0])
+  expect(screen.getByTestId('embed-strip-missing')).toBeInTheDocument()
+  expect(screen.queryAllByTestId('embed-neighbor')).toHaveLength(0)
+  expect(screen.queryAllByTestId('sim-cell')).toHaveLength(0)
 })

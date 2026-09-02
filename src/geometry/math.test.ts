@@ -38,6 +38,11 @@ test('renderableNeighbors returns empty array when n <= 0', () => {
   expect(renderableNeighbors(a, 6, -1)).toEqual([])
 })
 
+test('renderableNeighbors returns empty array for an id outside the vocabulary', () => {
+  const a = makeGeometryAsset()
+  expect(renderableNeighbors(a, 999, 8)).toEqual([])
+})
+
 test('poolRow mean-pools into buckets and is the identity for short rows', () => {
   expect(poolRow([1, 2, 3, 4, 5, 6], 3)).toEqual([1.5, 3.5, 5.5])
   expect(poolRow([1, 2, 3], 8)).toEqual([1, 2, 3])

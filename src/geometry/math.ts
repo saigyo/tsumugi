@@ -30,8 +30,11 @@ export function isRenderableToken(text: string): boolean {
 
 export function renderableNeighbors(asset: GeometryAsset, id: number, n: number): Array<{ id: number; sim: number; text: string }> {
   if (n <= 0) return []
+  const { vocabSize } = asset.manifest
+  if (id < 0 || id >= vocabSize) return []
   const out: Array<{ id: number; sim: number; text: string }> = []
   for (const nb of asset.neighbors(id)) {
+    if (nb.id < 0 || nb.id >= vocabSize) continue
     const text = asset.text(nb.id)
     if (!isRenderableToken(text)) continue
     out.push({ ...nb, text })

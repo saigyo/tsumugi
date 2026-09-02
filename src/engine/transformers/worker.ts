@@ -17,6 +17,12 @@ const post = (msg: WorkerResponse) => (self as unknown as Worker).postMessage(ms
 // schematic (acc stays null) above it — generation itself is unaffected.
 const ATTN_MAX_SEQ = 512
 
+// Real embedding rows are emitted in full (dims floats per token) on every cycle; at
+// ~2000 prompt tokens that's ~1.15M numbers in one postMessage and ~7 MB per archived
+// run. Cap the prompt length we're willing to emit real rows for and fall back to
+// 'asset' rows above it — generation itself is unaffected.
+const EMBED_MAX_PROMPT = 512
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 let tokenizer: any = null
 let model: any = null
@@ -124,7 +130,10 @@ async function run(runId: number, prompt: string, params: GenParams) {
     ? createAccumulator(numLayers, numHeads)
     : null
   let attnBroken = false
-  let embedsBroken = false
+  // Off for the whole run when the prompt exceeds EMBED_MAX_PROMPT (source stays
+  // 'asset' throughout), or flipped mid-run by a bad-shape inputs_embeds below —
+  // never-fail, like attnBroken.
+  let embedsOff = promptIds.length > EMBED_MAX_PROMPT
   let stats: HeadStats[] | null = null
   let prevSel: ShowcasePrev = {}
 
@@ -152,13 +161,13 @@ async function run(runId: number, prompt: string, params: GenParams) {
 
       // Real embedding rows for the tokens fed this cycle (whole prompt at cycle 0,
       // one token afterwards). Absent output = old cached export → 'asset' quietly;
-      // a wrong shape flips embedsBroken for the run — never-fail, like attention.
+      // a wrong shape flips embedsOff for the run — never-fail, like attention.
       let rows: number[][] | undefined
-      if (!embedsBroken) {
+      if (!embedsOff) {
         const r = extractEmbedRows(out.inputs_embeds, nextInputIds.length, dims)
         if (r.status === 'ok') rows = r.rows
         else if (r.status === 'bad-shape') {
-          embedsBroken = true
+          embedsOff = true
           console.warn(`inputs_embeds has shape [${r.dims.join(', ')}], expected [1, ${nextInputIds.length}, ${dims}] — using asset vectors`)
         }
       }
