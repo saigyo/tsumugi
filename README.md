@@ -49,9 +49,9 @@ object flowing through the whole pipeline: a matrix **X of shape
 
 - **Embeddings → Layers**: no hand-off, no conversion. The embedding
   stage's output — one vector per token, looked up from the embedding
-  table — *is* layer 0's input, verbatim. The heat-strips in the
-  Embeddings panel are (downsampled) rows of exactly the matrix that
-  enters the first layer.
+  table — *is* layer 0's input, verbatim. The row strip in the
+  Embeddings panel is a row of exactly the matrix that enters the first
+  layer.
 - **Layer → Layer**: each layer edits this matrix and passes it on —
   and it edits by **addition**: `X ← X + attention(X)`, then
   `X ← X + MLP(X)`. Each token's vector accumulates refinements layer by
@@ -82,6 +82,36 @@ The name of the app tells the same story: each token is a thread,
 attention decides which existing threads get twisted into the new one at
 each layer, and at the end the finished strand is held up against 49k
 reference threads to see which it resembles most.
+
+## What an embedding is — a lookup, then geometry
+
+![The Embeddings card: the row lookup, nearest neighbours and the self-similarity matrix](docs/screenshots/embeddings.png)
+
+The Embeddings stage is the least mysterious step in the pipeline and the
+one most often hand-waved. The card makes two points, in order.
+
+**It is a lookup, not a computation.** A token id selects one row of a
+learned matrix `E [49152 × 576]`; the rows of the current sequence stacked
+up are the residual stream `x [n × 576]` that the layers then edit. Click
+any token chip to see its row. Three things worth knowing ride along as
+hover notes: the rows are *learned*, not designed (nobody chose what
+dimension 17 means); *no position* is added here — SmolLM2 applies rotary
+position embeddings inside attention instead; and the same matrix is
+*reused at the Logits stage* to read the answer back out (tied weights).
+
+**Meaning is distance.** Similar tokens have similar rows. The card shows
+the eight nearest vocabulary neighbours of the selected token by cosine
+similarity, and a similarity matrix of the visible tokens against each
+other — what the model "knows" about these tokens *before any context is
+applied*, a useful contrast with the attention heatmaps one stage later.
+
+In real mode the rows are the exact vectors from the running model (the
+custom ONNX export exposes the embedding lookup as `inputs_embeds`). In
+simulated mode, and for archived runs, they come from a small
+vocabulary-geometry asset published next to the model on the Hugging Face
+Hub: exact nearest neighbours computed offline over the full 576-dim table,
+plus a PCA-64 int8 copy of every row for the similarity matrix — the caption
+says which you are looking at.
 
 ## Reading the attention heatmaps
 
@@ -203,6 +233,8 @@ The original design spec and implementation plan live under
 
 - [`specs/2026-08-26-llm-pipeline-visualizer-design.md`](docs/superpowers/specs/2026-08-26-llm-pipeline-visualizer-design.md)
 - [`plans/2026-08-26-llm-pipeline-visualizer.md`](docs/superpowers/plans/2026-08-26-llm-pipeline-visualizer.md)
+- [`specs/2026-09-02-embeddings-explained-design.md`](docs/superpowers/specs/2026-09-02-embeddings-explained-design.md)
+- [`plans/2026-09-02-embeddings-explained.md`](docs/superpowers/plans/2026-09-02-embeddings-explained.md)
 
 ## License
 

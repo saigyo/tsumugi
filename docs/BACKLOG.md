@@ -37,6 +37,17 @@ they are IDs, not positions.
   statistical template for "pronoun attends to its referent", which may not
   exist cleanly in a 135M model — run a spike first. *(M1/M2 backlog)*
 
+## Pipeline pedagogy
+
+- [x] **#11 Embeddings explained** — the Embeddings card teaches the lookup
+  (ids → row of E → stacked stream, with learned/no-position/tied-weights
+  notes) and the geometry (nearest neighbours, self-similarity matrix).
+  Real rows via an `inputs_embeds` export output; vocabulary geometry from
+  a Hub-hosted static asset. *(M4, 2026-09-02)*
+- [ ] **#12 Position inside attention** — the Embeddings card says "no
+  position here (RoPE)"; show where rotary position embeddings act in the
+  Layers detail so the pointer lands somewhere. *(M4 spec follow-up)*
+
 ## Real-mode quality
 
 - [ ] **#8 Chat templating** — run prompts through SmolLM2-Instruct's actual
@@ -70,6 +81,7 @@ they are IDs, not positions.
 
 ## Done (for the record)
 
+- [x] Embeddings explained: real rows, neighbours, similarity *(M4, 2026-09-02)*
 - [x] Trace archive + cycle-aligned run comparison *(M3, 2026-08-29)*
 - [x] 270-head explorer, distinctive detection, selection hysteresis *(M2, 2026-08-28)*
 - [x] Real per-layer attention via custom ONNX export *(M1, 2026-08-28)*

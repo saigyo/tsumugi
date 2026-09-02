@@ -35,7 +35,7 @@ const context = await chromium.launchPersistentContext(PROFILE, {
   headless: false,
   viewport: { width: 1380, height: 940 },
 })
-// Scenes can be selected: `npm run screenshots -- pipeline attention compare`
+// Scenes can be selected: `npm run screenshots -- pipeline attention compare embeddings`
 // (default: all). Skipping a scene preserves its existing images — useful when
 // a previous capture caught a specimen worth keeping (e.g. a great fork).
 const only = process.argv.slice(2)
@@ -62,7 +62,7 @@ try {
   }
 
   // real mode serves both remaining scenes
-  if (want('attention') || want('compare')) {
+  if (want('attention') || want('compare') || want('embeddings')) {
     await $('mode-toggle').check()
     await $('model-status-slot').getByText(/attn/).waitFor({ timeout: 300000 })  // first run downloads the model
   }
@@ -113,6 +113,20 @@ try {
   await $('cmp-attn-side').first().scrollIntoViewIfNeeded()
   await page.screenshot({ path: `${DIR}/compare-attention.png` })
   console.log('compare-attention.png')
+  }
+
+  // ---- embeddings.png: real mode, Embeddings stage — lookup + neighbours + matrix
+  if (want('embeddings')) {
+    await $('prompt-input').fill('The cat sat on the mat because the cat was tired')
+    const before = await $('run-chip').count()
+    await $('btn-generate').click()
+    await $('run-chip').nth(before).waitFor({ timeout: 120000 })   // wait for the run to SEAL
+    await $('btn-live').click()
+    await $('stage-card').nth(1).click()                            // Embeddings
+    await $('embed-neighbors').waitFor({ timeout: 60000 })          // geometry asset fetched from the Hub
+    await $('detail-embeddings').scrollIntoViewIfNeeded()
+    await page.screenshot({ path: `${DIR}/embeddings.png` })
+    console.log('embeddings.png')
   }
 } finally {
   await context.close()
