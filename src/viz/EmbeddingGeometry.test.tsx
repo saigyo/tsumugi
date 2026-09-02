@@ -46,6 +46,7 @@ test('error state shows the message and retry calls back; no matrix without vect
   expect(retry).toHaveBeenCalledTimes(1)
   expect(screen.queryByTestId('embed-similarity')).toBeNull()
   expect(screen.queryByTestId('embed-neighbors')).toBeNull()
+  expect(screen.queryByTestId('embed-provenance')).toBeNull()
 })
 
 test('loading state', () => {

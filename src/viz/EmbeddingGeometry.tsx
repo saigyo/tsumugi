@@ -12,7 +12,7 @@ const RIGHT_PAD = 60
 // The geometry half of the Embeddings card: nearest vocabulary neighbours of
 // the selected token, and the visible sequence's self-similarity — what the
 // model "knows" about these tokens before any context is applied.
-export function EmbeddingGeometry({ tokens, selected, vectorFor, asset, loading, error, retry, source }: {
+export function EmbeddingGeometry({ tokens, selected, vectorFor, asset, loading, error, retry, canRetry = true, source }: {
   tokens: TokenInfo[]
   selected: number
   vectorFor: (pos: number) => ArrayLike<number> | undefined
@@ -20,6 +20,7 @@ export function EmbeddingGeometry({ tokens, selected, vectorFor, asset, loading,
   loading: boolean
   error?: string
   retry: () => void
+  canRetry?: boolean
   source: EmbedSource
 }) {
   const token = tokens[selected]
@@ -40,7 +41,9 @@ export function EmbeddingGeometry({ tokens, selected, vectorFor, asset, loading,
       {error && !asset && (
         <p data-testid="embed-geometry-error" className="notice">
           Vocabulary geometry couldn't be loaded{' '}
-          <button type="button" data-testid="embed-geometry-retry" className="explore-toggle" onClick={retry}>retry</button>
+          {canRetry && (
+            <button type="button" data-testid="embed-geometry-retry" className="explore-toggle" onClick={retry}>retry</button>
+          )}
         </p>
       )}
       {neighbors && token && (
@@ -95,11 +98,13 @@ export function EmbeddingGeometry({ tokens, selected, vectorFor, asset, loading,
           </svg>
         </div>
       )}
-      <p data-testid="embed-provenance" className="embed-caption">
-        {source === 'model'
-          ? 'Exact rows from the running model.'
-          : 'Real SmolLM2 embedding rows, reduced to 64 dimensions offline; similarities are approximate.'}
-      </p>
+      {(neighbors != null || matrix != null) && (
+        <p data-testid="embed-provenance" className="embed-caption">
+          {source === 'model'
+            ? 'Exact rows from the running model.'
+            : 'Real SmolLM2 embedding rows, reduced to 64 dimensions offline; similarities are approximate.'}
+        </p>
+      )}
     </div>
   )
 }
