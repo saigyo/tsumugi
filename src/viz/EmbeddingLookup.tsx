@@ -1,7 +1,7 @@
 import { poolRow } from '../geometry/math'
 import type { EmbedSource, TokenInfo } from '../trace/types'
 import { thousands } from './selectors'
-import { markLeadingSpace } from './spaceMarker'
+import { visibleToken } from './tokenText'
 
 const STRIP_CELLS = 96
 const CELL_W = 5
@@ -66,7 +66,7 @@ export function EmbeddingLookup({ tokens, dims, vocabSize, selected, onSelect, v
             <button key={i} type="button" data-testid="embed-token" data-selected={String(i === selected)}
               className={`token-chip embed-chip hue-${i % 6}`} onClick={() => onSelect(i)}
               title={`Show row ${t.id} of E`}>
-              <span className="chip-text">{markLeadingSpace(t.text)}</span>
+              <span className="chip-text">{visibleToken(t.text)}</span>
               <span className="chip-id">{t.id}</span>
             </button>
           ))}

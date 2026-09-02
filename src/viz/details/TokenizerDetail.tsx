@@ -1,5 +1,5 @@
 import type { TokenInfo } from '../../trace/types'
-import { SPACE_MARKER, markLeadingSpace } from '../spaceMarker'
+import { SPACE_MARKER, visibleToken } from '../tokenText'
 
 export function TokenizerDetail({ tokens, truncated }: { tokens: TokenInfo[]; truncated?: boolean }) {
   const anySpace = tokens.some((t) => t.text.startsWith(' '))
@@ -22,7 +22,7 @@ export function TokenizerDetail({ tokens, truncated }: { tokens: TokenInfo[]; tr
       <div className="token-chip-row">
         {tokens.map((t, i) => (
           <span key={i} className={`token-chip hue-${i % 6}`}>
-            <span className="chip-text">{markLeadingSpace(t.text)}</span>
+            <span className="chip-text">{visibleToken(t.text)}</span>
             <span className="chip-id">{t.id}</span>
           </span>
         ))}

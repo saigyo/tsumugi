@@ -1,6 +1,6 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, expect, test } from 'vitest'
-import { makeFixtureTrace } from '../test/fixtures'
+import { buildFixtureTrace, makeFixtureTrace } from '../test/fixtures'
 import { TokenStream } from './TokenStream'
 
 const trace = makeFixtureTrace()
@@ -17,6 +17,14 @@ test('shows generated tokens up to cursor', () => {
   render(<TokenStream events={trace} cursor={trace.length - 1} />)
   expect(screen.getAllByTestId('generated-token')).toHaveLength(2)
   expect(screen.getAllByTestId('generated-token')[0]).toHaveTextContent('sat')
+})
+
+test('whitespace tokens are shown as glyphs instead of blank chips', () => {
+  const t = buildFixtureTrace({ promptTokens: [{ id: 504, text: 'The' }, { id: 11, text: ' cat' }],
+    chosen: [{ id: 30, text: '.' }, { id: 198, text: '\n' }] })
+  render(<TokenStream events={t} cursor={t.length - 1} />)
+  expect(screen.getAllByTestId('prompt-token')[1]).toHaveTextContent('␣cat')
+  expect(screen.getAllByTestId('generated-token')[1]).toHaveTextContent('↵')
 })
 
 test('hovering a generated token shows its sampling distribution', () => {

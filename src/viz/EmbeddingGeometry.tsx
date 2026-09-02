@@ -1,10 +1,10 @@
 import type { GeometryAsset } from '../geometry/asset'
 import { renderableNeighbors, similarityMatrix } from '../geometry/math'
 import type { EmbedSource, TokenInfo } from '../trace/types'
-import { SPACE_MARKER, markLeadingSpace } from './spaceMarker'
+import { SPACE_MARKER, visibleToken } from './tokenText'
 
 const NEIGHBORS = 8
-const SPACE_NOTE = `${SPACE_MARKER} marks a leading space: the tokenizer stores " cat" (mid-sentence) and "cat" (after punctuation or at a start) as different tokens with different rows in E.`
+const SPACE_NOTE = `${SPACE_MARKER} marks a leading space, ↵ a newline, ⇥ a tab: whitespace belongs to the token, so " cat" (mid-sentence) and "cat" (after punctuation or at a start) are different tokens with different rows in E, and a paragraph break is two "↵" tokens.`
 const MATRIX_CAP = 24
 const CELL = 18
 const LABEL_W = 60
@@ -31,7 +31,7 @@ export function EmbeddingGeometry({ tokens, selected, vectorFor, asset, loading,
   const vectors = shown.map((_, i) => vectorFor(start + i))
   const matrix = vectors.every((v) => v !== undefined) ? similarityMatrix(vectors as ArrayLike<number>[]) : null
   const neighbors = asset && token ? renderableNeighbors(asset, token.id, NEIGHBORS) : null
-  const label = (i: number) => shown[i]?.text.trim() || `#${start + i}`
+  const label = (i: number) => visibleToken(shown[i]?.text ?? '') || `#${start + i}`
   const w = LABEL_W + shown.length * CELL + RIGHT_PAD
   const h = DIAG_PAD + shown.length * CELL + 4
   return (
@@ -51,13 +51,13 @@ export function EmbeddingGeometry({ tokens, selected, vectorFor, asset, loading,
       {neighbors && token && (
         <div data-testid="embed-neighbors" className="embed-neighbors">
           <div className="embed-caption">
-            Nearest to <span className="chip-text">{markLeadingSpace(token.text)}</span> in E — click any token above to change
+            Nearest to <span className="chip-text">{visibleToken(token.text)}</span> in E — click any token above to change
             {' '}<span data-testid="embed-space-note" className="embed-callout rs-hover" title={SPACE_NOTE}>ⓘ {SPACE_MARKER}</span>
           </div>
           <div className="bar-chart">
             {neighbors.map((n) => (
               <div key={n.id} data-testid="embed-neighbor" className="bar-row">
-                <span className="bar-label">{markLeadingSpace(n.text)}</span>
+                <span className="bar-label">{visibleToken(n.text)}</span>
                 <svg width="120" height="12"><rect width={120 * n.sim} height="12" className="bar-rect" /></svg>
                 <span className="bar-value">{n.sim.toFixed(2)}</span>
               </div>
