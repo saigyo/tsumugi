@@ -164,6 +164,21 @@ look for.
 
 ![The Layers detail with an attention heatmap and detected head chips](docs/screenshots/real-attention.png)
 
+![Layer 13 head 8 on “The farmer bought a horse and rode it home.” and its continuation: the row for “it” points at “horse”, every later “he” points at “farmer”](docs/screenshots/coreference-farmer.png)
+
+A specimen from the coreference head, on "The farmer bought a horse and
+rode it home." and what the model wrote next ("If he is not a man, then he
+is not a horse, and if he is a…"). Three things in one matrix. The prompt's
+` it` row puts its weight on ` horse`, the object, not on the subject — so
+this is reference resolution, not just "look at the first noun". Every
+generated ` he` row goes back to ` farmer`, the last one twenty tokens
+away, with nothing in between competing. And between pronouns the head
+*chains*: the rows for "is not a man" attend to the ` he` just before them,
+not to ` farmer`, so the head tracks the most recent mention of the entity
+and hops back to the noun only at the pronoun itself. Nobody labeled any of
+this; the chip says `coreference · 0.72` because that head's pronoun rows
+are the most sharply pointed at one earlier content word of all 270 heads.
+
 In real mode the detected chips are only the textbook specimens — the
 model has 30 layers × 9 heads = 270 heads in total, and **Explore all
 heads** opens a small-multiples grid of every one of them (mean-pooled
