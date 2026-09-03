@@ -5,7 +5,7 @@ const HINTS: Record<AttentionLabel, string> = {
   'attention-sink': 'A bright first column: surplus attention parks on the first token as a learned “do nothing” default.',
   'previous-token': 'A bright diagonal: this head mostly copies from the token right before.',
   induction: 'On repeated tokens, this head looks at what followed the previous occurrence — the circuit behind in-context pattern completion.',
-  coreference: 'Follow the pronoun’s row: it attends back to its antecedent.',
+  coreference: 'Follow the pronoun’s row: it points back at one earlier word. Check whether that word is the referent.',
   distinctive: 'Focused attention that fits no textbook pattern — look for what it tracks.',
   pinned: 'Hand-picked from the grid — compare against the patterns you know.',
 }

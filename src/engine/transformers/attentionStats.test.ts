@@ -173,3 +173,74 @@ test('resolveHeadLabel returns nulls below threshold or for unknown heads', () =
   expect(resolveHeadLabel(stats, 0, 0)).toEqual({ label: null, score: null })
   expect(resolveHeadLabel(stats, 7, 7)).toEqual({ label: null, score: null })
 })
+
+// --- coreference template (backlog #5, docs/research/2026-09-03-coreference-head-spike.md)
+
+// rows 0..3 previous-token; row 4 (" it") peaks on " cat" at column 1
+const corefRows = (pronounRow: number[]) => [
+  [1], [1, 0], [0, 1, 0], [0, 0, 1, 0], pronounRow,
+]
+const corefToks = toks('The', ' cat', ' sat', ' because', ' it')
+
+test('corefScore: the pronoun row peaked on an earlier word token', () => {
+  const acc = createAccumulator(1, 1)
+  acc.rows[0][0] = corefRows([0.05, 0.8, 0.05, 0.1, 0])
+  const [s] = headStats(acc, corefToks)
+  expect(s.corefScore).toBeCloseTo(0.8)
+})
+
+test('corefScore ignores the sink, previous-token and self columns', () => {
+  const acc = createAccumulator(2, 1)
+  acc.rows[0][0] = corefRows([0.5, 0, 0, 0.5, 0])   // sink + prev only
+  acc.rows[1][0] = corefRows([0, 0, 0, 0, 1])       // self-attention
+  const stats = headStats(acc, corefToks)
+  expect(stats[0].corefScore).toBe(0)
+  expect(stats[1].corefScore).toBe(0)
+})
+
+test('corefScore ignores punctuation and single-letter columns', () => {
+  const acc = createAccumulator(1, 1)
+  acc.rows[0][0] = corefRows([0, 0.1, 0.6, 0.3, 0])
+  const [s] = headStats(acc, toks('The', ' cat', ',', ' a', ' it'))
+  expect(s.corefScore).toBeCloseTo(0.1)
+})
+
+test('corefScore is null without a pronoun row at index >= 2, and is case-insensitive', () => {
+  const acc = createAccumulator(1, 1)
+  acc.rows[0][0] = fill(diagRow, 5)
+  expect(headStats(acc, toks('a', ' b', ' c', ' d', ' e'))[0].corefScore).toBeNull()
+  expect(headStats(acc, toks('It', ' was', ' c', ' d', ' e'))[0].corefScore).toBeNull()
+  acc.rows[0][0] = corefRows([0, 0.7, 0.3, 0, 0])
+  expect(headStats(acc, toks('The', ' cat', ' sat', '.', ' It'))[0].corefScore).toBeCloseTo(0.7)
+})
+
+test('corefScore averages over several pronoun rows', () => {
+  const acc = createAccumulator(1, 1)
+  acc.rows[0][0] = [[1], [1, 0], [0, 1, 0], [0, 0.6, 0.4, 0], [0, 0.2, 0.8, 0, 0]]
+  // rows 3 (" it") and 4 (" she"): peaks 0.6 on " cat" and 0.8 on " sat"
+  const [s] = headStats(acc, toks('The', ' cat', ' sat', ' it', ' she'))
+  expect(s.corefScore).toBeCloseTo(0.7)
+})
+
+test('coreference is a template: it suppresses the distinctive score', () => {
+  const acc = createAccumulator(1, 1)
+  acc.rows[0][0] = [
+    [1], [0.5, 0.5], [1 / 3, 1 / 3, 1 / 3],
+    [0, 1, 0, 0], [0, 1, 0, 0, 0], [0, 1, 0, 0, 0, 0],
+  ]
+  const [s] = headStats(acc, toks('The', ' cat', ' sat', ' it', ' it', ' it'))
+  expect(s.corefScore).toBe(1)
+  expect(s.distinctiveScore).toBe(0)
+})
+
+test('showcase selects and labels a coreference head; resolveHeadLabel agrees', () => {
+  const acc = createAccumulator(2, 1)
+  acc.rows[0][0] = fill(sinkRow, 5)
+  acc.rows[1][0] = corefRows([0.05, 0.8, 0.05, 0.1, 0])
+  const stats = headStats(acc, corefToks)
+  const coref = selectShowcaseHeads(stats, acc).find((h) => h.label === 'coreference')
+  expect(coref).toBeDefined()
+  expect(coref!.layer).toBe(1)
+  expect(coref!.score).toBe(0.8)
+  expect(resolveHeadLabel(stats, 1, 0)).toEqual({ label: 'coreference', score: 0.8 })
+})

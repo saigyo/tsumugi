@@ -103,6 +103,7 @@ export function makeGridEvent(layers = 2, heads = 2): Extract<TraceEvent, { type
         prevTokenScore: (k % 5) / 5,
         sinkScore: ((k + 1) % 5) / 5,
         inductionScore: k % 3 === 0 ? null : (k % 4) / 4,
+        corefScore: k % 2 === 0 ? null : (k % 3) / 3,
         distinctiveScore: ((k * 3 + 1) % 5) / 5,
       })
     }

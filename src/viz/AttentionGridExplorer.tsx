@@ -3,15 +3,16 @@ import type { TraceEvent } from '../trace/types'
 
 type GridEvent = Extract<TraceEvent, { type: 'attention-grid' }>
 type GridCell = GridEvent['cells'][number]
-type SortKey = 'layer' | 'distinctive' | 'previous-token' | 'sink' | 'induction'
+type SortKey = 'layer' | 'distinctive' | 'previous-token' | 'sink' | 'induction' | 'coreference'
 
-const SORTS: SortKey[] = ['layer', 'distinctive', 'previous-token', 'sink', 'induction']
+const SORTS: SortKey[] = ['layer', 'distinctive', 'previous-token', 'sink', 'induction', 'coreference']
 
 const SCORE_OF: Record<Exclude<SortKey, 'layer'>, (c: GridCell) => number> = {
   distinctive: (c) => c.distinctiveScore,
   'previous-token': (c) => c.prevTokenScore,
   sink: (c) => c.sinkScore,
   induction: (c) => c.inductionScore ?? 0,
+  coreference: (c) => c.corefScore ?? 0,
 }
 
 function topStat(c: GridCell): string {
@@ -19,6 +20,7 @@ function topStat(c: GridCell): string {
     ['prev-token', c.prevTokenScore],
     ['sink', c.sinkScore],
     ['induction', c.inductionScore ?? 0],
+    ['coreference', c.corefScore ?? 0],
     ['distinctive', c.distinctiveScore],
   ]
   entries.sort((a, b) => b[1] - a[1])

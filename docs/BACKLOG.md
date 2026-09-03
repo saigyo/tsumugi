@@ -31,11 +31,13 @@ they are IDs, not positions.
   "switch on" when the pattern repeats). Needs per-cycle thumbnails, which
   multiplies grid data by the cycle count — a real data-architecture
   decision, spec-worthy. *(M2 spec, out of scope)*
-- [ ] **#5 Coreference-head discovery** — real mode detects previous-token /
+- [x] **#5 Coreference-head discovery** — real mode detects previous-token /
   sink / induction / distinctive, but the coreference role (poster child of
-  the sim examples) has no real-mode detector. Research-flavored: needs a
-  statistical template for "pronoun attends to its referent", which may not
-  exist cleanly in a 135M model — run a spike first. *(M1/M2 backlog)*
+  the sim examples) had no real-mode detector. The spike
+  (`docs/research/2026-09-03-coreference-head-spike.md`) found a clean one in
+  SmolLM2-135M (L13H8) and an antecedent-blind template that ranks it first;
+  shipped as a fourth showcase role, a pin label and a grid-explorer sort.
+  *(M1/M2 backlog; done 2026-09-03)*
 
 ## Pipeline pedagogy
 
@@ -81,6 +83,7 @@ they are IDs, not positions.
 
 ## Done (for the record)
 
+- [x] Coreference-head detector in real mode (L13H8 spike, blind template) *(#5, 2026-09-03)*
 - [x] Embeddings explained: real rows, neighbours, similarity *(M4, 2026-09-02)*
 - [x] Trace archive + cycle-aligned run comparison *(M3, 2026-08-29)*
 - [x] 270-head explorer, distinctive detection, selection hysteresis *(M2, 2026-08-28)*

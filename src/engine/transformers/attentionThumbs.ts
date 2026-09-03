@@ -35,6 +35,7 @@ export function buildGridCells(acc: AttnAccumulator, stats: HeadStats[]): Attent
     prevTokenScore: s.prevTokenScore,
     sinkScore: s.sinkScore,
     inductionScore: s.inductionScore,
+    corefScore: s.corefScore,
     distinctiveScore: s.distinctiveScore,
   }))
 }

@@ -31,3 +31,12 @@ test('clicking a cell pins it', () => {
   fireEvent.click(screen.getAllByTestId('grid-cell')[3])
   expect(onPin).toHaveBeenCalledWith(1, 1)
 })
+
+test('sorting by coreference uses corefScore, treating null as 0', () => {
+  render(<AttentionGridExplorer grid={makeGridEvent(2, 2)} onPin={() => {}} />)
+  fireEvent.change(screen.getByTestId('grid-sort'), { target: { value: 'coreference' } })
+  // makeGridEvent(2,2) corefScore: L0·H1=1/3, L0·H0=null, L1·H0=null, L1·H1=0
+  // (nulls sort as 0; the sort is stable, so the zeros keep grid order)
+  const order = screen.getAllByTestId('grid-cell').map((c) => c.textContent)
+  expect(order).toEqual(['L0·H1', 'L0·H0', 'L1·H0', 'L1·H1'])
+})

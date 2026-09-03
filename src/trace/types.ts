@@ -22,6 +22,8 @@ export interface AttentionGridCell {
   prevTokenScore: number
   sinkScore: number
   inductionScore: number | null
+  // optional: traces recorded before the coreference detector lack it
+  corefScore?: number | null
   distinctiveScore: number
 }
 

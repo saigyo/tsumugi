@@ -34,7 +34,7 @@ controls.
   ([`saigyo-hoshi/smollm2-135m-attn-onnx`](https://huggingface.co/saigyo-hoshi/smollm2-135m-attn-onnx),
   ~240 MB, downloaded once and cached): the Layers stage then shows measured
   attention heatmaps, with head roles (previous-token, attention-sink,
-  induction) detected statistically from the weights on your prompt and
+  induction, coreference) detected statistically from the weights on your prompt and
   labeled with their evidence scores. If that download fails it falls back
   to the stock `HuggingFaceTB/SmolLM2-135M-Instruct` export (~120 MB,
   schematic layers). Prefers WebGPU, falls back to WASM automatically.
@@ -151,7 +151,12 @@ heads reproduce the canonical ones:
   interpretability research credits for in-context learning.
 - **Coreference** — in "The cat sat on the mat because it was tired",
   watch the row for "it" attend back to "cat": the mechanism by which
-  the model resolves what a pronoun refers to.
+  the model resolves what a pronoun refers to. SmolLM2-135M really has
+  such a head (layer 13, head 8 — see
+  [the spike note](docs/research/2026-09-03-coreference-head-spike.md));
+  real mode finds it by asking which head's pronoun rows point most
+  sharply at one earlier word, so check for yourself whether that word
+  is the right referent.
 
 The example chips under the prompt input load prompts crafted so these
 patterns visibly connect to the input; each head's caption says what to

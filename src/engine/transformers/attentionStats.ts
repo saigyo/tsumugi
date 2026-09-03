@@ -7,10 +7,19 @@ export interface HeadStats {
   prevTokenScore: number
   sinkScore: number
   inductionScore: number | null
+  // mean over pronoun rows of the peak weight on an earlier word token
+  // (sink, previous-token and self columns excluded); null without pronoun rows.
+  // Antecedent-blind: see docs/research/2026-09-03-coreference-head-spike.md
+  corefScore: number | null
   // (1 − best template score) × (1 − mean normalized row entropy):
   // high = peaked attention that matches no known template
   distinctiveScore: number
 }
+
+const PRONOUNS = new Set(['it', 'he', 'she', 'they', 'him', 'her', 'his', 'its', 'their', 'them'])
+const isPronoun = (t: TokenInfo) => PRONOUNS.has(t.text.trim().toLowerCase())
+// a plausible referent column: letters only, at least two of them
+const isWordToken = (t: TokenInfo) => /^\p{L}{2,}$/u.test(t.text.trim())
 
 export function headStats(acc: AttnAccumulator, tokens: TokenInfo[]): HeadStats[] {
   // induction targets: for row i whose token appeared at j < i, target j+1
@@ -21,11 +30,14 @@ export function headStats(acc: AttnAccumulator, tokens: TokenInfo[]): HeadStats[
     }
     return null
   })
+  // coreference rows: pronouns with at least one candidate column (i ≥ 2)
+  const pronounRows = tokens.map((t, i) => i >= 2 && isPronoun(t))
+  const wordCols = tokens.map(isWordToken)
   const out: HeadStats[] = []
   for (let l = 0; l < acc.layers; l++) {
     for (let h = 0; h < acc.heads; h++) {
       const m = acc.rows[l][h]
-      let prev = 0, sink = 0, n = 0, ind = 0, indN = 0, ent = 0
+      let prev = 0, sink = 0, n = 0, ind = 0, indN = 0, ent = 0, coref = 0, corefN = 0
       for (let i = 1; i < m.length; i++) {
         prev += m[i][i - 1]
         sink += m[i][0]
@@ -35,14 +47,23 @@ export function headStats(acc: AttnAccumulator, tokens: TokenInfo[]): HeadStats[
         ent += Math.min(1, rowEnt / Math.log(m[i].length))
         const t = targets[i]
         if (t !== null && t < m[i].length) { ind += m[i][t]; indN++ }
+        if (pronounRows[i]) {
+          let peak = 0
+          for (let j = 1; j < i - 1 && j < m[i].length; j++) {
+            if (wordCols[j] && m[i][j] > peak) peak = m[i][j]
+          }
+          coref += peak
+          corefN++
+        }
       }
       const prevTokenScore = n ? prev / n : 0
       const sinkScore = n ? sink / n : 0
       const inductionScore = indN ? ind / indN : null
-      const templateMax = Math.max(prevTokenScore, sinkScore, inductionScore ?? 0)
+      const corefScore = corefN ? coref / corefN : null
+      const templateMax = Math.max(prevTokenScore, sinkScore, inductionScore ?? 0, corefScore ?? 0)
       const uniformity = n ? ent / n : 1
       out.push({
-        layer: l, head: h, prevTokenScore, sinkScore, inductionScore,
+        layer: l, head: h, prevTokenScore, sinkScore, inductionScore, corefScore,
         distinctiveScore: n ? (1 - templateMax) * (1 - uniformity) : 0,
       })
     }
@@ -85,6 +106,7 @@ export function selectShowcaseHeads(
     pick('previous-token', (s) => s.prevTokenScore),
     pick('attention-sink', (s) => s.sinkScore),
     pick('induction', (s) => s.inductionScore),
+    pick('coreference', (s) => s.corefScore),
     pick('distinctive', (s) => s.distinctiveScore, 0.25),
   ].filter((h): h is AttentionHead => h !== null)
 }
@@ -100,6 +122,7 @@ export function resolveHeadLabel(
     ['previous-token', s.prevTokenScore],
     ['attention-sink', s.sinkScore],
     ['induction', s.inductionScore],
+    ['coreference', s.corefScore],
   ]
   let label: AttentionLabel | null = null
   let best = threshold
