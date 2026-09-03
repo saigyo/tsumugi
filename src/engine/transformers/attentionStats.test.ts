@@ -205,6 +205,17 @@ test('corefScore ignores punctuation and single-letter columns', () => {
   expect(s.corefScore).toBeCloseTo(0.1)
 })
 
+test('corefScore ignores function-word columns (fixed-column heads are not coreference)', () => {
+  const acc = createAccumulator(1, 1)
+  // every row from index 3 parks on " on" at column 3; the pronoun row too
+  acc.rows[0][0] = [
+    [1], [1, 0], [0, 1, 0], [0, 0, 1, 0], [0, 0.1, 0, 0.9, 0], [0, 0.1, 0, 0.9, 0, 0],
+    [0, 0.15, 0, 0.8, 0, 0, 0.05],
+  ]
+  const [s] = headStats(acc, toks('The', ' cat', ' sat', ' on', ' the', ' mat', ' it'))
+  expect(s.corefScore).toBeCloseTo(0.15)
+})
+
 test('corefScore is null without a pronoun row at index >= 2, and is case-insensitive', () => {
   const acc = createAccumulator(1, 1)
   acc.rows[0][0] = fill(diagRow, 5)

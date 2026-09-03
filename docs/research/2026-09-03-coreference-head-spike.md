@@ -22,9 +22,11 @@ horse, *graded them* → essays, *rebuilt its* → town), so it is not merely a
 "subject noun" heuristic. Layer 15 head 7 is a weaker runner-up. An antecedent-blind
 template — mean over pronoun rows of the largest weight on an earlier *word* token,
 excluding column 0, column i−1 **and the diagonal** — ranks L13H8 first of all 270 heads
-at ≈0.65. Two constraints fall out of the spike: the diagonal must be excluded
-(otherwise four self-attention heads win), and curated examples must not put the
-referent at position 0 (the attention sink inflates every head's score there).
+at ≈0.65. Three constraints fall out of the spike: the diagonal must be excluded
+(otherwise four self-attention heads win), function-word columns must be excluded
+(otherwise a fixed-column head parked on " on" wins in the browser, section 4.1), and
+curated examples must not put the referent at position 0 (the attention sink inflates
+every head's score there).
 Recommendation: build #5 as a small addition to the existing detector module.
 
 ---
@@ -150,6 +152,31 @@ on "Paul thanked Lisa after she"). The showcase hysteresis in
 `selectShowcaseHeads` (incumbent keeps its seat unless beaten by ≥ 0.05) will damp
 that as it does for the other roles.
 
+### 4.1 Amendment from the in-app check: exclude function-word columns
+
+Running the detector in the browser (WebGPU, quantised export) on the cat example
+picked **L5H5 at 0.68** instead of L13H8. Its heatmap shows why: from " the" onward
+every row parks most of its weight on the column " on" — a fixed-column head, not
+coreference — and the pronoun row goes there too, so the plain template cannot tell
+it apart. (L13H8 does resolve *it → cat* in the browser as well; pinned over the whole
+run it scored 0.49.)
+
+Two fixes were measured in PyTorch over the 17 prompts plus two more:
+
+| variant | L13H8 on the cat prompt | winner on the cat prompt | prompts L13H8 wins |
+|---|---|---|---|
+| plain (section 4) | 0.82 | L13H8 | 10 / 19 |
+| lift (peak minus other rows' weight on that column) | 0.20 | L9H2 0.45 | 4 / 19 |
+| plain + function-word stoplist | 0.82 | L13H8 | 10 / 19 |
+
+Lift fails on the example itself: L13H8 attends to " cat" from most rows of that
+prompt (base ≈ 0.6), so subtracting the base erases the signal, and the per-prompt
+lift winners scatter across heads. The stoplist keeps the plain score and simply
+refuses articles, prepositions, conjunctions, auxiliaries and modals as candidate
+columns; L5H5's " on" drops to ≈ 0. That is a linguistic prior, but a defensible one —
+a referent is a content word — and every remaining winner points the pronoun row at a
+content word the reader can judge. Shipped with the stoplist.
+
 ## 5. Recommendation
 
 Proceed with #5 as a bounded feature, not a research project:
@@ -157,8 +184,8 @@ Proceed with #5 as a bounded feature, not a research project:
 - **Detector.** Add `corefScore: number | null` to `HeadStats`, computed as in
   section 4, and a fourth `pick('coreference', …)` at the default 0.3 threshold in
   `selectShowcaseHeads`; add it to the candidate list in `resolveHeadLabel` so pinned
-  heads can receive the label. Word-token test and pronoun list live next to the
-  induction target logic.
+  heads can receive the label. Word-token test (with the function-word stoplist of
+  section 4.1) and pronoun list live next to the induction target logic.
 - **Honesty of the label.** The blind score says "pronoun rows point at one earlier
   word", not "the right word". Keep the existing hint text ("Follow the pronoun's row:
   it attends back to its antecedent") but the curated example should invite the reader

@@ -18,8 +18,20 @@ export interface HeadStats {
 
 const PRONOUNS = new Set(['it', 'he', 'she', 'they', 'him', 'her', 'his', 'its', 'their', 'them'])
 const isPronoun = (t: TokenInfo) => PRONOUNS.has(t.text.trim().toLowerCase())
-// a plausible referent column: letters only, at least two of them
-const isWordToken = (t: TokenInfo) => /^\p{L}{2,}$/u.test(t.text.trim())
+// Function words are never referents. Without this list, heads that park every
+// row on a fixed preposition or article (" on", " that") outscore the real
+// coreference head, whose target is a noun — seen live on the cat example.
+const FUNCTION_WORDS = new Set((
+  'a an the this that these those and or but nor so yet for of to in on at by with from ' +
+  'into onto over under about after before because until while as than then when where if ' +
+  'though although whether is are was were be been being am do does did has have had having ' +
+  'not no can could may might must shall should will would'
+).split(' '))
+// a plausible referent column: a content word of at least two letters
+const isWordToken = (t: TokenInfo) => {
+  const s = t.text.trim()
+  return /^\p{L}{2,}$/u.test(s) && !FUNCTION_WORDS.has(s.toLowerCase())
+}
 
 export function headStats(acc: AttnAccumulator, tokens: TokenInfo[]): HeadStats[] {
   // induction targets: for row i whose token appeared at j < i, target j+1
