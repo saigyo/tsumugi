@@ -4,6 +4,7 @@ import { useGeometry } from '../../geometry/useGeometry'
 import type { TraceEvent } from '../../trace/types'
 import { LogitsReadout } from '../LogitsReadout'
 import { latestOfType, thousands } from '../selectors'
+import { leadRatio } from '../softmaxText'
 
 // Container: picks the cycle's logits/softmax events, resolves asset rows for
 // sim and legacy traces, and owns the selected candidate (snaps to the top
@@ -45,7 +46,7 @@ export function LogitsDetail({ events, cursor }: { events: TraceEvent[]; cursor:
           <p data-testid="softmax-explainer" className="softmax-explainer">
             {softmax!.temperature === 0
               ? `At T = 0 there is no draw: the top score takes 100% and the rest 0% — greedy decoding. (Dividing by zero would blow the exponentials up, so the sampler simply picks the maximum.)`
-              : `Each score is divided by the temperature T = ${softmax!.temperature}, then exponentiated; each result is divided by the sum of all of them, so the shares add up to 100%. Exponentiating turns differences in score into ratios: a lead of 1 point is a 2.7× lead in probability, 2 points is 7.4×. A lower T stretches the differences and concentrates probability on the leader; a higher T flattens them. The sum runs over the top-k candidates only, so these are shares among the ${logits.topK.length} shown, not of all ${vocabSize ? thousands(vocabSize) : ''} tokens. Hover a bar for its own numbers.`}
+              : `Each score is divided by the temperature T = ${softmax!.temperature}, then exponentiated; each result is divided by the sum of all of them, so the shares add up to 100%. Exponentiating turns differences in score into ratios of e^(difference / T): at T = ${softmax!.temperature} a lead of 1 point is a ${leadRatio(1, softmax!.temperature)}× lead in probability, 2 points is ${leadRatio(2, softmax!.temperature)}×. A lower T stretches the differences and concentrates probability on the leader; a higher T flattens them. The sum runs over the top-k candidates only, so these are shares among the ${logits.topK.length} shown, not of all ${vocabSize ? thousands(vocabSize) : ''} tokens. Hover a bar for its own numbers.`}
           </p>
         </>
       )}

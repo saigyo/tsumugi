@@ -2,6 +2,7 @@ import { poolRow } from '../geometry/math'
 import { READOUT_CELLS, type LogitCandidate } from '../trace/types'
 import { thousands } from './selectors'
 import { visibleToken } from './tokenText'
+import { leadRatio } from './softmaxText'
 import { rowMarkY } from './stripMath'
 import { VectorStrip } from './VectorStrip'
 
@@ -10,9 +11,9 @@ const EQ_CELL_W = 4                        // the x strip in the equation row, n
 const DOT_CELL_W = 2, DOT_CELL_H = 10      // compact product strip per candidate
 const BAR_W = 120
 
-const SOFTMAX_CALLOUTS = (shown: number, vocab: string): Array<{ label: string; text: string }> => [
+const SOFTMAX_CALLOUTS = (shown: number, vocab: string, T: number): Array<{ label: string; text: string }> => [
   { label: 'why exponentiate',
-    text: 'Scores can be negative and differ by arbitrary amounts. exp makes them all positive and turns a difference of d points into a ratio of e^d, so the top score dominates in proportion to its lead: 1 point ahead is 2.7× the probability, 2 points is 7.4×.' },
+    text: `Scores can be negative and differ by arbitrary amounts. exp makes them all positive and turns a difference of d points into a ratio of e^(d / T), so the top score dominates in proportion to its lead: ${T > 0 ? `at T = ${T}, 1 point ahead is ${leadRatio(1, T)}× the probability, 2 points is ${leadRatio(2, T)}×` : 'at T = 0 the lead is all that counts'}.` },
   { label: 'temperature',
     text: 'Dividing every score by T before exponentiating scales every lead. T below 1 exaggerates leads (sharper, more predictable); T above 1 shrinks them (flatter, more random). T = 0 skips the draw and takes the top score: greedy decoding.' },
   { label: 'top-k only',
@@ -159,7 +160,7 @@ export function LogitsReadout({ candidates, probs, temperature, lastHidden, dims
       )}
 
       <div className="embed-callouts">
-        {(probs ? SOFTMAX_CALLOUTS : CALLOUTS)(candidates.length, vocab).map((c) => (
+        {(probs ? SOFTMAX_CALLOUTS(candidates.length, vocab, temperature ?? 1) : CALLOUTS(candidates.length, vocab)).map((c) => (
           <span key={c.label} data-testid="embed-callout" className="embed-callout rs-hover" title={c.text}>ⓘ {c.label}</span>
         ))}
       </div>

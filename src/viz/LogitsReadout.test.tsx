@@ -93,6 +93,11 @@ test('softmax state swaps the callouts for the softmax ones', () => {
   const callouts = screen.getAllByTestId('embed-callout').map((c) => c.textContent)
   expect(callouts).toEqual(['ⓘ why exponentiate', 'ⓘ temperature', 'ⓘ top-k only'])
   expect(screen.getAllByTestId('embed-callout')[1].getAttribute('title')).toMatch(/greedy/)
+  // the ratio in the callout is computed from T, not fixed at e (which only holds at T = 1)
+  const why = screen.getAllByTestId('embed-callout')[0].getAttribute('title') ?? ''
+  expect(why).toMatch(/e\^\(d \/ T\)/)
+  expect(why).toMatch(/at T = 0\.8, 1 point ahead is 3\.5×/)
+  expect(why).not.toMatch(/2\.7×/)
 })
 
 test('matrix sketch marks every candidate and the callouts explain the tie', () => {
