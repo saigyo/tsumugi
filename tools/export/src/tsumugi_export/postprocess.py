@@ -1,15 +1,15 @@
 """Graph post-processing after the optimum export.
 
 The export declares hidden_states.{0..N} as outputs only because torch.onnx
-names forward outputs positionally (see onnx_config.py). Here we keep two of
-them under artifact-contract names — hidden_states.0 as `inputs_embeds` (the
-embedding lookup) and hidden_states.N as `last_hidden_state` (the residual
-stream after the final RMSNorm, the tensor lm_head multiplies) — and drop the
-rest. We also add a readout branch: TopK over the last position's logits and
-a Gather of those candidates' rows of E — read from the lm_head's own fp32
-weight (see find_lm_head_weight) — as `topk_ids` / `topk_embeds`. The
-tensors already in the graph stay; only the output list and a handful of tiny
-nodes change, so this costs nothing measurable at inference time."""
+names forward outputs positionally (see onnx_config.py). Here we keep
+hidden_states.0 under the artifact-contract name `inputs_embeds` (the
+embedding lookup) and drop the rest. We also add the readout, derived from
+the lm_head MatMul itself (see find_lm_head): its input as `last_hidden_state`
+(the residual stream after the final RMSNorm), and a TopK over the last
+position's logits plus a Gather of those candidates' rows from the lm_head's
+own fp32 weight, as `topk_ids` / `topk_embeds`. The tensors already in the
+graph stay; only the output list and a handful of tiny nodes change, so this
+costs nothing measurable at inference time."""
 from pathlib import Path
 
 import onnx
@@ -30,15 +30,21 @@ def _producer(graph: onnx.GraphProto, name: str) -> onnx.NodeProto | None:
     return next((n for n in graph.node if name in n.output), None)
 
 
-def find_lm_head_weight(graph: onnx.GraphProto, dims: int) -> str:
-    """The tensor name of the lm_head's weight: the second input of the MatMul
-    that produces `logits` (through Identity/Cast wrappers), an initializer of
-    shape [dims, vocab]. The export keeps this as its own fp32 copy of Eᵀ even
-    though the model ties the weights — and the quantizer turns the embedding
-    table itself into int8 for the embedding Gather — so this copy, not
-    `model.embed_tokens.weight`, is what the readout rows must come from: it
-    is exactly what produced the logits. Structural, not by name — optimum's
-    initializer names are not part of our contract."""
+def find_lm_head(graph: onnx.GraphProto) -> tuple[str, str, int]:
+    """(x, Wᵀ, dims) of the lm_head: the MatMul that produces `logits` (through
+    Identity/Cast wrappers). Both readout tensors derive from it:
+
+    - x, its first input, is the residual stream after the final RMSNorm —
+      what the lm_head actually multiplies. NOT hidden_states.N: in this export
+      that is the norm's INPUT (found in the first operator run: x·Eᵀ off by
+      hundreds), so the hidden_states.* outputs are not consulted at all.
+    - Wᵀ, its second input, is an initializer of shape [dims, vocab]: the
+      export's own fp32 copy of Eᵀ, which the quantizer leaves alone when the
+      MatMul is excluded. The embedding table itself is NOT a usable source —
+      the quantizer turns it into int8 for the embedding Gather and rewires
+      every other consumer to a dequantized copy (rows off by 7.5e-3).
+
+    Structural, not by name — optimum's tensor names are not our contract."""
     name = "logits"
     for _ in range(8):
         node = _producer(graph, name)
@@ -49,30 +55,21 @@ def find_lm_head_weight(graph: onnx.GraphProto, dims: int) -> str:
             continue
         if node.op_type != "MatMul":
             raise ValueError(f"logits is produced by {node.op_type}, expected MatMul")
-        weight = node.input[1]
+        x, weight = node.input[0], node.input[1]
         init = next((t for t in graph.initializer if t.name == weight), None)
         if init is None:
             raise ValueError(f"lm_head MatMul weight {weight} is not an initializer")
-        if list(init.dims) != [dims, *init.dims[1:]] or len(init.dims) != 2:
-            raise ValueError(f"lm_head weight {weight} has shape {list(init.dims)}, expected [{dims}, vocab]")
-        return weight
+        if len(init.dims) != 2 or init.dims[0] >= init.dims[1]:
+            raise ValueError(f"lm_head weight {weight} has shape {list(init.dims)}, expected [dims, vocab]")
+        return x, weight, int(init.dims[0])
     raise ValueError("gave up tracing logits back to a MatMul")
 
 
 def expose_readout(model: onnx.ModelProto, k: int = TOPK) -> onnx.ModelProto:
     graph = model.graph
-    outputs = list(graph.output)
-    hidden = [o for o in outputs if o.name.startswith("hidden_states.")]
-    n = max((int(o.name.split(".")[1]) for o in hidden), default=-1)
-    if n < 1:
-        raise ValueError("graph has no hidden_states.1 or later — no final hidden state to expose")
-    last = next(o for o in hidden if o.name == f"hidden_states.{n}")
-    if not any(o.name == "logits" for o in outputs):
+    if not any(o.name == "logits" for o in graph.output):
         raise ValueError("graph has no logits output")
-    dims = last.type.tensor_type.shape.dim[2].dim_value
-    if dims <= 0:
-        raise ValueError(f"hidden_states.{n} has no static last dimension")
-    weight_t = find_lm_head_weight(graph, dims)   # [dims, vocab]: rows of E are its columns
+    x, weight_t, dims = find_lm_head(graph)   # Wᵀ is [dims, vocab]: rows of E are its columns
 
     graph.initializer.extend([
         helper.make_tensor("tsumugi_slice_starts", TensorProto.INT64, [1], [-1]),
@@ -82,8 +79,7 @@ def expose_readout(model: onnx.ModelProto, k: int = TOPK) -> onnx.ModelProto:
         helper.make_tensor("tsumugi_topk_k", TensorProto.INT64, [1], [k]),
     ])
     graph.node.extend([
-        helper.make_node("Identity", [f"hidden_states.{n}"], [LAST_HIDDEN_OUTPUT],
-                         name="tsumugi_last_hidden_identity"),
+        helper.make_node("Identity", [x], [LAST_HIDDEN_OUTPUT], name="tsumugi_last_hidden_identity"),
         helper.make_node("Slice", ["logits", "tsumugi_slice_starts", "tsumugi_slice_ends", "tsumugi_slice_axes"],
                          ["tsumugi_last_logits_3d"], name="tsumugi_last_logits_slice"),
         helper.make_node("Squeeze", ["tsumugi_last_logits_3d", "tsumugi_squeeze_axes"],
@@ -99,11 +95,8 @@ def expose_readout(model: onnx.ModelProto, k: int = TOPK) -> onnx.ModelProto:
         helper.make_node("Transpose", ["tsumugi_topk_embeds_t"], [TOPK_EMBEDS_OUTPUT],
                          name="tsumugi_topk_embeds_transpose", perm=[1, 2, 0]),
     ])
-    last_vi = onnx.ValueInfoProto()
-    last_vi.CopyFrom(last)
-    last_vi.name = LAST_HIDDEN_OUTPUT
     graph.output.extend([
-        last_vi,
+        helper.make_tensor_value_info(LAST_HIDDEN_OUTPUT, TensorProto.FLOAT, ["batch_size", "sequence_length", dims]),
         helper.make_tensor_value_info(TOPK_IDS_OUTPUT, TensorProto.INT64, ["batch_size", k]),
         helper.make_tensor_value_info(TOPK_EMBEDS_OUTPUT, TensorProto.FLOAT, ["batch_size", k, dims]),
     ])
@@ -127,8 +120,9 @@ def expose_inputs_embeds(model: onnx.ModelProto) -> onnx.ModelProto:
 
 
 def postprocess_graph(model: onnx.ModelProto, k: int = TOPK) -> onnx.ModelProto:
-    """Readout first (it reads hidden_states.N from the output list), then the
-    inputs_embeds rename, which drops every hidden_states.* output."""
+    """Readout (derived from the lm_head MatMul, independent of the output
+    list), then the inputs_embeds rename, which drops every hidden_states.*
+    output."""
     return expose_inputs_embeds(expose_readout(model, k))
 
 

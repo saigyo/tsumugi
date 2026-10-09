@@ -65,7 +65,7 @@ as `inputs_embeds` and drops `hidden_states.1..N`. It now also:
 
 | Output | Shape | Meaning |
 |---|---|---|
-| `last_hidden_state` | `[batch, seq, 576]` float32 | `hidden_states.N` (N = `num_hidden_layers`, 30): the residual stream after the final RMSNorm — the tensor `lm_head` multiplies. HF's own name for this tensor. With the KV cache, `seq` is the number of tokens fed this call. |
+| `last_hidden_state` | `[batch, seq, 576]` float32 | the first input of the `lm_head` MatMul: the residual stream after the final RMSNorm — the tensor `lm_head` multiplies. HF's own name for this tensor. **Not** `hidden_states.N`: in this export that tensor is the norm's *input* (found in the first operator run, `x·Eᵀ` off by hundreds). With the KV cache, `seq` is the number of tokens fed this call. |
 | `topk_ids` | `[batch, 16]` int64 | the 16 highest `logits` at the last position, descending |
 | `topk_embeds` | `[batch, 16, 576]` float32 | `E[topk_ids]`, the candidates' rows of the embedding table |
 
@@ -81,10 +81,11 @@ addressed by name:
    → `[batch, 16, 576]` → graph output `topk_embeds`. Gather node name
    `tsumugi_topk_embeds_gather`.
 
-`Wᵀ` is the lm_head's own weight, located structurally, not by name: the
-node producing `logits` is a `MatMul` (possibly behind `Identity`/`Cast`
-nodes, which the locator walks through) whose second input is an
-initializer of shape `[576, vocab]`. The export keeps this fp32 copy of
+Both readout tensors derive from the lm_head `MatMul`, located
+structurally, not by name: the node producing `logits` (possibly behind
+`Identity`/`Cast` nodes, which the locator walks through). Its first input
+becomes `last_hidden_state`; its second input `Wᵀ` is an initializer of
+shape `[576, vocab]`. The export keeps this fp32 copy of
 `Eᵀ` even though the model ties the weights, and it is what the quantizer
 leaves alone when `/lm_head/MatMul` is excluded. The embedding table
 itself (`model.embed_tokens.weight`) is **not** a usable source: the

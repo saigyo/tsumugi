@@ -111,15 +111,24 @@ def test_postprocess_graph_combines_readout_and_inputs_embeds():
     np.testing.assert_allclose(out["inputs_embeds"][0], TABLE[[0, 6]], atol=1e-6)
 
 
-def test_readout_without_final_hidden_state_raises():
+def test_last_hidden_state_is_the_lm_head_input_not_the_last_hidden_states_output():
+    """In the real export hidden_states.N is the INPUT of the final RMSNorm; the
+    lm_head multiplies the norm's output. last_hidden_state must be what the
+    lm_head multiplies, so x · Eᵀ reproduces the logits."""
     model = readout_graph()
-    del model.graph.output[2]   # hidden_states.1 — leaves only the embedding lookup
-    try:
-        expose_readout(model, k=3)
-    except ValueError as err:
-        assert "hidden_states.1" in str(err) or "final" in str(err)
-    else:
-        raise AssertionError("expected ValueError")
+    g = model.graph
+    two = helper.make_tensor("two", TensorProto.FLOAT, [], [2.0])
+    g.initializer.append(two)
+    matmul = next(n for n in g.node if n.op_type == "MatMul")
+    g.node.insert(2, helper.make_node("Mul", ["hidden_states.1", "two"], ["normed"], name="/model/norm/Mul_1"))
+    matmul.input[0] = "normed"
+    model = expose_readout(model, k=3)
+    onnx.checker.check_model(model)
+    ids = np.array([[4, 0]], dtype=np.int64)
+    out = _run(model, ids)
+    normed = -2.0 * TABLE[ids[0]]
+    np.testing.assert_allclose(out[LAST_HIDDEN_OUTPUT][0], normed, atol=1e-6)
+    np.testing.assert_allclose(out[LAST_HIDDEN_OUTPUT][0, -1] @ TABLE.T, out["logits"][0, -1], atol=1e-5)
 
 
 def test_readout_gathers_from_the_lm_head_weight_not_the_embed_table():
