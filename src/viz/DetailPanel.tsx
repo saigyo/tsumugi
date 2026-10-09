@@ -58,14 +58,8 @@ export function DetailPanel({ events, cursor, mode, pinnedHeads, onPin, pinNote 
         tokens={tokens} streamShape={streamShape}
         grid={grid} pinnedHeads={pinnedHeads} onPin={onPin} pinNote={pinNote} />
     }
-    case 'logits': {
-      const logits = latestOfType(events, cursor, 'logits')
-      const sm = latestOfType(events, cursor, 'softmax')
-      const embed = latestOfType(events, cursor, 'embed')
-      const vocabSize = latestOfType(events, cursor, 'run-start')?.vocabSize
-      const readout = embed ? { dims: embed.dims, vocabSize } : undefined
-      return logits ? <LogitsDetail logits={logits} softmax={sm} readout={readout} /> : empty
-    }
+    case 'logits':
+      return latestOfType(events, cursor, 'logits') ? <LogitsDetail events={events} cursor={cursor} /> : empty
     case 'sampler': {
       const sm = latestOfType(events, cursor, 'softmax')
       const sample = latestOfType(events, cursor, 'sample')

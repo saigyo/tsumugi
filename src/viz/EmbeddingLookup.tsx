@@ -2,7 +2,8 @@ import { poolRow } from '../geometry/math'
 import type { EmbedSource, TokenInfo } from '../trace/types'
 import { thousands } from './selectors'
 import { visibleToken } from './tokenText'
-import { VectorStrip, cellFill, peakOf, rowMarkY } from './VectorStrip'
+import { cellFill, peakOf, rowMarkY } from './stripMath'
+import { VectorStrip } from './VectorStrip'
 
 const STRIP_CELLS = 96
 const CELL_W = 5

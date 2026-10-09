@@ -347,3 +347,26 @@ input[type="number"] { width: 4rem; }
 .embed-geometry h4 { margin: 0 0 .4rem; font-size: .9rem; color: var(--ai-deep); }
 .embed-neighbors { margin-bottom: .8rem; }
 .embed-sim { overflow-x: auto; }
+
+/* ── Logits card ─────────────────────────────────────────────────────── */
+.logits-readout { margin: .6rem 0 .4rem; }
+.readout-equation { display: grid; grid-template-columns: auto auto auto auto minmax(0, 1fr);
+  gap: .6rem .8rem; align-items: start; overflow-x: auto; }
+.readout-op { font-size: 1.4rem; color: var(--ai-deep); align-self: start; padding-top: 1.3rem; }
+.readout-x-missing { font-family: var(--mono); font-size: .78rem; color: var(--ink-faint);
+  border: 1px dashed var(--ai-soft); border-radius: 3px; padding: .25rem .5rem; display: inline-block; }
+.readout-row-mark { opacity: .9; }
+.hue-fill-0 { fill: var(--dye-0); } .hue-fill-1 { fill: var(--dye-1); } .hue-fill-2 { fill: var(--dye-2); }
+.hue-fill-3 { fill: var(--dye-3); } .hue-fill-4 { fill: var(--dye-4); } .hue-fill-5 { fill: var(--dye-5); }
+.readout-scores { display: flex; flex-direction: column; row-gap: .3rem; }
+.readout-candidate { display: grid; grid-template-columns: 5rem 128px 120px 3rem; align-items: center; gap: .5rem;
+  font: inherit; background: none; border: 1px solid transparent; border-radius: 6px; padding: .1rem .3rem; cursor: pointer; text-align: left; }
+.readout-candidate[data-selected="true"] { border-color: var(--shu); box-shadow: 0 0 0 2px var(--shu-wash); }
+.readout-candidate .token-chip { justify-self: start; }
+.readout-nostrip { display: inline-block; width: 128px; height: 10px; border-bottom: 1px dotted var(--ai-soft); }
+.readout-bench { border-top: 1px solid var(--line); margin-top: .8rem; padding-top: .6rem; }
+.readout-bench-rows { display: grid; grid-template-columns: 4.5rem auto; gap: .35rem .6rem; align-items: center; }
+.readout-bench-label { font-family: var(--mono); font-size: .72rem; color: var(--ai-deep); }
+.readout-bench-rows .readout-x-missing, .readout-bench-rows .embed-strip-missing { justify-self: start; }
+.readout-sum { font-family: var(--mono); font-size: .8rem; color: var(--ai-deep); margin-top: .4rem; }
+@media (max-width: 720px) { .readout-equation { grid-template-columns: 1fr; } .readout-op { display: none; } }
