@@ -49,6 +49,11 @@ they are IDs, not positions.
 - [ ] **#12 Position inside attention** — the Embeddings card says "no
   position here (RoPE)"; show where rotary position embeddings act in the
   Layers detail so the pointer lands somewhere. *(M4 spec follow-up)*
+- [x] **#13 Logits readout** — the Logits card shows the readout as the
+  Embeddings lookup in reverse and, in real mode, the dot product itself:
+  final vector, candidate row of E, element-wise product summing to the
+  logit. Needed three new export outputs (`last_hidden_state`, `topk_ids`,
+  `topk_embeds`) and a pinned Hub tag (`v3`). *(2026-10-09)*
 
 ## Real-mode quality
 
@@ -83,6 +88,7 @@ they are IDs, not positions.
 
 ## Done (for the record)
 
+- [x] Logits readout: final vector, candidate rows, visible dot product; export v3 *(#13, 2026-10-09)*
 - [x] Coreference-head detector in real mode (L13H8 spike, blind template) *(#5, 2026-09-03)*
 - [x] Embeddings explained: real rows, neighbours, similarity *(M4, 2026-09-02)*
 - [x] Trace archive + cycle-aligned run comparison *(M3, 2026-08-29)*

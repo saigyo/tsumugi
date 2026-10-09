@@ -128,6 +128,25 @@ Hub: exact nearest neighbours computed offline over the full 576-dim table,
 plus a PCA-64 int8 copy of every row for the similarity matrix — the caption
 says which you are looking at.
 
+## The readout — a dot product you can see
+
+![The Logits card: x_last against Eᵀ, the candidate bars, and the dot-product bench](docs/screenshots/logits-readout.png)
+
+The Logits card is the Embeddings card read in reverse. At the Embeddings
+stage a token id picked one row of `E`; here the last token's final vector
+`x_last [1×576]` is scored against *every* row of the same matrix, one dot
+product each, and the bars are the ten highest. Tied weights are not a
+footnote: the model learns one vocabulary geometry and uses it at both ends.
+
+Click a candidate to put its score on the bench: `x_last`, that token's row
+of `E`, and their element-wise product, each pooled into 64 cells of 9
+dimensions. Blue cells push the score up, red cells pull it down, and the
+sum under the product strip is the logit on the bar. In real mode every
+number is exact: the custom export exposes the final hidden state and the
+candidates' rows (`last_hidden_state`, `topk_ids`, `topk_embeds`; see
+`tools/export`). Simulated runs and archived runs from older versions show the
+structure with PCA-reduced rows and no products.
+
 ## Reading the attention heatmaps
 
 The Layers stage shows attention heatmaps (simulated mode): a triangular
@@ -270,6 +289,8 @@ The original design spec and implementation plan live under
 - [`plans/2026-08-26-llm-pipeline-visualizer.md`](docs/superpowers/plans/2026-08-26-llm-pipeline-visualizer.md)
 - [`specs/2026-09-02-embeddings-explained-design.md`](docs/superpowers/specs/2026-09-02-embeddings-explained-design.md)
 - [`plans/2026-09-02-embeddings-explained.md`](docs/superpowers/plans/2026-09-02-embeddings-explained.md)
+- [`specs/2026-10-09-logits-readout-design.md`](docs/superpowers/specs/2026-10-09-logits-readout-design.md)
+- [`plans/2026-10-09-logits-readout.md`](docs/superpowers/plans/2026-10-09-logits-readout.md)
 
 ## License
 

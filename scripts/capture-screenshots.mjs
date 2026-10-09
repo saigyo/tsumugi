@@ -35,7 +35,7 @@ const context = await chromium.launchPersistentContext(PROFILE, {
   headless: false,
   viewport: { width: 1380, height: 940 },
 })
-// Scenes can be selected: `npm run screenshots -- pipeline attention compare embeddings`
+// Scenes can be selected: `npm run screenshots -- pipeline attention compare embeddings logits`
 // (default: all). Skipping a scene preserves its existing images — useful when
 // a previous capture caught a specimen worth keeping (e.g. a great fork).
 const only = process.argv.slice(2)
@@ -61,8 +61,8 @@ try {
     console.log('pipeline.png')
   }
 
-  // real mode serves both remaining scenes
-  if (want('attention') || want('compare') || want('embeddings')) {
+  // real mode serves the remaining scenes
+  if (want('attention') || want('compare') || want('embeddings') || want('logits')) {
     await $('mode-toggle').check()
     await $('model-status-slot').getByText(/attn/).waitFor({ timeout: 300000 })  // first run downloads the model
   }
@@ -141,6 +141,29 @@ try {
     await page.setViewportSize({ width: 1380, height: 940 })
     await $('maxtok-input').fill('20')                              // restore the default for later scenes
     console.log('embeddings.png')
+  }
+
+  // ---- logits-readout.png: real mode, Logits stage — equation row + bench
+  if (want('logits')) {
+    await $('prompt-input').fill('The farmer bought a horse and rode it home.')
+    await $('maxtok-input').fill('6')
+    const before = await $('run-chip').count()
+    await $('btn-generate').click()
+    await $('run-chip').nth(before).waitFor({ timeout: 120000 })   // wait for the run to SEAL
+    await $('btn-live').click()
+    await $('stage-card').nth(3).click()                            // Logits (lands on the cycle's softmax event)
+    await $('readout-bench').waitFor({ timeout: 10000 })
+    await $('btn-step-back').click()                                // back one event: the logits view, scores on the bars
+    await $('readout-candidate').nth(1).click()                     // second candidate on the bench
+    await $('detail-logits').scrollIntoViewIfNeeded()
+    await page.waitForTimeout(300)
+    const box = await $('detail-logits').boundingBox()
+    const pad = 12
+    await page.screenshot({ path: `${DIR}/logits-readout.png`, clip: {
+      x: box.x - pad, y: box.y - pad, width: box.width + 2 * pad, height: box.height + 2 * pad,
+    } })
+    await $('maxtok-input').fill('20')
+    console.log('logits-readout.png')
   }
 } finally {
   await context.close()
