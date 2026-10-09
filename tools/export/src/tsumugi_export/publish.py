@@ -27,9 +27,20 @@ and ships `geometry/` — exact top-12 cosine neighbours, a PCA-64 int8 copy of
 the embedding table, decoded token texts and a manifest — for the Embeddings
 card in Tsumugi.
 
+Exposes the readout as well: `last_hidden_state` (`[batch, seq, 576]`, the
+residual stream after the final RMSNorm — the tensor the tied `lm_head`
+multiplies), `topk_ids` (`[batch, 16]`, the sixteen highest-scoring ids at the
+last position) and `topk_embeds` (`[batch, 16, 576]`, their rows of the
+embedding table, kept fp32). Tsumugi's Logits card shows the dot product
+`last_hidden_state · topk_embeds[i]` cell by cell, summing to the logit.
+
+Releases are tagged (`v3` added the readout outputs); the app pins a tag so
+browsers that cached an older file re-download once.
+
 Validation (see `validation-report.json`): logits parity with the stock
 export, row-stochastic causal attention rows, cached-vs-full-matrix
-equivalence.
+equivalence, embedding-row parity, readout parity (`last_hidden_state · Eᵀ`
+reproduces the logits; `topk_embeds` are the exact rows of the top-16 ids).
 
 **Variants:** `onnx/model_quantized.onnx` (dynamic int8, `dtype: 'q8'`,
 with `/lm_head/MatMul` excluded from quantization) is the sole published
@@ -69,6 +80,29 @@ def is_blocking(check: dict, allow_skipped_equivalence: bool = False) -> bool:
     return True
 
 
+def tag_name(args) -> str:
+    tag = (getattr(args, "tag", None) or "").strip()
+    if not tag:
+        raise ValueError("publish needs --tag (e.g. v3): the app pins the model by tag")
+    return tag
+
+
+def _next_tag(tag: str) -> str:
+    digits = tag.lstrip("v")
+    return f"v{int(digits) + 1}" if digits.isdigit() else f"{tag}-next"
+
+
+def assert_tag_is_new(existing_tags: list[str], tag: str) -> None:
+    """A Hub tag never moves. Publishing under an existing tag would leave the
+    app (which pins the tag) on the earlier upload, and browsers that cached
+    that URL never re-check — so a fix is always a new tag plus a bump of
+    ATTN_MODEL_REVISION in src/engine/tokenizer.ts."""
+    if tag in existing_tags:
+        raise ValueError(
+            f"tag {tag} already exists on the Hub and tags never move — publish as "
+            f"{_next_tag(tag)} and set ATTN_MODEL_REVISION to match")
+
+
 def run(args) -> int:
     from huggingface_hub import HfApi
 
@@ -99,15 +133,24 @@ def run(args) -> int:
         MODEL_CARD.format(stock=STOCK_MODEL_ID, last=n_layers - 1))
 
     repo_id = args.repo_id or ATTN_REPO_ID
+    tag = tag_name(args)
     api = HfApi()
     api.create_repo(repo_id, exist_ok=True)
+    # Refuse before uploading, so a refused publish changes nothing on the Hub.
+    refs = api.list_repo_refs(repo_id)
+    try:
+        assert_tag_is_new([t.name for t in refs.tags], tag)
+    except ValueError as err:
+        print(err)
+        return 1
     # The fp32 onnx/model.onnx (~½ GB) is a validation baseline, not part of
     # the spec's shipped repo layout (model_q4.onnx is primary, model_fp16.onnx
     # is insurance) — its hash still lives in validation-report.json.
     # delete_patterns removes previously-published variants that later
     # failed disqualification (the marginal fp16 from the first publish).
-    api.upload_folder(folder_path=str(model_dir), repo_id=repo_id,
-                       ignore_patterns=["onnx/model.onnx"],
-                       delete_patterns=["onnx/model_fp16.onnx", "onnx/model_q4.onnx"])
-    print(f"published → https://huggingface.co/{repo_id}")
+    info = api.upload_folder(folder_path=str(model_dir), repo_id=repo_id,
+                              ignore_patterns=["onnx/model.onnx"],
+                              delete_patterns=["onnx/model_fp16.onnx", "onnx/model_q4.onnx"])
+    api.create_tag(repo_id, tag=tag, revision=info.oid)
+    print(f"published → https://huggingface.co/{repo_id} (tag {tag}) — now set ATTN_MODEL_REVISION = '{tag}'")
     return 0

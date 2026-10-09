@@ -1,8 +1,9 @@
 # tsumugi-export
 
 Exports `HuggingFaceTB/SmolLM2-135M-Instruct` to ONNX with per-layer
-attention-probability outputs and the embedding lookup (`inputs_embeds`),
-plus a vocabulary-geometry asset, quantizes it, validates the result against
+attention-probability outputs, the embedding lookup (`inputs_embeds`) and the
+readout (`last_hidden_state`, `topk_ids`, `topk_embeds`), plus a
+vocabulary-geometry asset, quantizes it, validates the result against
 the stock model, and publishes it to `saigyo-hoshi/smollm2-135m-attn-onnx`
 on the Hugging Face Hub — for use by Tsumugi's in-browser attention
 visualization.
@@ -36,7 +37,10 @@ Run any command with `uv run python -m tsumugi_export <command> --help`.
 - `publish` — assemble the repo layout (model card, tokenizer files, ONNX
   variants) and upload to the Hugging Face Hub; refuses to run without a
   passing `validation-report.json` whose artifact hashes match the files on
-  disk (`--model-dir`, `--repo-id` to override the target repo).
+  disk (`--model-dir`, `--repo-id` to override the target repo). `--tag`
+  (required) creates a Hub tag on the published commit; the app pins it via
+  `ATTN_MODEL_REVISION` in `src/engine/tokenizer.ts`. A tag that already
+  exists is refused — tags never move.
 
 ## Manual verification protocol
 
@@ -64,15 +68,22 @@ the actual acceptance checklist for a release.
    Do not skip this — `publish` refuses to run without a passing report,
    but you should also read the printed verdict table yourself (including
    confirming `a-equiv-b` actually ran, not SKIPPED, and that
-   `*:inputs-embeds-parity` and `geometry` must PASS) rather than relying
-   solely on the exit code.
-7. **Publish:** `uv run python -m tsumugi_export publish --model-dir out/model`
+   `*:inputs-embeds-parity`, `*:last-hidden-parity`, `*:topk-parity` and
+   `geometry` must PASS) rather than relying solely on the exit code.
+7. **Publish:** `uv run python -m tsumugi_export publish --model-dir out/model --tag v3`
+   Then set `ATTN_MODEL_REVISION` in `src/engine/tokenizer.ts` to the same
+   tag and deploy the app. A release is always these two steps: browsers
+   cache model files by URL and never re-check, so publishing alone changes
+   nothing for the app, and bumping the constant alone points at a tag that
+   does not exist. Tags never move and `publish` refuses an existing one: if
+   the in-app check in step 8 fails, fix, re-validate, publish under the
+   **next** tag (`v4`) and bump the constant again.
 8. **In the actual Tsumugi app**, load the exported model in real
    (non-fallback) attention mode and check the items below. Pre-publish
    in-app testing against a not-yet-uploaded artifact is not supported in
    M1 — this step necessarily runs against the model repo `publish` just
    uploaded, so verification happens post-publish; if it fails, fix and
-   re-publish.
+   publish under a new tag (see step 7).
    - **One curated prompt** with a known, hand-checked attention pattern
      (e.g. an induction-style repeat like `"one two three one two three
      one"`) — confirm the highlighted source token(s) for the induction
@@ -85,6 +96,9 @@ the actual acceptance checklist for a release.
      semantically or positionally sensible source tokens, not noise.
    - Each attention row's displayed weights **sum to 100%** (row-stochastic,
      matching what `validate` already checked at the ONNX level).
+   - **The Logits card** shows a dot-product bench for the top candidate;
+     the sum under the product strip equals the logit on the bar to one
+     decimal.
 9. **Stock fallback check.** Simulate the attention repo being unreachable
    (e.g. block the `saigyo-hoshi/smollm2-135m-attn-onnx` host, or point the
    app at a bad repo id) and confirm the app falls back gracefully to the

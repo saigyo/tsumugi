@@ -24,6 +24,10 @@ def main() -> int:
     p_pub = sub.add_parser("publish", help="assemble repo layout and upload to the HF Hub")
     p_pub.add_argument("--model-dir", default="out/model")
     p_pub.add_argument("--repo-id", default=None, help="override target repo id")
+    p_pub.add_argument("--tag", required=True,
+                        help="Hub tag to create on the published commit (the app pins it: "
+                             "ATTN_MODEL_REVISION in src/engine/tokenizer.ts); e.g. v3. "
+                             "Tags never move — a fixed model needs the next tag")
     p_pub.add_argument("--allow-skipped-equivalence", action="store_true",
                         help="publish even if a-equiv-b was SKIPPED (no no-cache export "
                              "present) — the Approach-A hypothesis was never tested; use "
