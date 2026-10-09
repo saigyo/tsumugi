@@ -64,7 +64,7 @@ export function LogitsReadout({ candidates, probs, lastHidden, dims, vocabSize, 
           aria-label={`the embedding matrix E read as Eᵀ, ${vocab} rows by ${dims} columns`}>
           <rect x="36" y="6" width="90" height="98" rx="4" className="rs-box" />
           <text x="81" y="24" textAnchor="middle" className="rs-box-label">Eᵀ</text>
-          <text x="81" y="98" textAnchor="middle" className="rs-shape">[{vocab} × {dims}]</text>
+          <text x="81" y="98" textAnchor="middle" className="rs-shape">[{dims} × {vocab}]</text>
           {candidates.map((c, i) => (
             <rect key={c.id} data-testid="readout-row-mark" x="36" y={rowMarkY(c.id)} width="90" height={i === selected ? 4 : 2}
               className={`readout-row-mark hue-fill-${i % 6}`} data-selected={String(i === selected)} />

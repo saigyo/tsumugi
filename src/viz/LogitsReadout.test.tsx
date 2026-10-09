@@ -67,7 +67,11 @@ test('softmax state shows percentages while strips stay', () => {
 
 test('matrix sketch marks every candidate and the callouts explain the tie', () => {
   render(<LogitsReadout {...props()} />)
-  expect(screen.getByTestId('readout-matrix').querySelectorAll('[data-testid="readout-row-mark"]')).toHaveLength(3)
+  const matrix = screen.getByTestId('readout-matrix')
+  expect(matrix.querySelectorAll('[data-testid="readout-row-mark"]')).toHaveLength(3)
+  // the box is labelled Eᵀ, so its shape must read transposed — the same shape the formula line shows
+  expect(matrix).toHaveTextContent('Eᵀ')
+  expect(matrix).toHaveTextContent('[576 × 49 152]')
   const callouts = screen.getAllByTestId('embed-callout').map((c) => c.textContent)
   expect(callouts).toEqual(['ⓘ tied with Embeddings', 'ⓘ similar rows, similar scores', 'ⓘ 49 152 scores, 3 shown'])
 })

@@ -207,9 +207,11 @@ geometry URL contains the revision.
   values whose `dot` cells sum to the fixture logit; the sim fixture does
   not.
 
-Budget: per cycle, 576 + 10 × (64 + 64) ≈ 1 900 numbers, about 8 KB of
-JSON; a 50-cycle run adds about 400 KB — comparable to M4's embedding
-rows. The archive ring of 8 unpinned runs stays within a few MB.
+Budget: per cycle, 576 + 10 × (64 + 64) ≈ 1 900 numbers at 3 decimals,
+measured at about 13 KB of JSON; a 50-cycle run adds about 650 KB —
+comparable to M4's embedding rows plus the attention data a real run
+already carries. The archive ring of 8 unpinned runs stays within a few
+MB in IndexedDB.
 
 ## Component 4: the card
 
@@ -259,7 +261,8 @@ one piece of state (the selected candidate index, default 0, snapping to
   to probabilities as today; the strips and the bench do not change.
 - *Bench.* For the selected candidate: three aligned 64-cell strips at
   5 px — `x_last`, `E[id]` (`row`), and `product` (`dot`) — with row labels
-  and the sum of the `dot` cells to 2 decimals next to the logit. Each
+  and the sum of the `dot` cells to 1 decimal (the bar's precision) next to
+  the logit. Each
   strip's colour scale is relative to its own peak (as in Embeddings).
   Cells carry `<title>` tooltips: "dims 63–71: x̄ 0.42 · ē −0.18 → −0.77".
   Without `dot` (sim/legacy) the bench shows `x_last` placeholder and the
