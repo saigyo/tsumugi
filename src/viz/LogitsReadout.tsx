@@ -10,6 +10,15 @@ const EQ_CELL_W = 4                        // the x strip in the equation row, n
 const DOT_CELL_W = 2, DOT_CELL_H = 10      // compact product strip per candidate
 const BAR_W = 120
 
+const SOFTMAX_CALLOUTS = (shown: number, vocab: string): Array<{ label: string; text: string }> => [
+  { label: 'why exponentiate',
+    text: 'Scores can be negative and differ by arbitrary amounts. exp makes them all positive and turns a difference of d points into a ratio of e^d, so the top score dominates in proportion to its lead: 1 point ahead is 2.7× the probability, 2 points is 7.4×.' },
+  { label: 'temperature',
+    text: 'Dividing every score by T before exponentiating scales every lead. T below 1 exaggerates leads (sharper, more predictable); T above 1 shrinks them (flatter, more random). T = 0 skips the draw and takes the top score: greedy decoding.' },
+  { label: 'top-k only',
+    text: `The sum in the denominator runs over the ${shown} candidates kept by top-k, so these percentages are shares among them. The other ${vocab} tokens minus ${shown} get nothing and can never be drawn.` },
+]
+
 const CALLOUTS = (shown: number, vocab: string): Array<{ label: string; text: string }> => [
   { label: 'tied with Embeddings',
     text: 'This is the Embeddings matrix read sideways: there a row was looked up by id; here every row is scored against x_last. Tied weights mean the model learns one vocabulary geometry, not two.' },
@@ -22,6 +31,7 @@ const CALLOUTS = (shown: number, vocab: string): Array<{ label: string; text: st
 export interface LogitsReadoutProps {
   candidates: LogitCandidate[]
   probs?: number[]                 // softmax cursor: one per candidate, same order
+  temperature?: number             // with probs: the T the softmax used
   lastHidden?: number[]
   dims: number
   vocabSize?: number
@@ -33,10 +43,21 @@ export interface LogitsReadoutProps {
 
 const sum = (a: number[]) => a.reduce((s, v) => s + v, 0)
 
+// One candidate's share, derived on its own numbers: lead below the top score,
+// the relative weight exp(−lead / T), and the resulting percentage.
+function shareDerivation(logit: number, top: number, T: number, prob: number): string {
+  const pct = `${Math.round(prob * 100)}%`
+  if (T === 0) return logit === top ? `T = 0: the top score takes everything → ${pct}` : `T = 0: not the top score → ${pct}`
+  if (logit === top) return `the top score → weight 1.00 → ${pct}`
+  const lead = top - logit
+  const w = Math.exp(-lead / T)
+  return `${lead.toFixed(1)} below the top score → exp(−${lead.toFixed(1)} / ${T}) = ${w.toFixed(2)} of the leader’s weight → ${pct}`
+}
+
 // The Embeddings lookup read in reverse: x_last · Eᵀ = scores, then a bench
 // that lays the selected candidate's dot product out cell by cell. Pure
 // presentation; the container resolves vectors and owns the selection.
-export function LogitsReadout({ candidates, probs, lastHidden, dims, vocabSize, selected, onSelect, assetRowFor, assetNote }: LogitsReadoutProps) {
+export function LogitsReadout({ candidates, probs, temperature, lastHidden, dims, vocabSize, selected, onSelect, assetRowFor, assetNote }: LogitsReadoutProps) {
   const vocab = vocabSize ? thousands(vocabSize) : '?'
   const xCells = lastHidden ? poolRow(lastHidden, READOUT_CELLS) : undefined
   const per = Math.round(dims / READOUT_CELLS)
@@ -85,6 +106,7 @@ export function LogitsReadout({ candidates, probs, lastHidden, dims, vocabSize, 
                     ariaLabel={`products for ${c.text}`} />
                 ) : <span className="readout-nostrip" aria-hidden="true" />}
                 <svg data-testid="logit-bar" data-token={c.text} width={BAR_W} height="14">
+                  {probs && temperature !== undefined && <title>{shareDerivation(c.logit, maxLogit, temperature, probs[i])}</title>}
                   <rect width={BAR_W * frac} height="14" className="bar-rect" style={{ transition: 'width .4s' }} />
                 </svg>
                 <span className="bar-value">{probs ? `${Math.round(probs[i] * 100)}%` : c.logit.toFixed(1)}</span>
@@ -137,7 +159,7 @@ export function LogitsReadout({ candidates, probs, lastHidden, dims, vocabSize, 
       )}
 
       <div className="embed-callouts">
-        {CALLOUTS(candidates.length, vocab).map((c) => (
+        {(probs ? SOFTMAX_CALLOUTS : CALLOUTS)(candidates.length, vocab).map((c) => (
           <span key={c.label} data-testid="embed-callout" className="embed-callout rs-hover" title={c.text}>ⓘ {c.label}</span>
         ))}
       </div>

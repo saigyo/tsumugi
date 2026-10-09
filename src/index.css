@@ -350,6 +350,7 @@ input[type="number"] { width: 4rem; }
 
 /* ── Logits card ─────────────────────────────────────────────────────── */
 .logits-readout { margin: .6rem 0 .4rem; }
+.softmax-explainer { font-size: .88rem; color: var(--ink-soft); margin: .5rem 0 .2rem; max-width: 60rem; }
 .readout-equation { display: grid; grid-template-columns: auto auto auto auto minmax(0, 1fr);
   gap: .6rem .8rem; align-items: start; overflow-x: auto; }
 .readout-op { font-size: 1.4rem; color: var(--ai-deep); align-self: start; padding-top: 1.3rem; }

@@ -26,6 +26,30 @@ test('softmax cursor keeps the readout and shows percentages', () => {
   expect(screen.getAllByTestId('readout-product').length).toBeGreaterThan(0)
 })
 
+test('softmax cursor shows both formula lines and explains the derivation', () => {
+  render(<LogitsDetail events={buildFixtureTrace({ readout: true })} cursor={8} />)
+  expect(screen.getByTestId('logits-formula')).toHaveTextContent('x_last · Eᵀ')          // step 1 stays
+  const sm = screen.getByTestId('softmax-formula')
+  expect(sm).toHaveTextContent('exp(logit / T)')
+  expect(sm).toHaveTextContent('3 of 49 152')                                            // fixture keeps 3 candidates
+  const why = screen.getByTestId('softmax-explainer')
+  expect(why).toHaveTextContent(/divided by the temperature/)
+  expect(why).toHaveTextContent(/2\.7×/)
+  expect(why).toHaveTextContent(/shares among the 3 shown/)
+})
+
+test('logits cursor shows neither the softmax formula nor the explainer', () => {
+  render(<LogitsDetail events={buildFixtureTrace({ readout: true })} cursor={7} />)
+  expect(screen.queryByTestId('softmax-formula')).toBeNull()
+  expect(screen.queryByTestId('softmax-explainer')).toBeNull()
+})
+
+test('greedy run (T=0) explains that the top score takes everything', () => {
+  render(<LogitsDetail events={buildFixtureTrace({ readout: true, temperature: 0 })} cursor={8} />)
+  expect(screen.getByTestId('softmax-explainer')).toHaveTextContent(/greedy/)
+  expect(screen.getByTestId('softmax-explainer')).not.toHaveTextContent(/2\.7×/)
+})
+
 test('selection resets when the cursor moves to another cycle', () => {
   const t = buildFixtureTrace({ readout: true })
   const { rerender } = render(<LogitsDetail events={t} cursor={16} />)
