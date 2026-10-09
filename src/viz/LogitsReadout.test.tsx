@@ -59,45 +59,10 @@ test('asset row unavailable shows the note instead of a strip', () => {
   expect(screen.getByTestId('readout-bench')).toHaveTextContent('vector values unavailable')
 })
 
-test('softmax state shows percentages while strips stay', () => {
-  render(<LogitsReadout {...props({ probs: [0.7, 0.2, 0.1], temperature: 0.8 })} />)
-  expect(screen.getAllByTestId('readout-candidate')[0]).toHaveTextContent('70%')
-  expect(screen.getAllByTestId('readout-product')).toHaveLength(2)
-})
-
-test('softmax state: each bar explains its share from the logit lead and T', () => {
-  render(<LogitsReadout {...props({ probs: [0.7, 0.2, 0.1], temperature: 0.8 })} />)
-  const titles = screen.getAllByTestId('logit-bar').map((b) => b.querySelector('title')?.textContent)
-  expect(titles[0]).toMatch(/top score/)
-  expect(titles[0]).toMatch(/70%/)
-  // 9.1 − 7.2 = 1.9; exp(−1.9 / 0.8) = 0.093
-  expect(titles[1]).toMatch(/1\.9 below the top score/)
-  expect(titles[1]).toMatch(/exp\(−1\.9 \/ 0\.8\) = 0\.09/)
-  expect(titles[1]).toMatch(/20%/)
-})
-
-test('softmax state at T=0 says the top score takes everything', () => {
-  render(<LogitsReadout {...props({ probs: [1, 0, 0], temperature: 0 })} />)
-  const titles = screen.getAllByTestId('logit-bar').map((b) => b.querySelector('title')?.textContent)
-  expect(titles[0]).toMatch(/T = 0/)
-  expect(titles[1]).toMatch(/0%/)
-})
-
-test('logits state has no per-bar derivation', () => {
+test('bars carry the logit value, no derivation tooltip — that belongs to the Softmax card', () => {
   render(<LogitsReadout {...props()} />)
+  expect(screen.getAllByTestId('readout-candidate')[1]).toHaveTextContent('7.2')
   expect(screen.getAllByTestId('logit-bar')[1].querySelector('title')).toBeNull()
-})
-
-test('softmax state swaps the callouts for the softmax ones', () => {
-  render(<LogitsReadout {...props({ probs: [0.7, 0.2, 0.1], temperature: 0.8 })} />)
-  const callouts = screen.getAllByTestId('embed-callout').map((c) => c.textContent)
-  expect(callouts).toEqual(['ⓘ why exponentiate', 'ⓘ temperature', 'ⓘ top-k only'])
-  expect(screen.getAllByTestId('embed-callout')[1].getAttribute('title')).toMatch(/greedy/)
-  // the ratio in the callout is computed from T, not fixed at e (which only holds at T = 1)
-  const why = screen.getAllByTestId('embed-callout')[0].getAttribute('title') ?? ''
-  expect(why).toMatch(/e\^\(d \/ T\)/)
-  expect(why).toMatch(/at T = 0\.8, 1 point ahead is 3\.5×/)
-  expect(why).not.toMatch(/2\.7×/)
 })
 
 test('matrix sketch marks every candidate and the callouts explain the tie', () => {

@@ -7,7 +7,8 @@ const trace = makeFixtureTrace()  // 2 cycles, 3 layers
 test('activeStage maps events to stage cards', () => {
   expect(activeStage({ type: 'tokenize', tokens: [] })).toBe('tokenizer')
   expect(activeStage(eventAt(trace, 2))).toBe('embeddings')
-  expect(activeStage({ type: 'softmax', cycle: 0, temperature: 1, topK: [] })).toBe('logits')
+  expect(activeStage({ type: 'logits', cycle: 0, topK: [] })).toBe('logits')
+  expect(activeStage({ type: 'softmax', cycle: 0, temperature: 1, topK: [] })).toBe('softmax')
   expect(activeStage({ type: 'append', cycle: 0, token: { id: 1, text: 'x' } })).toBe('sampler')
   expect(activeStage(undefined)).toBe(null)
   expect(activeStage({ type: 'run-end', reason: 'eos' })).toBe(null)
@@ -63,6 +64,7 @@ test('flowShapes carry live tensor shapes once data exists', () => {
   expect(s.stream).toBe('[2×576]')
   expect(s.lastRow).toBe('[1×576]')
   expect(s.vocab).toBe('[49 152]')
+  expect(s.probs).toBe('[10]')       // Softmax → Sampler: the top-k the run keeps (run-start params)
   expect(s.loop).toBe('+1 token')
 })
 
@@ -76,7 +78,8 @@ test('stageEventIndex seeks to the representative event of the current cycle', (
   expect(stageEventIndex(trace, 4, 'tokenizer')).toBe(1)
   expect(stageEventIndex(trace, 4, 'layers')).toBe(6)      // cursor in cycle 0 → its attention
   expect(stageEventIndex(trace, 12, 'layers')).toBe(15)    // cursor in cycle 1
-  expect(stageEventIndex(trace, 12, 'logits')).toBe(17)    // softmax of cycle 1
+  expect(stageEventIndex(trace, 12, 'logits')).toBe(16)    // logits of cycle 1 — the scores, not the softmax
+  expect(stageEventIndex(trace, 12, 'softmax')).toBe(17)   // softmax of cycle 1
   expect(stageEventIndex(trace, 4, 'sampler')).toBe(9)
   expect(stageEventIndex(trace, 0, 'embeddings')).toBe(2)  // before first cycle → cycle 0
 })

@@ -146,14 +146,13 @@ try {
   // ---- logits-readout.png: real mode, Logits stage — equation row + bench
   if (want('logits')) {
     await $('prompt-input').fill('The farmer bought a horse and rode it home.')
-    await $('maxtok-input').fill('6')
+    await $('maxtok-input').fill('1')                               // one cycle: the first token's distribution is deterministic
     const before = await $('run-chip').count()
     await $('btn-generate').click()
     await $('run-chip').nth(before).waitFor({ timeout: 120000 })   // wait for the run to SEAL
     await $('btn-live').click()
-    await $('stage-card').nth(3).click()                            // Logits (lands on the cycle's softmax event)
+    await $('stage-card').nth(3).click()                            // Logits
     await $('readout-bench').waitFor({ timeout: 10000 })
-    await $('btn-step-back').click()                                // back one event: the logits view, scores on the bars
     await $('readout-candidate').nth(1).click()                     // second candidate on the bench
     await $('detail-logits').scrollIntoViewIfNeeded()
     await page.waitForTimeout(300)
@@ -163,13 +162,13 @@ try {
       x: box.x - pad, y: box.y - pad, width: box.width + 2 * pad, height: box.height + 2 * pad,
     } })
     console.log('logits-readout.png')
-    // ---- logits-softmax.png: the same cycle one event later — the softmax step explained
-    await $('btn-step-fwd').click()
+    // ---- logits-softmax.png: the next stage — the softmax step explained
+    await $('stage-card').nth(4).click()                            // Softmax
     await $('softmax-explainer').waitFor({ timeout: 5000 })
     await page.setViewportSize({ width: 1380, height: 1400 })       // the explained card is taller than the default viewport
-    await $('detail-logits').scrollIntoViewIfNeeded()
+    await $('detail-softmax').scrollIntoViewIfNeeded()
     await page.waitForTimeout(300)
-    const sbox = await $('detail-logits').boundingBox()
+    const sbox = await $('detail-softmax').boundingBox()
     await page.screenshot({ path: `${DIR}/logits-softmax.png`, clip: {
       x: sbox.x - pad, y: sbox.y - pad, width: sbox.width + 2 * pad, height: sbox.height + 2 * pad,
     } })

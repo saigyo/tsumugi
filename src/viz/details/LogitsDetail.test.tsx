@@ -19,43 +19,12 @@ test('real fixture: bench sum equals the top candidate’s logit; formula and co
   expect(screen.getByTestId('readout-sum')).toHaveTextContent('9.1')
 })
 
-test('softmax cursor keeps the readout and shows percentages', () => {
+test('the logits card always shows scores, never percentages — softmax has its own card', () => {
   render(<LogitsDetail events={buildFixtureTrace({ readout: true })} cursor={8} />)
-  expect(screen.getByTestId('detail-logits')).toHaveTextContent('Softmax')
-  expect(screen.getAllByTestId('readout-candidate')[0]).toHaveTextContent('70%')
-  expect(screen.getAllByTestId('readout-product').length).toBeGreaterThan(0)
-})
-
-test('softmax cursor shows both formula lines and explains the derivation', () => {
-  render(<LogitsDetail events={buildFixtureTrace({ readout: true })} cursor={8} />)
-  expect(screen.getByTestId('logits-formula')).toHaveTextContent('x_last · Eᵀ')          // step 1 stays
-  const sm = screen.getByTestId('softmax-formula')
-  expect(sm).toHaveTextContent('exp(logit / T)')
-  expect(sm).toHaveTextContent('3 of 49 152')                                            // fixture keeps 3 candidates
-  const why = screen.getByTestId('softmax-explainer')
-  expect(why).toHaveTextContent(/divided by the temperature/)
-  // the ratio is e^(1/T): at the fixture's T = 0.8 a 1-point lead is 3.5×, 2 points 12.2× (2.7× holds only at T = 1)
-  expect(why).toHaveTextContent(/at T = 0\.8 a lead of 1 point is a 3\.5× lead/)
-  expect(why).toHaveTextContent(/2 points is 12\.2×/)
-  expect(why).not.toHaveTextContent(/2\.7×/)
-  expect(why).toHaveTextContent(/shares among the 3 shown/)
-})
-
-test('the ratio sentence follows the run’s temperature', () => {
-  render(<LogitsDetail events={buildFixtureTrace({ readout: true, temperature: 1 })} cursor={8} />)
-  expect(screen.getByTestId('softmax-explainer')).toHaveTextContent(/at T = 1 a lead of 1 point is a 2\.7× lead/)
-})
-
-test('logits cursor shows neither the softmax formula nor the explainer', () => {
-  render(<LogitsDetail events={buildFixtureTrace({ readout: true })} cursor={7} />)
+  expect(screen.getByTestId('detail-logits')).toHaveTextContent('Logits')
+  expect(screen.getAllByTestId('readout-candidate')[0]).toHaveTextContent('9.1')
   expect(screen.queryByTestId('softmax-formula')).toBeNull()
   expect(screen.queryByTestId('softmax-explainer')).toBeNull()
-})
-
-test('greedy run (T=0) explains that the top score takes everything', () => {
-  render(<LogitsDetail events={buildFixtureTrace({ readout: true, temperature: 0 })} cursor={8} />)
-  expect(screen.getByTestId('softmax-explainer')).toHaveTextContent(/greedy/)
-  expect(screen.getByTestId('softmax-explainer')).not.toHaveTextContent(/lead of 1 point/)
 })
 
 test('selection resets when the cursor moves to another cycle', () => {

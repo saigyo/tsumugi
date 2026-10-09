@@ -53,7 +53,11 @@ they are IDs, not positions.
   Embeddings lookup in reverse and, in real mode, the dot product itself:
   final vector, candidate row of E, element-wise product summing to the
   logit. Needed three new export outputs (`last_hidden_state`, `topk_ids`,
-  `topk_embeds`) and a pinned Hub tag (`v3`). *(2026-10-09)*
+  `topk_embeds`) and a pinned Hub tag (`v3`). Softmax became its own
+  pipeline stage with its own card (formula, derivation in words, per-bar
+  tooltips) — before, the Logits card click always landed on the softmax
+  event and the scores view was only reachable by stepping back.
+  *(2026-10-09)*
 
 ## Real-mode quality
 

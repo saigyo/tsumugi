@@ -7,9 +7,10 @@ const trace = makeFixtureTrace()
 
 afterEach(() => cleanup())
 
-test('renders five stage cards', () => {
+test('renders six stage cards, softmax between logits and sampler', () => {
   render(<PipelineBand events={trace} cursor={-1} />)
-  expect(screen.getAllByTestId('stage-card')).toHaveLength(5)
+  const stages = screen.getAllByTestId('stage-card').map((c) => c.dataset.stage)
+  expect(stages).toEqual(['tokenizer', 'embeddings', 'layers', 'logits', 'softmax', 'sampler'])
 })
 
 test('highlights the stage of the cursor event', () => {
@@ -27,6 +28,7 @@ test('cards show micro-summaries once their data exists', () => {
   expect(summaryOf('embeddings')).toContain('49 152 × 576')
   expect(summaryOf('layers')).toContain('3 layers')
   expect(summaryOf('logits')).toContain('on')      // top candidate of latest cycle
+  expect(summaryOf('softmax')).toContain('70%')    // its probability after softmax
   expect(summaryOf('sampler')).toContain('on')     // chosen token of latest cycle
 })
 
@@ -47,8 +49,18 @@ test('stage cards seek to the representative event when clickable', () => {
 test('connector labels show live tensor shapes', () => {
   render(<PipelineBand events={trace} cursor={7} />)
   const labels = screen.getAllByTestId('flow-shape').map((l) => l.textContent)
-  expect(labels).toEqual(['[2]', '[2×576]', '[1×576]', '[49 152]'])
+  expect(labels).toEqual(['[2]', '[2×576]', '[1×576]', '[49 152]', '[10]'])   // the funnel: all scores → top-k → 1 token
   expect(screen.getByTestId('loop-label')).toHaveTextContent('+1 token')
+})
+
+test('the logits card seeks to the logits event, the softmax card to the softmax event', () => {
+  const onStageClick = vi.fn()
+  render(<PipelineBand events={trace} cursor={4} onStageClick={onStageClick} />)
+  const cards = screen.getAllByTestId('stage-card')
+  fireEvent.click(cards.find((c) => c.dataset.stage === 'logits')!)
+  expect(onStageClick).toHaveBeenLastCalledWith(7)
+  fireEvent.click(cards.find((c) => c.dataset.stage === 'softmax')!)
+  expect(onStageClick).toHaveBeenLastCalledWith(8)
 })
 
 test('connector labels are absent before a run', () => {

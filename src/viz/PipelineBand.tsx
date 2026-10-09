@@ -2,13 +2,14 @@ import type { TraceEvent } from '../trace/types'
 import { activeStage, eventAt, flowShapes, latestOfType, stageEventIndex, thousands, type FlowShapes, type StageId } from './selectors'
 
 // what travels along the connector INTO stage i (see FlowShapes)
-const CONNECTOR_SHAPE: Array<keyof FlowShapes> = ['ids', 'ids', 'stream', 'lastRow', 'vocab']
+const CONNECTOR_SHAPE: Array<keyof FlowShapes> = ['ids', 'ids', 'stream', 'lastRow', 'vocab', 'probs']
 
 const STAGES: Array<{ id: Exclude<StageId, null>; label: string }> = [
   { id: 'tokenizer', label: 'Tokenizer' },
   { id: 'embeddings', label: 'Embeddings' },
   { id: 'layers', label: 'Layers' },
   { id: 'logits', label: 'Logits' },
+  { id: 'softmax', label: 'Softmax' },
   { id: 'sampler', label: 'Sampler' },
 ]
 
@@ -31,6 +32,11 @@ function summaryFor(stage: Exclude<StageId, null>, events: TraceEvent[], cursor:
     case 'logits': {
       const e = latestOfType(events, cursor, 'logits')
       return e ? `top: ${e.topK[0]?.text ?? '—'}` : null
+    }
+    case 'softmax': {
+      const e = latestOfType(events, cursor, 'softmax')
+      const top = e?.topK[0]
+      return top ? `${top.text}: ${Math.round(top.prob * 100)}%` : null
     }
     case 'sampler': {
       const e = latestOfType(events, cursor, 'sample')

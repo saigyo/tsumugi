@@ -2,7 +2,6 @@ import { poolRow } from '../geometry/math'
 import { READOUT_CELLS, type LogitCandidate } from '../trace/types'
 import { thousands } from './selectors'
 import { visibleToken } from './tokenText'
-import { leadRatio } from './softmaxText'
 import { rowMarkY } from './stripMath'
 import { VectorStrip } from './VectorStrip'
 
@@ -10,15 +9,6 @@ const X_CELL_W = 5, X_CELL_H = 14          // bench strips (full card width avai
 const EQ_CELL_W = 4                        // the x strip in the equation row, next to E and the scores
 const DOT_CELL_W = 2, DOT_CELL_H = 10      // compact product strip per candidate
 const BAR_W = 120
-
-const SOFTMAX_CALLOUTS = (shown: number, vocab: string, T: number): Array<{ label: string; text: string }> => [
-  { label: 'why exponentiate',
-    text: `Scores can be negative and differ by arbitrary amounts. exp makes them all positive and turns a difference of d points into a ratio of e^(d / T), so the top score dominates in proportion to its lead: ${T > 0 ? `at T = ${T}, 1 point ahead is ${leadRatio(1, T)}× the probability, 2 points is ${leadRatio(2, T)}×` : 'at T = 0 the lead is all that counts'}.` },
-  { label: 'temperature',
-    text: 'Dividing every score by T before exponentiating scales every lead. T below 1 exaggerates leads (sharper, more predictable); T above 1 shrinks them (flatter, more random). T = 0 skips the draw and takes the top score: greedy decoding.' },
-  { label: 'top-k only',
-    text: `The sum in the denominator runs over the ${shown} candidates kept by top-k, so these percentages are shares among them. The other ${vocab} tokens minus ${shown} get nothing and can never be drawn.` },
-]
 
 const CALLOUTS = (shown: number, vocab: string): Array<{ label: string; text: string }> => [
   { label: 'tied with Embeddings',
@@ -31,8 +21,6 @@ const CALLOUTS = (shown: number, vocab: string): Array<{ label: string; text: st
 
 export interface LogitsReadoutProps {
   candidates: LogitCandidate[]
-  probs?: number[]                 // softmax cursor: one per candidate, same order
-  temperature?: number             // with probs: the T the softmax used
   lastHidden?: number[]
   dims: number
   vocabSize?: number
@@ -44,21 +32,10 @@ export interface LogitsReadoutProps {
 
 const sum = (a: number[]) => a.reduce((s, v) => s + v, 0)
 
-// One candidate's share, derived on its own numbers: lead below the top score,
-// the relative weight exp(−lead / T), and the resulting percentage.
-function shareDerivation(logit: number, top: number, T: number, prob: number): string {
-  const pct = `${Math.round(prob * 100)}%`
-  if (T === 0) return logit === top ? `T = 0: the top score takes everything → ${pct}` : `T = 0: not the top score → ${pct}`
-  if (logit === top) return `the top score → weight 1.00 → ${pct}`
-  const lead = top - logit
-  const w = Math.exp(-lead / T)
-  return `${lead.toFixed(1)} below the top score → exp(−${lead.toFixed(1)} / ${T}) = ${w.toFixed(2)} of the leader’s weight → ${pct}`
-}
-
 // The Embeddings lookup read in reverse: x_last · Eᵀ = scores, then a bench
 // that lays the selected candidate's dot product out cell by cell. Pure
 // presentation; the container resolves vectors and owns the selection.
-export function LogitsReadout({ candidates, probs, temperature, lastHidden, dims, vocabSize, selected, onSelect, assetRowFor, assetNote }: LogitsReadoutProps) {
+export function LogitsReadout({ candidates, lastHidden, dims, vocabSize, selected, onSelect, assetRowFor, assetNote }: LogitsReadoutProps) {
   const vocab = vocabSize ? thousands(vocabSize) : '?'
   const xCells = lastHidden ? poolRow(lastHidden, READOUT_CELLS) : undefined
   const per = Math.round(dims / READOUT_CELLS)
@@ -95,9 +72,9 @@ export function LogitsReadout({ candidates, probs, temperature, lastHidden, dims
         </svg>
         <div className="readout-op" aria-hidden="true">=</div>
         <div className="readout-scores">
-          <div className="embed-col-label">{probs ? 'softmax →' : 'scores'} [{vocab}]</div>
+          <div className="embed-col-label">scores [{vocab}]</div>
           {candidates.map((c, i) => {
-            const frac = probs ? probs[i] : Math.max(0.02, c.logit / maxLogit)
+            const frac = Math.max(0.02, c.logit / maxLogit)
             return (
               <button key={c.id} type="button" data-testid="readout-candidate" data-selected={String(i === selected)}
                 className="readout-candidate" onClick={() => onSelect(i)} title="Show this dot product on the bench">
@@ -107,10 +84,9 @@ export function LogitsReadout({ candidates, probs, temperature, lastHidden, dims
                     ariaLabel={`products for ${c.text}`} />
                 ) : <span className="readout-nostrip" aria-hidden="true" />}
                 <svg data-testid="logit-bar" data-token={c.text} width={BAR_W} height="14">
-                  {probs && temperature !== undefined && <title>{shareDerivation(c.logit, maxLogit, temperature, probs[i])}</title>}
                   <rect width={BAR_W * frac} height="14" className="bar-rect" style={{ transition: 'width .4s' }} />
                 </svg>
-                <span className="bar-value">{probs ? `${Math.round(probs[i] * 100)}%` : c.logit.toFixed(1)}</span>
+                <span className="bar-value">{c.logit.toFixed(1)}</span>
               </button>
             )
           })}
@@ -160,7 +136,7 @@ export function LogitsReadout({ candidates, probs, temperature, lastHidden, dims
       )}
 
       <div className="embed-callouts">
-        {(probs ? SOFTMAX_CALLOUTS(candidates.length, vocab, temperature ?? 1) : CALLOUTS(candidates.length, vocab)).map((c) => (
+        {CALLOUTS(candidates.length, vocab).map((c) => (
           <span key={c.label} data-testid="embed-callout" className="embed-callout rs-hover" title={c.text}>ⓘ {c.label}</span>
         ))}
       </div>

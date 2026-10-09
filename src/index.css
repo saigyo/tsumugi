@@ -351,6 +351,11 @@ input[type="number"] { width: 4rem; }
 /* ── Logits card ─────────────────────────────────────────────────────── */
 .logits-readout { margin: .6rem 0 .4rem; }
 .softmax-explainer { font-size: .88rem; color: var(--ink-soft); margin: .5rem 0 .2rem; max-width: 60rem; }
+/* one grid for the whole list, so the chip column is as wide as the widest chip and every bar starts on the same line */
+.softmax-bars { display: grid; grid-template-columns: minmax(6rem, max-content) 200px 3rem auto; gap: .3rem .5rem;
+  align-items: center; margin: .6rem 0 .4rem; }
+.softmax-candidate { display: contents; }
+.softmax-logit { font-family: var(--mono); font-size: .72rem; color: var(--ink-faint); }
 .readout-equation { display: grid; grid-template-columns: auto auto auto auto minmax(0, 1fr);
   gap: .6rem .8rem; align-items: start; overflow-x: auto; }
 .readout-op { font-size: 1.4rem; color: var(--ai-deep); align-self: start; padding-top: 1.3rem; }
@@ -360,10 +365,11 @@ input[type="number"] { width: 4rem; }
 .hue-fill-0 { fill: var(--dye-0); } .hue-fill-1 { fill: var(--dye-1); } .hue-fill-2 { fill: var(--dye-2); }
 .hue-fill-3 { fill: var(--dye-3); } .hue-fill-4 { fill: var(--dye-4); } .hue-fill-5 { fill: var(--dye-5); }
 .readout-scores { display: flex; flex-direction: column; row-gap: .3rem; }
-.readout-candidate { display: grid; grid-template-columns: 5rem 128px 120px 3rem; align-items: center; gap: .5rem;
+.readout-candidate { display: grid; grid-template-columns: minmax(5rem, max-content) 128px 120px 3rem; align-items: center; gap: .5rem;
   font: inherit; background: none; border: 1px solid transparent; border-radius: 6px; padding: .1rem .3rem; cursor: pointer; text-align: left; }
 .readout-candidate[data-selected="true"] { border-color: var(--shu); box-shadow: 0 0 0 2px var(--shu-wash); }
-.readout-candidate .token-chip { justify-self: start; }
+.readout-candidate .token-chip, .softmax-candidate .token-chip { justify-self: start; max-width: 9rem; overflow: hidden; }
+.readout-candidate .chip-text, .softmax-candidate .chip-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .readout-nostrip { display: inline-block; width: 128px; height: 10px; border-bottom: 1px dotted var(--ai-soft); }
 .readout-bench { border-top: 1px solid var(--line); margin-top: .8rem; padding-top: .6rem; }
 .readout-bench-rows { display: grid; grid-template-columns: 4.5rem auto; gap: .35rem .6rem; align-items: center; }

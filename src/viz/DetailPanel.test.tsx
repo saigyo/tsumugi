@@ -75,9 +75,10 @@ test('logits detail shows one bar per candidate', () => {
   expect(screen.getByTestId('detail-logits')).toHaveTextContent('sat')
 })
 
-test('softmax cursor switches bars to probabilities', () => {
+test('softmax cursor shows the Softmax card with probabilities', () => {
   render(<DetailPanel events={trace} cursor={8} mode="sim" />)
-  expect(screen.getByTestId('detail-logits')).toHaveTextContent('70')  // 0.7 → 70%
+  expect(screen.queryByTestId('detail-logits')).toBeNull()
+  expect(screen.getByTestId('detail-softmax')).toHaveTextContent('70%')  // 0.7 → 70%
 })
 
 test('sampler detail marks the chosen token', () => {

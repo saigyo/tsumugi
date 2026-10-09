@@ -1,10 +1,10 @@
 import type { EmbedSource, TokenInfo, TraceEvent } from '../trace/types'
 
-export type StageId = 'tokenizer' | 'embeddings' | 'layers' | 'logits' | 'sampler' | null
+export type StageId = 'tokenizer' | 'embeddings' | 'layers' | 'logits' | 'softmax' | 'sampler' | null
 
 const STAGE_OF: Partial<Record<TraceEvent['type'], StageId>> = {
   tokenize: 'tokenizer', embed: 'embeddings', layer: 'layers', attention: 'layers',
-  logits: 'logits', softmax: 'logits', sample: 'sampler', append: 'sampler',
+  logits: 'logits', softmax: 'softmax', sample: 'sampler', append: 'sampler',
 }
 
 export function activeStage(e: TraceEvent | undefined): StageId {
@@ -53,7 +53,8 @@ export interface FlowShapes {
   ids?: string      // Tokenizer → Embeddings
   stream?: string   // Embeddings → Layers: the residual stream [seq × d_model]
   lastRow?: string  // Layers → Logits: only the last position is read out
-  vocab?: string    // Logits → Sampler: one score per vocabulary entry
+  vocab?: string    // Logits → Softmax: one score per vocabulary entry
+  probs?: string    // Softmax → Sampler: only the top-k survive the cut
   loop?: string     // Sampler → token stream
 }
 
@@ -72,13 +73,14 @@ export function flowShapes(events: TraceEvent[], cursor: number): FlowShapes {
   }
   const runStart = latestOfType(events, cursor, 'run-start')
   if (runStart?.vocabSize) shapes.vocab = `[${thousands(runStart.vocabSize)}]`
+  if (runStart) shapes.probs = `[${runStart.params.topK}]`
   return shapes
 }
 
 // The one event per cycle where a stage's payload is fully on screen.
 const REPRESENTATIVE: Record<Exclude<StageId, null>, TraceEvent['type']> = {
   tokenizer: 'tokenize', embeddings: 'embed', layers: 'attention',
-  logits: 'softmax', sampler: 'sample',
+  logits: 'logits', softmax: 'softmax', sampler: 'sample',
 }
 
 function cycleAt(events: TraceEvent[], cursor: number): number {

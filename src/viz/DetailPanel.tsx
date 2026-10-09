@@ -4,6 +4,7 @@ import { EmbeddingsDetail } from './details/EmbeddingsDetail'
 import { LayersDetail } from './details/LayersDetail'
 import { TokenizerDetail } from './details/TokenizerDetail'
 import { LogitsDetail } from './details/LogitsDetail'
+import { SoftmaxDetail } from './details/SoftmaxDetail'
 import { SamplerDetail } from './details/SamplerDetail'
 import { RunEndDetail } from './details/RunEndDetail'
 import { visibleTokens } from './selectors'
@@ -60,6 +61,8 @@ export function DetailPanel({ events, cursor, mode, pinnedHeads, onPin, pinNote 
     }
     case 'logits':
       return latestOfType(events, cursor, 'logits') ? <LogitsDetail events={events} cursor={cursor} /> : empty
+    case 'softmax':
+      return latestOfType(events, cursor, 'softmax') ? <SoftmaxDetail events={events} cursor={cursor} /> : empty
     case 'sampler': {
       const sm = latestOfType(events, cursor, 'softmax')
       const sample = latestOfType(events, cursor, 'sample')
