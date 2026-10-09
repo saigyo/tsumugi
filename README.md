@@ -147,6 +147,16 @@ candidates' rows (`last_hidden_state`, `topk_ids`, `topk_embeds`; see
 `tools/export`). Simulated runs and archived runs from older versions show the
 structure with PCA-reduced rows and no products.
 
+![The same card one event later: the softmax formula, the derivation in words, and the percentages](docs/screenshots/logits-softmax.png)
+
+One event later the card turns the scores into probabilities and says how:
+every score is divided by the temperature and exponentiated, then each
+result is divided by the sum of all of them. Exponentiating turns a lead in
+score into a ratio in probability, `e^(lead / T)`, and the card works the
+examples out for the run's own temperature. Hover any bar for that
+candidate's numbers. The sum runs over the top-k candidates only, so the
+percentages are shares among the ten shown.
+
 ## Reading the attention heatmaps
 
 The Layers stage shows attention heatmaps (simulated mode): a triangular

@@ -162,8 +162,20 @@ try {
     await page.screenshot({ path: `${DIR}/logits-readout.png`, clip: {
       x: box.x - pad, y: box.y - pad, width: box.width + 2 * pad, height: box.height + 2 * pad,
     } })
-    await $('maxtok-input').fill('20')
     console.log('logits-readout.png')
+    // ---- logits-softmax.png: the same cycle one event later — the softmax step explained
+    await $('btn-step-fwd').click()
+    await $('softmax-explainer').waitFor({ timeout: 5000 })
+    await page.setViewportSize({ width: 1380, height: 1400 })       // the explained card is taller than the default viewport
+    await $('detail-logits').scrollIntoViewIfNeeded()
+    await page.waitForTimeout(300)
+    const sbox = await $('detail-logits').boundingBox()
+    await page.screenshot({ path: `${DIR}/logits-softmax.png`, clip: {
+      x: sbox.x - pad, y: sbox.y - pad, width: sbox.width + 2 * pad, height: sbox.height + 2 * pad,
+    } })
+    await page.setViewportSize({ width: 1380, height: 940 })
+    await $('maxtok-input').fill('20')
+    console.log('logits-softmax.png')
   }
 } finally {
   await context.close()
