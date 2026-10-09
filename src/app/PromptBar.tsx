@@ -62,10 +62,10 @@ export function PromptBar({ mode, onModeChange, onGenerate, busy, generating = f
           max <input data-testid="maxtok-input" type="number" min="1" max="100" value={maxNewTokens}
           onChange={(e) => setMaxNewTokens(clampOrKeep(e.target.value, 1, 100, maxNewTokens))} /></label>
         <span className="config-divider" aria-hidden="true" />
-        <label title="Runs HuggingFaceTB/SmolLM2-135M-Instruct in your browser. Downloads ~120 MB once on first use; cached afterward.">
+        <label title="Runs SmolLM2-135M-Instruct in your browser from a custom export with attention and readout outputs (its output layer stays full precision). Downloads ~250 MB once on first use; cached afterward. If that fails it falls back to the ~120 MB stock export without them.">
           <input data-testid="mode-toggle" type="checkbox" checked={mode === 'real'}
             onChange={(e) => onModeChange(e.target.checked ? 'real' : 'sim')} />
-          Real model <span className="mode-note">~120 MB</span>
+          Real model <span className="mode-note">~250 MB</span>
         </label>
         {status && <span data-testid="model-status-slot" className="model-status-slot">{status}</span>}
       </div>
