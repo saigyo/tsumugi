@@ -1,6 +1,6 @@
 /// <reference lib="webworker" />
 import type { GenParams, RunEndReason, TokenInfo, TraceEvent } from '../../trace/types'
-import { ATTN_MODEL_ID } from '../tokenizer'
+import { ATTN_MODEL_ID, ATTN_MODEL_REVISION } from '../tokenizer'
 import { sampleIndex, softmax, topK } from '../math'
 import { addAttentionOutput, createAccumulator, type AttnAccumulator } from './attentionAccum'
 import { extractEmbedRows } from './embedRows'
@@ -44,11 +44,12 @@ async function prepare(modelId: string) {
 
   // WebGPU->WASM fallback for a single (modelId, dtype) attempt; returns the device that
   // actually succeeded, since a caught GPU failure means the load happened on WASM instead.
-  const loadOn = async (id: string, dtype: 'q4' | 'q8' | 'fp16'): Promise<{ m: any; device: 'webgpu' | 'wasm' }> => {
+  const loadOn = async (id: string, dtype: 'q4' | 'q8' | 'fp16', revision = 'main'): Promise<{ m: any; device: 'webgpu' | 'wasm' }> => {
+    const opts = { dtype, progress_callback, revision }
     try {
-      return { m: await AutoModelForCausalLM.from_pretrained(id, { dtype, device: preferred, progress_callback }), device: preferred }
+      return { m: await AutoModelForCausalLM.from_pretrained(id, { ...opts, device: preferred }), device: preferred }
     } catch {
-      return { m: await AutoModelForCausalLM.from_pretrained(id, { dtype, device: 'wasm', progress_callback }), device: 'wasm' }
+      return { m: await AutoModelForCausalLM.from_pretrained(id, { ...opts, device: 'wasm' }), device: 'wasm' }
     }
   }
 
@@ -57,12 +58,12 @@ async function prepare(modelId: string) {
     // q8 is the attn repo's sole published variant: greedy-token-identical to
     // fp32 (lm_head excluded from quantization). q4/fp16 were disqualified
     // during validation — see tools/export/src/tsumugi_export/quantize.py.
-    ;({ m: model, device } = await loadOn(ATTN_MODEL_ID, 'q8'))
+    ;({ m: model, device } = await loadOn(ATTN_MODEL_ID, 'q8', ATTN_MODEL_REVISION))
     loadedModelId = ATTN_MODEL_ID
     hasAttentions = true
   } catch {
     try {
-      ;({ m: model, device } = await loadOn(ATTN_MODEL_ID, 'fp16'))
+      ;({ m: model, device } = await loadOn(ATTN_MODEL_ID, 'fp16', ATTN_MODEL_REVISION))
       loadedModelId = ATTN_MODEL_ID
       hasAttentions = true
     } catch {

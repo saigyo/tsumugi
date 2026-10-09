@@ -1,5 +1,5 @@
 import { expect, test, vi } from 'vitest'
-import { fallbackTokenizer, loadTokenizer } from './tokenizer'
+import { ATTN_MODEL_ID, ATTN_MODEL_REVISION, GEOMETRY_BASE_URL, fallbackTokenizer, geometryUrlFor, loadTokenizer } from './tokenizer'
 
 // hoisted by vitest — must be top-level, affects the whole file
 vi.mock('@huggingface/transformers', () => { throw new Error('offline') })
@@ -17,4 +17,11 @@ test('fallback ids are stable', () => {
 test('loadTokenizer falls back when HF import fails', async () => {
   const tok = await loadTokenizer()
   expect(tok.encode('hi')[0].text).toBe('hi')
+})
+
+test('geometry asset URL is pinned to the model revision', () => {
+  expect(geometryUrlFor('a/b', 'v9')).toBe('https://huggingface.co/a/b/resolve/v9/geometry')
+  expect(ATTN_MODEL_REVISION).toMatch(/^v\d+$/)
+  if (!import.meta.env.VITE_GEOMETRY_BASE_URL)
+    expect(GEOMETRY_BASE_URL).toBe(geometryUrlFor(ATTN_MODEL_ID, ATTN_MODEL_REVISION))
 })

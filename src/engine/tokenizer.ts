@@ -7,11 +7,18 @@ export interface Tokenizer {
 
 export const MODEL_ID = 'HuggingFaceTB/SmolLM2-135M-Instruct'
 export const ATTN_MODEL_ID = 'saigyo-hoshi/smollm2-135m-attn-onnx'
+// Hub tag the app loads the model and the geometry asset from. Transformers.js
+// caches files by URL and never revalidates, so a new release needs a new
+// tag here to reach browsers that cached the previous one. v3 = readout
+// outputs (last_hidden_state, topk_ids, topk_embeds).
+export const ATTN_MODEL_REVISION = 'v3'
 
 // Both ids share the same weights, so one geometry asset covers both.
 export const GEOMETRY_MODEL_IDS: readonly string[] = [MODEL_ID, ATTN_MODEL_ID]
+export const geometryUrlFor = (modelId: string, revision: string) =>
+  `https://huggingface.co/${modelId}/resolve/${revision}/geometry`
 export const GEOMETRY_BASE_URL: string =
-  import.meta.env.VITE_GEOMETRY_BASE_URL ?? `https://huggingface.co/${ATTN_MODEL_ID}/resolve/main/geometry`
+  import.meta.env.VITE_GEOMETRY_BASE_URL ?? geometryUrlFor(ATTN_MODEL_ID, ATTN_MODEL_REVISION)
 
 function hashId(text: string): number {
   let h = 0x811c9dc5
