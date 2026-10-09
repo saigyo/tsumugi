@@ -4,6 +4,7 @@ import { ATTN_MODEL_ID, ATTN_MODEL_REVISION } from '../tokenizer'
 import { sampleIndex, softmax, topK } from '../math'
 import { addAttentionOutput, createAccumulator, type AttnAccumulator } from './attentionAccum'
 import { extractEmbedRows } from './embedRows'
+import { extractReadout, type ReadoutResult } from './readout'
 import type { WorkerRequest, WorkerResponse } from './protocol'
 import { headStats, resolveHeadLabel, selectShowcaseHeads, type HeadStats, type ShowcasePrev } from './attentionStats'
 import { buildGridCells } from './attentionThumbs'
@@ -135,6 +136,8 @@ async function run(runId: number, prompt: string, params: GenParams) {
   // 'asset' throughout), or flipped mid-run by a bad-shape inputs_embeds below —
   // never-fail, like attnBroken.
   let embedsOff = promptIds.length > EMBED_MAX_PROMPT
+  // Readout for the Logits card (v3 export); flipped by a bad shape — never-fail.
+  let readoutOff = false
   let stats: HeadStats[] | null = null
   let prevSel: ShowcasePrev = {}
 
@@ -203,7 +206,21 @@ async function run(runId: number, prompt: string, params: GenParams) {
       const [, seq, vocab] = out.logits.dims as [number, number, number]
       const lastLogits: Float32Array = out.logits.data.slice((seq - 1) * vocab, seq * vocab)
       const top = topK(lastLogits, params.topK).map((c) => ({ ...tokenInfo(c.id), logit: Math.round(c.logit * 100) / 100 }))
-      emit({ type: 'logits', cycle, topK: top })
+      // Readout for the Logits card (v3 export): never-fail, like inputs_embeds.
+      let readout: ReadoutResult = { status: 'absent' }
+      if (!readoutOff) {
+        readout = extractReadout(out, nextInputIds.length, dims)
+        if (readout.status === 'bad-shape') {
+          readoutOff = true
+          console.warn(`readout outputs unusable (${readout.detail}) — the Logits card shows the schematic readout`)
+        }
+      }
+      const candidates = top.map((c) => {
+        const r = readout.status === 'ok' ? readout.byId.get(c.id) : undefined
+        return r ? { ...c, row: r.row, dot: r.dot } : c
+      })
+      emit({ type: 'logits', cycle, topK: candidates,
+        ...(readout.status === 'ok' ? { lastHidden: readout.lastHidden } : {}) })
 
       const probs = softmax(top.map((c) => c.logit), params.temperature)
       emit({ type: 'softmax', cycle, temperature: params.temperature,
