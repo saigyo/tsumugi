@@ -7,6 +7,8 @@
    match single-shot full-context logits
 5. inputs_embeds parity with the stock embedding table
 6. geometry/ spot-check against exact neighbours and the tokenizer
+7. last_hidden_state · Eᵀ reproduces the last-position logits
+8. topk_ids are the exact top-k and topk_embeds their rows of E
 Writes validation-report.json with artifact hashes; publish refuses to
 upload without a passing report."""
 import hashlib
@@ -14,6 +16,8 @@ import json
 from pathlib import Path
 
 import numpy as np
+
+from tsumugi_export import STOCK_MODEL_ID, TOPK
 
 PROMPTS = [
     "The cat sat on the mat because it was tired",
@@ -244,6 +248,42 @@ def _check_inputs_embeds_parity(sess, model_dir: Path, E: np.ndarray, tol: float
     return {"passed": diff <= tol, "detail": f"max|Δembed|={diff:.2e} (atol {tol})"}
 
 
+def check_last_hidden_parity(outputs: dict, E: np.ndarray, tol: float) -> dict:
+    """last_hidden_state is what the tied lm_head multiplies, so its last row
+    against Eᵀ must reproduce the last-position logits."""
+    if "last_hidden_state" not in outputs:
+        return {"passed": False, "detail": "graph has no last_hidden_state output"}
+    last, logits = outputs["last_hidden_state"], outputs["logits"]
+    expected = (1, logits.shape[1], E.shape[1])
+    if last.shape != expected:
+        return {"passed": False, "detail": f"last_hidden_state shape {last.shape}, expected {expected}"}
+    diff = float(np.max(np.abs(last[0, -1] @ E.T - logits[0, -1])))
+    return {"passed": diff <= tol, "detail": f"max|x·Eᵀ − logits|={diff:.2e} (atol {tol})"}
+
+
+def check_topk_parity(outputs: dict, E: np.ndarray, k: int, tol: float) -> dict:
+    """topk_ids must be the exact top-k of the last-position logits (order may
+    differ only among exact ties) and topk_embeds their rows of E. The gather
+    is excluded from quantization, so no quantization slack applies."""
+    for name in ("topk_ids", "topk_embeds"):
+        if name not in outputs:
+            return {"passed": False, "detail": f"graph has no {name} output"}
+    ids, rows, logits = outputs["topk_ids"], outputs["topk_embeds"], outputs["logits"]
+    if ids.shape != (1, k):
+        return {"passed": False, "detail": f"topk_ids shape {ids.shape}, expected (1, {k})"}
+    if rows.shape != (1, k, E.shape[1]):
+        return {"passed": False, "detail": f"topk_embeds shape {rows.shape}, expected (1, {k}, {E.shape[1]})"}
+    last = logits[0, -1]
+    kth = np.sort(last)[::-1][k - 1]
+    listed = [int(i) for i in ids[0]]
+    if len(set(listed)) != k or any(last[i] < kth for i in listed):
+        return {"passed": False, "detail": f"topk_ids {listed} are not the top-{k} of the last-position logits"}
+    diff = float(np.max(np.abs(rows[0] - E[listed])))
+    if diff > tol:
+        return {"passed": False, "detail": f"topk_embeds rows differ from E[topk_ids] by {diff:.2e} (atol {tol})"}
+    return {"passed": True, "detail": f"top-{k} ids exact; rows match E within {diff:.2e}"}
+
+
 def check_geometry_files(model_dir: Path, E: np.ndarray, texts: list[str], sample: int = 32) -> dict:
     """Spot-check geometry/ against the stock matrix: file sizes match the
     manifest, every sampled token's listed neighbour ids are distinct, each
@@ -295,7 +335,6 @@ def check_geometry_files(model_dir: Path, E: np.ndarray, texts: list[str], sampl
 
 def run(args) -> int:
     from huggingface_hub import hf_hub_download
-    from tsumugi_export import STOCK_MODEL_ID
 
     model_dir = Path(args.model_dir)
     onnx_dir = model_dir / "onnx"
@@ -379,6 +418,11 @@ def run(args) -> int:
 
         pe_tol = 1e-3 if variant in ("model.onnx", "model_fp16.onnx") else TOL
         checks[f"{variant}:inputs-embeds-parity"] = _check_inputs_embeds_parity(sess, model_dir, E, pe_tol)
+
+        ro_out = dict(zip(out_names, sess.run(None, _feeds(sess, _tokenize(model_dir, PROMPTS[0])))))
+        lh_tol = 1e-3 if variant == "model.onnx" else TOL
+        checks[f"{variant}:last-hidden-parity"] = check_last_hidden_parity(ro_out, E, lh_tol)
+        checks[f"{variant}:topk-parity"] = check_topk_parity(ro_out, E, TOPK, 1e-3)
 
     # A≡B equivalence when the operator exported both variants
     nc = model_dir.parent / "model-nocache" / "onnx" / "model.onnx"

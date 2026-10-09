@@ -19,6 +19,13 @@ so the choices aren't re-litigated blind:
 """
 from pathlib import Path
 
+from tsumugi_export.postprocess import TOPK_GATHER_NODE
+
+# The tied lm_head must stay fp32 (see the module docstring); the readout
+# gather must too, so the candidate rows the app shows are exactly the rows
+# the lm_head multiplied — their products then sum to the logit.
+NODES_TO_EXCLUDE = ["/lm_head/MatMul", TOPK_GATHER_NODE]
+
 
 def run(args) -> int:
     onnx_dir = Path(args.model_dir) / "onnx"
@@ -30,6 +37,6 @@ def run(args) -> int:
     from onnxruntime.quantization import QuantType, quantize_dynamic
     quantize_dynamic(str(src), str(onnx_dir / "model_quantized.onnx"),
                      weight_type=QuantType.QInt8,
-                     nodes_to_exclude=["/lm_head/MatMul"])
-    print("wrote model_quantized.onnx (q8, lm_head excluded)")
+                     nodes_to_exclude=NODES_TO_EXCLUDE)
+    print("wrote model_quantized.onnx (q8, lm_head and readout gather excluded)")
     return 0
