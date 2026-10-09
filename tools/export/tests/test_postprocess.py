@@ -122,13 +122,23 @@ def test_readout_without_final_hidden_state_raises():
         raise AssertionError("expected ValueError")
 
 
-def test_readout_requires_a_gather_behind_hidden_states_0():
+def test_readout_gathers_from_the_lm_head_weight_not_the_embed_table():
+    """The quantizer turns the embed table into int8 for the embedding Gather;
+    the lm_head keeps its own fp32 copy. The readout must read that copy so
+    the rows are exactly what produced the logits."""
+    model = expose_readout(readout_graph(), k=3)
+    gather = next(n for n in model.graph.node if n.name == TOPK_GATHER_NODE)
+    assert gather.input[0] == "lm_head.weight_t"
+
+
+def test_readout_requires_an_lm_head_matmul_on_an_initializer():
     model = readout_graph()
-    model.graph.node[0].op_type = "Identity"
-    del model.graph.node[0].input[1]
+    matmul = model.graph.node[2]
+    matmul.op_type = "Identity"
+    del matmul.input[1]
     try:
         expose_readout(model, k=3)
     except ValueError as err:
-        assert "Gather" in str(err)
+        assert "MatMul" in str(err)
     else:
         raise AssertionError("expected ValueError")

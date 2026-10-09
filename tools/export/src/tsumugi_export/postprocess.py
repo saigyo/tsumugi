@@ -6,7 +6,8 @@ them under artifact-contract names — hidden_states.0 as `inputs_embeds` (the
 embedding lookup) and hidden_states.N as `last_hidden_state` (the residual
 stream after the final RMSNorm, the tensor lm_head multiplies) — and drop the
 rest. We also add a readout branch: TopK over the last position's logits and
-a Gather of those candidates' rows of E, as `topk_ids` / `topk_embeds`. The
+a Gather of those candidates' rows of E — read from the lm_head's own fp32
+weight (see find_lm_head_weight) — as `topk_ids` / `topk_embeds`. The
 tensors already in the graph stay; only the output list and a handful of tiny
 nodes change, so this costs nothing measurable at inference time."""
 from pathlib import Path
@@ -29,22 +30,33 @@ def _producer(graph: onnx.GraphProto, name: str) -> onnx.NodeProto | None:
     return next((n for n in graph.node if name in n.output), None)
 
 
-def find_embedding_table(graph: onnx.GraphProto) -> str:
-    """The tensor name of E: the data input of the Gather that produces
-    hidden_states.0, looking through Identity/Cast wrappers. Structural, not
-    by name — optimum's initializer names are not part of our contract."""
-    name = SOURCE_OUTPUT
+def find_lm_head_weight(graph: onnx.GraphProto, dims: int) -> str:
+    """The tensor name of the lm_head's weight: the second input of the MatMul
+    that produces `logits` (through Identity/Cast wrappers), an initializer of
+    shape [dims, vocab]. The export keeps this as its own fp32 copy of Eᵀ even
+    though the model ties the weights — and the quantizer turns the embedding
+    table itself into int8 for the embedding Gather — so this copy, not
+    `model.embed_tokens.weight`, is what the readout rows must come from: it
+    is exactly what produced the logits. Structural, not by name — optimum's
+    initializer names are not part of our contract."""
+    name = "logits"
     for _ in range(8):
         node = _producer(graph, name)
         if node is None:
-            raise ValueError(f"no node produces {name} — expected a Gather behind {SOURCE_OUTPUT}")
-        if node.op_type == "Gather":
-            return node.input[0]
+            raise ValueError(f"no node produces {name} — expected a MatMul behind logits")
         if node.op_type in ("Identity", "Cast"):
             name = node.input[0]
             continue
-        raise ValueError(f"{SOURCE_OUTPUT} is produced by {node.op_type}, expected Gather")
-    raise ValueError(f"gave up tracing {SOURCE_OUTPUT} back to a Gather")
+        if node.op_type != "MatMul":
+            raise ValueError(f"logits is produced by {node.op_type}, expected MatMul")
+        weight = node.input[1]
+        init = next((t for t in graph.initializer if t.name == weight), None)
+        if init is None:
+            raise ValueError(f"lm_head MatMul weight {weight} is not an initializer")
+        if list(init.dims) != [dims, *init.dims[1:]] or len(init.dims) != 2:
+            raise ValueError(f"lm_head weight {weight} has shape {list(init.dims)}, expected [{dims}, vocab]")
+        return weight
+    raise ValueError("gave up tracing logits back to a MatMul")
 
 
 def expose_readout(model: onnx.ModelProto, k: int = TOPK) -> onnx.ModelProto:
@@ -60,7 +72,7 @@ def expose_readout(model: onnx.ModelProto, k: int = TOPK) -> onnx.ModelProto:
     dims = last.type.tensor_type.shape.dim[2].dim_value
     if dims <= 0:
         raise ValueError(f"hidden_states.{n} has no static last dimension")
-    table = find_embedding_table(graph)
+    weight_t = find_lm_head_weight(graph, dims)   # [dims, vocab]: rows of E are its columns
 
     graph.initializer.extend([
         helper.make_tensor("tsumugi_slice_starts", TensorProto.INT64, [1], [-1]),
@@ -80,8 +92,12 @@ def expose_readout(model: onnx.ModelProto, k: int = TOPK) -> onnx.ModelProto:
         helper.make_node("TopK", ["tsumugi_last_logits", "tsumugi_topk_k"],
                          ["tsumugi_topk_values", TOPK_IDS_OUTPUT],
                          name="tsumugi_topk", axis=-1, largest=1, sorted=1),
-        helper.make_node("Gather", [table, TOPK_IDS_OUTPUT], [TOPK_EMBEDS_OUTPUT],
-                         name=TOPK_GATHER_NODE, axis=0),
+        # Gather columns of Eᵀ: [dims, vocab] × ids [batch, k] → [dims, batch, k],
+        # then bring the row axis last → [batch, k, dims]
+        helper.make_node("Gather", [weight_t, TOPK_IDS_OUTPUT], ["tsumugi_topk_embeds_t"],
+                         name=TOPK_GATHER_NODE, axis=1),
+        helper.make_node("Transpose", ["tsumugi_topk_embeds_t"], [TOPK_EMBEDS_OUTPUT],
+                         name="tsumugi_topk_embeds_transpose", perm=[1, 2, 0]),
     ])
     last_vi = onnx.ValueInfoProto()
     last_vi.CopyFrom(last)

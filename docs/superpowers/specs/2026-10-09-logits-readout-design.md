@@ -77,14 +77,23 @@ addressed by name:
 2. `TopK(k=16, axis=-1, largest=1, sorted=1)` → values and indices, both
    `[batch, 16]`. The indices become graph output `topk_ids`; the values
    output is named but consumed by nothing, which ONNX allows.
-3. `Gather(E, topk_ids, axis=0)` → `[batch, 16, 576]` → graph output
-   `topk_embeds`. Node name `tsumugi_topk_embeds_gather`.
+3. `Gather(Wᵀ, topk_ids, axis=1)` → `[576, batch, 16]`, `Transpose(perm=[1,2,0])`
+   → `[batch, 16, 576]` → graph output `topk_embeds`. Gather node name
+   `tsumugi_topk_embeds_gather`.
 
-`E` is located structurally, not by name: the node producing
-`hidden_states.0` is the embedding `Gather` (possibly behind `Identity`
-nodes, which the locator walks through); its data input is the table.
-Post-processing raises if the locator finds no `Gather`. The constant
-`TOPK = 16` lives in `tsumugi_export/__init__.py` next to the repo ids.
+`Wᵀ` is the lm_head's own weight, located structurally, not by name: the
+node producing `logits` is a `MatMul` (possibly behind `Identity`/`Cast`
+nodes, which the locator walks through) whose second input is an
+initializer of shape `[576, vocab]`. The export keeps this fp32 copy of
+`Eᵀ` even though the model ties the weights, and it is what the quantizer
+leaves alone when `/lm_head/MatMul` is excluded. The embedding table
+itself (`model.embed_tokens.weight`) is **not** a usable source: the
+quantizer turns it into int8 for the embedding `Gather`, and a second
+consumer, even an excluded one, gets a dequantized copy (found during the
+first operator run: rows off by 7.5e-3). Reading the lm_head weight also
+makes the rows exactly those that produced the logits. Post-processing
+raises if the locator finds no such `MatMul`. The constant `TOPK = 16`
+lives in `tsumugi_export/__init__.py` next to the repo ids.
 
 `quantize.py` excludes `tsumugi_topk_embeds_gather` alongside
 `/lm_head/MatMul`. The other new nodes carry no weights.
