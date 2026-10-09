@@ -30,7 +30,11 @@ const waitForServer = async () => {
 }
 
 mkdirSync(DIR, { recursive: true })
-const server = spawn('npm', ['run', 'dev', '--', '--port', String(PORT)], { stdio: 'ignore' })
+// detached: the server gets its own process group, so the cleanup below can kill
+// npm AND the vite child it spawns — killing npm alone left vite on :5199
+const server = spawn('npm', ['run', 'dev', '--', '--port', String(PORT)], { stdio: 'ignore', detached: true })
+const stopServer = () => { try { process.kill(-server.pid, 'SIGTERM') } catch { /* already gone */ } }
+process.on('exit', stopServer)
 const context = await chromium.launchPersistentContext(PROFILE, {
   headless: false,
   viewport: { width: 1380, height: 940 },
@@ -178,5 +182,5 @@ try {
   }
 } finally {
   await context.close()
-  server.kill()
+  stopServer()
 }

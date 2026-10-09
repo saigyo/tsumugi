@@ -136,7 +136,3 @@ def postprocess_file(path: Path) -> None:
     sidecar = path.with_name(path.name + "_data")
     if sidecar.exists():
         sidecar.unlink()
-
-
-# kept for callers and tests that predate the readout branch
-expose_inputs_embeds_file = postprocess_file

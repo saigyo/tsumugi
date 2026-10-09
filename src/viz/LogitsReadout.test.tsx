@@ -35,7 +35,9 @@ test('candidate without dot renders without a product strip and gets the asset b
   render(<LogitsReadout {...props({ selected: 2 })} />)
   const bench = screen.getByTestId('readout-bench')
   expect(bench).toHaveTextContent('PCA-reduced')
-  expect(bench).toHaveTextContent(/real-mode generation/)
+  // the reader IS in a real run here: say why this one candidate has no products, don't send them to real mode
+  expect(bench).toHaveTextContent(/not among the 16 rows the model exported/)
+  expect(bench).not.toHaveTextContent(/real-mode generation/)
   expect(bench.querySelector('[data-testid="bench-product"]')).toBeNull()
 })
 

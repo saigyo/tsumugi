@@ -124,7 +124,9 @@ export function LogitsReadout({ candidates, lastHidden, dims, vocabSize, selecte
           ) : (
             <div data-testid="readout-sum" className="readout-sum">
               {assetCells ? `${assetCells.length} of ${dims} dimensions (PCA-reduced, offline). ` : ''}
-              Run a real-mode generation to see the actual products.
+              {lastHidden
+                ? 'This candidate’s row was not among the 16 rows the model exported (a tie at the cut), so its products are not available.'
+                : 'Run a real-mode generation to see the actual products.'}
             </div>
           )}
           {exact && (

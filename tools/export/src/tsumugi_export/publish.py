@@ -34,8 +34,9 @@ last position) and `topk_embeds` (`[batch, 16, 576]`, their rows of the
 embedding table, kept fp32). Tsumugi's Logits card shows the dot product
 `last_hidden_state · topk_embeds[i]` cell by cell, summing to the logit.
 
-Releases are tagged (`v3` added the readout outputs); the app pins a tag so
-browsers that cached an older file re-download once.
+Releases are tagged — this one is `{tag}` — and the app pins a tag, so
+browsers that cached an older file re-download once. Tags never move: a
+fixed model is published under the next tag.
 
 Validation (see `validation-report.json`): logits parity with the stock
 export, row-stochastic causal attention rows, cached-vs-full-matrix
@@ -127,13 +128,13 @@ def run(args) -> int:
             print(f"{name} changed since validation (hash mismatch) — re-run validate")
             return 1
 
+    tag = tag_name(args)
     from transformers import AutoConfig
     n_layers = AutoConfig.from_pretrained(str(model_dir)).num_hidden_layers
     (model_dir / "README.md").write_text(
-        MODEL_CARD.format(stock=STOCK_MODEL_ID, last=n_layers - 1))
+        MODEL_CARD.format(stock=STOCK_MODEL_ID, last=n_layers - 1, tag=tag))
 
     repo_id = args.repo_id or ATTN_REPO_ID
-    tag = tag_name(args)
     api = HfApi()
     api.create_repo(repo_id, exist_ok=True)
     # Refuse before uploading, so a refused publish changes nothing on the Hub.

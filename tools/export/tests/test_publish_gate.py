@@ -37,6 +37,12 @@ def test_model_card_documents_the_readout_outputs():
         assert name in MODEL_CARD
 
 
+def test_model_card_names_the_published_tag():
+    card = MODEL_CARD.format(stock="s/m", last=29, tag="v9")
+    assert "`v9`" in card
+    assert "v3" not in card          # the tag is not hardcoded to this release
+
+
 def test_tag_name_rejects_empty():
     assert tag_name(argparse.Namespace(tag="v3")) == "v3"
     for bad in ("", "  "):

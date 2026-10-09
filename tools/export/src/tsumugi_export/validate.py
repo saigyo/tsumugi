@@ -232,14 +232,12 @@ def _check_cache_integrity(sess, model_dir: Path, tol: float, strict: bool = Tru
     }
 
 
-def _check_inputs_embeds_parity(sess, model_dir: Path, E: np.ndarray, tol: float) -> dict:
+def check_inputs_embeds_parity(outputs: dict, ids: np.ndarray, E: np.ndarray, tol: float) -> dict:
     """inputs_embeds must be exactly the embedding-table rows of the fed ids
-    (within quantization noise for the int8 variant)."""
-    out_names = [o.name for o in sess.get_outputs()]
-    if "inputs_embeds" not in out_names:
+    (within quantization noise for the int8 variant). Pure over one run's
+    outputs, like the readout checks, so the three share a single forward."""
+    if "inputs_embeds" not in outputs:
         return {"passed": False, "detail": "graph has no inputs_embeds output"}
-    ids = _tokenize(model_dir, PROMPTS[0])
-    outputs = dict(zip(out_names, sess.run(None, _feeds(sess, ids))))
     got = outputs["inputs_embeds"]
     expected = E[ids[0]][None, :, :]
     if got.shape != expected.shape:
@@ -416,10 +414,11 @@ def run(args) -> int:
         checks[f"{variant}:cache-integrity"] = _check_cache_integrity(
             sess, model_dir, ci_tol, strict=(variant == "model.onnx"))
 
+        # one forward on PROMPTS[0] serves the embedding-row and readout checks
+        ro_ids = _tokenize(model_dir, PROMPTS[0])
+        ro_out = dict(zip(out_names, sess.run(None, _feeds(sess, ro_ids))))
         pe_tol = 1e-3 if variant in ("model.onnx", "model_fp16.onnx") else TOL
-        checks[f"{variant}:inputs-embeds-parity"] = _check_inputs_embeds_parity(sess, model_dir, E, pe_tol)
-
-        ro_out = dict(zip(out_names, sess.run(None, _feeds(sess, _tokenize(model_dir, PROMPTS[0])))))
+        checks[f"{variant}:inputs-embeds-parity"] = check_inputs_embeds_parity(ro_out, ro_ids, E, pe_tol)
         lh_tol = 1e-3 if variant == "model.onnx" else TOL
         checks[f"{variant}:last-hidden-parity"] = check_last_hidden_parity(ro_out, E, lh_tol)
         checks[f"{variant}:topk-parity"] = check_topk_parity(ro_out, E, TOPK, 1e-3)

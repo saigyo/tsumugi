@@ -2,7 +2,7 @@ import numpy as np
 
 from tsumugi_export.postprocess import TOPK_GATHER_NODE
 from tsumugi_export.quantize import NODES_TO_EXCLUDE
-from tsumugi_export.validate import check_last_hidden_parity, check_topk_parity
+from tsumugi_export.validate import check_inputs_embeds_parity, check_last_hidden_parity, check_topk_parity
 
 rng = np.random.default_rng(0)
 E = rng.normal(size=(50, 8)).astype(np.float32)
@@ -80,6 +80,19 @@ def test_topk_parity_fails_on_missing_or_misshapen_output():
     out = good_outputs(k=4)
     out["topk_ids"] = out["topk_ids"][:, :3]
     r = check_topk_parity(out, E, k=4, tol=1e-6)
+    assert not r["passed"] and "shape" in r["detail"]
+
+
+def test_inputs_embeds_parity_is_pure_over_the_same_outputs():
+    ids = np.array([[3, 17, 42]], dtype=np.int64)
+    out = {"inputs_embeds": E[ids[0]][None, :, :]}
+    assert check_inputs_embeds_parity(out, ids, E, tol=1e-6)["passed"]
+    out["inputs_embeds"] = out["inputs_embeds"] + 0.05
+    r = check_inputs_embeds_parity(out, ids, E, tol=1e-2)
+    assert not r["passed"] and "Δembed" in r["detail"]
+    r = check_inputs_embeds_parity({}, ids, E, tol=1e-2)
+    assert not r["passed"] and "no inputs_embeds" in r["detail"]
+    r = check_inputs_embeds_parity({"inputs_embeds": E[ids[0, :2]][None, :, :]}, ids, E, tol=1e-2)
     assert not r["passed"] and "shape" in r["detail"]
 
 
