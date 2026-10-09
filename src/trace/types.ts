@@ -34,13 +34,26 @@ export type RunEndReason = 'eos' | 'max-tokens' | 'aborted' | 'error'
 // vectors up by id in the Hub geometry asset (sim mode, or an old cached model).
 export type EmbedSource = 'model' | 'asset'
 
+// The readout strips: the final vector and E rows pooled into this many cells
+// (576 / 64 = 9 dimensions per cell). Shared by the worker's pooling and the
+// Logits card's pooling of lastHidden, so the strips line up cell for cell.
+export const READOUT_CELLS = 64
+
+export interface LogitCandidate extends TokenInfo {
+  logit: number
+  // real mode with the v3 export: the candidate's row of E pooled by mean,
+  // and the element-wise product x_last ⊙ E[id] pooled by sum (Σ dot ≈ logit)
+  row?: number[]
+  dot?: number[]
+}
+
 export type TraceEvent =
   | { type: 'run-start'; prompt: string; mode: Mode; modelId: string; params: GenParams; vocabSize?: number }
   | { type: 'tokenize'; tokens: TokenInfo[]; truncated?: boolean }
   | { type: 'embed'; cycle: number; seqLen: number; dims: number; source: EmbedSource; rows?: number[][] }
   | { type: 'layer'; cycle: number; index: number; total: number; activationNorm?: number }
   | { type: 'attention'; cycle: number; heads: AttentionHead[] }
-  | { type: 'logits'; cycle: number; topK: Array<TokenInfo & { logit: number }> }
+  | { type: 'logits'; cycle: number; topK: LogitCandidate[]; lastHidden?: number[] }
   | { type: 'softmax'; cycle: number; temperature: number; topK: Array<TokenInfo & { prob: number }> }
   | { type: 'sample'; cycle: number; chosen: TokenInfo; method: 'greedy' | 'top-k' }
   | { type: 'append'; cycle: number; token: TokenInfo }

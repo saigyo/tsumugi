@@ -1,7 +1,7 @@
 import { expect, test } from 'vitest'
-import { buildFixtureTrace, makeFixtureTrace, makeGridEvent } from '../test/fixtures'
+import { buildFixtureTrace, fixtureReadout, makeFixtureTrace, makeGridEvent } from '../test/fixtures'
 import { validateTrace } from './validate'
-import type { TraceEvent } from './types'
+import { READOUT_CELLS, type TraceEvent } from './types'
 
 test('fixture trace is valid', () => {
   expect(validateTrace(makeFixtureTrace())).toEqual([])
@@ -99,4 +99,37 @@ test('legacy embed events carrying preview and no source still validate', () => 
   const i = t.findIndex((x) => x.type === 'embed')
   t[i] = { type: 'embed', cycle: 0, seqLen: 2, dims: 576, preview: [[0.1, 0.2]] } as unknown as TraceEvent
   expect(validateTrace(t)).toEqual([])
+})
+
+test('readout fields on logits events validate, and dot cells sum to the logit', () => {
+  const t = buildFixtureTrace({ readout: true })
+  expect(validateTrace(t)).toEqual([])
+  const logits = t.find((e) => e.type === 'logits')
+  if (logits?.type !== 'logits') throw new Error('no logits event')
+  expect(logits.lastHidden).toHaveLength(576)
+  for (const c of logits.topK) {
+    expect(c.row).toHaveLength(READOUT_CELLS)
+    expect(c.dot).toHaveLength(READOUT_CELLS)
+    expect(c.dot!.reduce((a, b) => a + b, 0)).toBeCloseTo(c.logit, 6)
+  }
+})
+
+test('readout fields with wrong length are flagged', () => {
+  const t = buildFixtureTrace({ readout: true })
+  const logits = t.find((e) => e.type === 'logits')
+  if (logits?.type !== 'logits') throw new Error('no logits event')
+  logits.topK[0].dot = [1, 2, 3]
+  logits.lastHidden = [1, Number.NaN]
+  const errs = validateTrace(t)
+  expect(errs.some((e) => /dot/.test(e) && /64/.test(e))).toBe(true)
+  expect(errs.some((e) => /lastHidden/.test(e))).toBe(true)
+})
+
+test('logits events without readout fields stay valid', () => {
+  expect(validateTrace(buildFixtureTrace())).toEqual([])
+})
+
+test('fixtureReadout is deterministic and sums to the logit', () => {
+  expect(fixtureReadout(42, 9.1)).toEqual(fixtureReadout(42, 9.1))
+  expect(fixtureReadout(42, 9.1).dot.reduce((a, b) => a + b, 0)).toBeCloseTo(9.1, 6)
 })

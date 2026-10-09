@@ -1,4 +1,4 @@
-import type { AttentionGridCell, Mode, RunEndReason, TraceEvent, TokenInfo } from '../trace/types'
+import { READOUT_CELLS, type AttentionGridCell, type LogitCandidate, type Mode, type RunEndReason, type TraceEvent, type TokenInfo } from '../trace/types'
 import type { RunRecord } from '../app/runsStore'
 
 export interface FixtureTraceOpts {
@@ -12,6 +12,8 @@ export interface FixtureTraceOpts {
   mode?: Mode
   reason?: RunEndReason
   embedRows?: boolean
+  // logits events carry lastHidden and per-candidate row/dot strips
+  readout?: boolean
 }
 
 const DEFAULT_WORDS = [' sat', ' on', ' the', ' mat']
@@ -19,6 +21,24 @@ const DEFAULT_WORDS = [' sat', ' on', ' the', ' mat']
 // Deterministic 576-dim "embedding" for a token id, for model-source fixtures.
 export function fixtureEmbedding(id: number): number[] {
   return Array.from({ length: 576 }, (_, d) => Math.round(Math.sin(id * 0.37 + d * 0.11) * 1000) / 1000)
+}
+
+const r3 = (v: number) => Math.round(v * 1000) / 1000
+
+// Deterministic final vector for a cycle, 576 values.
+export function fixtureLastHidden(cycle: number): number[] {
+  return Array.from({ length: 576 }, (_, d) => r3(Math.cos(cycle * 0.9 + d * 0.07)))
+}
+
+// Deterministic pooled strips for a candidate: `row` is any smooth signal,
+// `dot` is built so its cells sum to the logit exactly (last cell absorbs
+// the rounding), because the card displays that sum next to the logit.
+export function fixtureReadout(id: number, logit: number): { row: number[]; dot: number[] } {
+  const row = Array.from({ length: READOUT_CELLS }, (_, c) => r3(Math.cos(id * 0.5 + c * 0.3)))
+  const dot = Array.from({ length: READOUT_CELLS }, (_, c) => r3(logit / READOUT_CELLS + 0.3 * Math.sin(id * 0.7 + c * 0.4)))
+  const partial = dot.slice(0, -1).reduce((a, b) => a + b, 0)
+  dot[READOUT_CELLS - 1] = Math.round((logit - partial) * 1e6) / 1e6
+  return { row, dot }
 }
 
 export function buildFixtureTrace(opts: FixtureTraceOpts = {}): TraceEvent[] {
@@ -53,9 +73,13 @@ export function buildFixtureTrace(opts: FixtureTraceOpts = {}): TraceEvent[] {
       { layer: 2, head: 1, label: 'previous-token',
         matrix: Array.from({ length: seq }, (_, i) => i === 0 ? [1] : row(i, [[i - 1, 0.8], [i, 0.2]])) },
     ] })
-    events.push({ type: 'logits', cycle: c, topK: [
+    const scored: LogitCandidate[] = [
       { ...chosen, logit: 9.1 }, { id: 200, text: ' ran', logit: 7.2 }, { id: 201, text: ' was', logit: 5.0 },
-    ] })
+    ]
+    events.push(opts.readout
+      ? { type: 'logits', cycle: c, lastHidden: fixtureLastHidden(c),
+          topK: scored.map((s) => ({ ...s, ...fixtureReadout(s.id, s.logit) })) }
+      : { type: 'logits', cycle: c, topK: scored })
     events.push({ type: 'softmax', cycle: c, temperature, topK: [
       { ...chosen, prob: 0.7 }, { id: 200, text: ' ran', prob: 0.2 }, { id: 201, text: ' was', prob: 0.1 },
     ] })

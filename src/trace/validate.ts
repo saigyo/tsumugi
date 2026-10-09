@@ -1,4 +1,4 @@
-import type { TraceEvent } from './types'
+import { READOUT_CELLS, type TraceEvent } from './types'
 
 export function validateTrace(events: TraceEvent[]): string[] {
   const errs: string[] = []
@@ -68,9 +68,21 @@ export function validateTrace(events: TraceEvent[]): string[] {
       for (let i = 1; i < e.topK.length; i++)
         if (e.topK[i].prob > e.topK[i - 1].prob) errs.push('softmax topK not sorted desc')
     }
-    if (e.type === 'logits')
+    if (e.type === 'logits') {
       for (let i = 1; i < e.topK.length; i++)
         if (e.topK[i].logit > e.topK[i - 1].logit) errs.push('logits topK not sorted desc')
+      const finite = (a: unknown): a is number[] =>
+        Array.isArray(a) && a.every((v) => typeof v === 'number' && Number.isFinite(v))
+      if (e.lastHidden !== undefined && !finite(e.lastHidden))
+        errs.push(`logits cycle ${e.cycle} lastHidden is not an array of finite numbers`)
+      for (const c of e.topK) {
+        for (const key of ['row', 'dot'] as const) {
+          const v = c[key]
+          if (v !== undefined && (!finite(v) || v.length !== READOUT_CELLS))
+            errs.push(`logits cycle ${e.cycle} candidate ${c.id} ${key} is not ${READOUT_CELLS} finite numbers`)
+        }
+      }
+    }
   }
   return errs
 }
