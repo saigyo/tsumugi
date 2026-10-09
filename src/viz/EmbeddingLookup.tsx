@@ -2,6 +2,7 @@ import { poolRow } from '../geometry/math'
 import type { EmbedSource, TokenInfo } from '../trace/types'
 import { thousands } from './selectors'
 import { visibleToken } from './tokenText'
+import { VectorStrip, cellFill, peakOf, rowMarkY } from './VectorStrip'
 
 const STRIP_CELLS = 96
 const CELL_W = 5
@@ -21,17 +22,6 @@ const CALLOUTS: Array<{ label: string; text: string }> = [
     text: 'The same 49152 × 576 matrix is reused at the end: the final vector is compared against every row to score each token (tie_word_embeddings).' },
 ]
 
-// Diverging fill: indigo for positive, vermillion for negative, intensity
-// relative to the row's own peak magnitude.
-function cellFill(v: number, peak: number): string {
-  const t = Math.abs(v) / peak
-  return v >= 0
-    ? `hsl(211 45% ${Math.round(88 - t * 50)}%)`
-    : `hsl(13 55% ${Math.round(90 - t * 40)}%)`
-}
-
-const peakOf = (cells: number[]) => cells.reduce((m, v) => Math.max(m, Math.abs(v)), 0) || 1
-
 // The mechanism half of the Embeddings card: ids → one row of E → the stacked
 // residual stream x. Pure presentation; the container decides where vectors
 // come from (trace rows or the geometry asset).
@@ -48,9 +38,8 @@ export function EmbeddingLookup({ tokens, dims, vocabSize, selected, onSelect, v
   const token = tokens[selected]
   const vec = token ? vectorFor(selected) : undefined
   const cells = vec ? poolRow(vec, STRIP_CELLS) : []
-  const peak = peakOf(cells)
   const vocab = vocabSize ? thousands(vocabSize) : '?'
-  const rowY = token ? 40 + (token.id % 41) : 0   // a schematic position inside E
+  const rowY = token ? rowMarkY(token.id) : 0   // a schematic position inside E
   const stackRows = tokens.map((_, i) => {
     const v = vectorFor(i)
     return v ? poolRow(v, STACK_CELLS) : null
@@ -84,14 +73,8 @@ export function EmbeddingLookup({ tokens, dims, vocabSize, selected, onSelect, v
       <div className="embed-strip-wrap">
         <div className="embed-col-label">row {token?.id ?? '—'}</div>
         {cells.length > 0 ? (
-          <svg data-testid="embed-strip" width={cells.length * CELL_W} height={CELL_H}
-            viewBox={`0 0 ${cells.length * CELL_W} ${CELL_H}`} role="img"
-            aria-label={`embedding row of token ${token?.text ?? ''}`}>
-            {cells.map((v, c) => (
-              <rect key={c} data-testid="embed-strip-cell" x={c * CELL_W} y={0} width={CELL_W - 1} height={CELL_H}
-                fill={cellFill(v, peak)} />
-            ))}
-          </svg>
+          <VectorStrip cells={cells} cellW={CELL_W} cellH={CELL_H} testId="embed-strip" cellTestId="embed-strip-cell"
+            ariaLabel={`embedding row of token ${token?.text ?? ''}`} />
         ) : (
           <div data-testid="embed-strip-missing" className="embed-strip-missing">{missingNote}</div>
         )}
