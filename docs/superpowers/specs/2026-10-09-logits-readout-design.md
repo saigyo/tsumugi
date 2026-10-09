@@ -110,11 +110,16 @@ further changes.
 
 - Model card: a paragraph after the `inputs_embeds` one describing the
   three outputs and their shapes, and naming the tag.
-- After `upload_folder`, `HfApi.create_tag(repo_id, tag=args.tag,
-  exist_ok=True)` on the uploaded commit. `--tag` is required (no default),
-  so an operator cannot publish untagged by accident. The runbook names
-  the tag for this release: `v3` (v1: attention outputs, v2: inputs_embeds
-  and geometry, retroactively).
+- `--tag` is required (no default), so an operator cannot publish untagged
+  by accident. Before uploading anything, `publish` lists the repo's refs
+  and **refuses if the tag already exists**: a Hub tag never moves, so
+  re-publishing under the same name would silently leave the app on the
+  first upload, and browsers that cached that URL would never re-check.
+  After `upload_folder`, `HfApi.create_tag(repo_id, tag, revision=<the
+  upload's commit>)`. A fix after an in-app check is therefore a **new
+  tag** (`v3` → `v4`) plus a bump of `ATTN_MODEL_REVISION`. The runbook
+  names the tag for this release: `v3` (v1: attention outputs, v2:
+  inputs_embeds and geometry, retroactively).
 
 ### Docs and tests
 
