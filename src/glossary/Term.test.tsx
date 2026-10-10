@@ -49,3 +49,14 @@ test('an id without an entry renders plain text, not a button', () => {
   expect(screen.queryByRole('button')).toBeNull()
   expect(screen.getByText('plain words')).toBeInTheDocument()
 })
+
+test('the tooltip is placed in the viewport, clamped away from the right edge', () => {
+  render(<Term id="edit">edit</Term>)
+  const term = screen.getByTestId('gl-term')
+  term.getBoundingClientRect = () => ({ left: 990, right: 1020, top: 100, bottom: 118, width: 30, height: 18, x: 990, y: 100, toJSON: () => ({}) })
+  Object.defineProperty(window, 'innerWidth', { configurable: true, value: 1024 })
+  fireEvent.mouseEnter(term)
+  const tip = screen.getByTestId('gl-tip')
+  expect(parseFloat(tip.style.left)).toBeLessThanOrEqual(1024 - 296)
+  expect(tip.style.top).toBe('122px')
+})

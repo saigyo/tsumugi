@@ -394,7 +394,7 @@ input[type="number"] { width: 4rem; }
 }
 .gl-term-icon:hover:not(:disabled) { background: var(--ai-wash); }
 .gl-tip {
-  position: absolute; left: 0; top: calc(100% + 4px); z-index: 30; width: max-content; max-width: 280px;
+  position: fixed; z-index: 50; width: max-content; max-width: 280px;
   background: var(--ink); color: var(--card); font-size: .78rem; font-weight: 400; line-height: 1.35;
   padding: .35rem .55rem; border-radius: 5px; box-shadow: 0 2px 8px rgba(43, 43, 49, .2); pointer-events: none;
 }

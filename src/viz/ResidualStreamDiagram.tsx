@@ -30,7 +30,7 @@ export function ResidualStreamDiagram({ seqLen, dims, layers }: {
   })
   return (
     <div data-testid="residual-diagram" className="residual-diagram">
-      <svg width="560" height="118" viewBox="0 0 560 118" role="img"
+      <svg width="560" height="118" viewBox="0 0 560 118" role="group"
         aria-label="residual stream: attention and MLP each add their output back into the same matrix">
         {/* the stream */}
         <line x1="8" y1="88" x2="530" y2="88" className="rs-stream" />

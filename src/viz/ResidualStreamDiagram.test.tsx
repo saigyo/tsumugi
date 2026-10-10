@@ -31,3 +31,10 @@ test('the caption links edits and layers', () => {
   const terms = screen.getAllByTestId('gl-term').map((t) => t.dataset.term)
   expect(terms).toEqual(['layer', 'edit'])
 })
+
+test('the boxes stay reachable for screen readers (the svg is a group, not an image)', () => {
+  render(<ResidualStreamDiagram seqLen={4} dims={576} layers={30} />)
+  const svg = screen.getByTestId('residual-diagram').querySelector('svg')!
+  expect(svg.getAttribute('role')).toBe('group')
+  expect(screen.getByRole('button', { name: /^MLP/ })).toBe(screen.getByTestId('rs-term-mlp'))
+})

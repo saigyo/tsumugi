@@ -80,3 +80,9 @@ test('every callout chip points at a section that exists', () => {
   for (const c of [...EMBEDDING_CALLOUTS, ...logitsCallouts(3, '49 152'), ...SOFTMAX_CALLOUTS])
     expect(sectionsOf(c.id), `${c.label} → ${c.id} § ${c.section}`).toContain(c.section)
 })
+
+test('How to read Tsumugi walks the screen in the order the app lays it out', () => {
+  const { container } = render(<>{getEntry('how-to-read')!.body()}</>)
+  const steps = [...container.querySelectorAll('li > strong')].map((el) => el.textContent)
+  expect(steps).toEqual(['Prompt and mode.', 'Run shelf.', 'Generate.', 'Pipeline band.', 'Playback.', 'Detail panel.'])
+})

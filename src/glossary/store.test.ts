@@ -28,9 +28,25 @@ test('opening another entry pushes the previous view; back pops it', () => {
 
 test('navigating inside the drawer keeps the original opener', () => {
   const first = document.createElement('button')
+  const drawer = document.createElement('aside')
+  drawer.className = 'gl-drawer'
+  const inside = document.createElement('button')
+  drawer.append(inside)
+  document.body.append(first, drawer)
   s().openEntry('edit', undefined, first)
-  s().openEntry('mlp', undefined, document.createElement('button'))
+  s().openEntry('mlp', undefined, inside)
   expect(s().opener).toBe(first)
+})
+
+test('a term on the page clicked while the drawer is open becomes the new opener', () => {
+  const first = document.createElement('button')
+  const second = document.createElement('button')
+  document.body.append(first, second)
+  s().openEntry('embedding', 'learned', first)
+  s().openEntry('softmax', 'temperature', second)
+  expect(s().opener).toBe(second)
+  s().close()
+  expect(document.activeElement).toBe(second)
 })
 
 test('opening the open view again is a no-op', () => {

@@ -22,8 +22,11 @@ const initial = { view: null, history: [], opener: null }
 export const useGlossaryStore = create<GlossaryState>()((set, get) => {
   const go = (next: GlossaryView, opener?: FocusTarget) => {
     const { view, history } = get()
-    if (view === null) set({ view: next, history: [], opener: opener ?? null })
-    else if (!sameView(view, next)) set({ view: next, history: [...history, view] })
+    if (view === null) { set({ view: next, history: [], opener: opener ?? null }); return }
+    if (sameView(view, next)) return
+    // a term on the page (not a link inside the drawer) is where focus should go back to
+    const fromPage = opener != null && opener.closest('.gl-drawer') === null
+    set({ view: next, history: [...history, view], ...(fromPage ? { opener } : {}) })
   }
   return {
     ...initial,
