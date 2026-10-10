@@ -9,6 +9,23 @@ Items carry permanent numbers for easy reference ("#2 next?"). A new item
 takes the next free number; numbers are never reused or renumbered, so
 they are IDs, not positions.
 
+## Help and explanations
+
+- [ ] **#14 In-app glossary** — *next up; do before #15.* One glossary of
+  concept entries (id, title, one-line summary, formatted body with
+  formulas, links to related entries), reached two ways: underlined terms
+  in captions show the summary on hover and open the full entry on click,
+  and a "?" button opens the same glossary as a browsable index with a
+  short "how to read this app" entry walking the pipeline stages. Entries
+  open in a side drawer, not a centred modal, so the visualisation they
+  describe stays visible. Replaces the `title`-tooltip ⓘ callouts, which
+  don't work on touch or with the keyboard. Starter entries from what the
+  README already explains: token, embedding, residual stream, edit (the
+  vector a block adds to the stream; papers say block output / residual
+  update), attention head and the detected roles, MLP, logit, softmax and
+  temperature, top-k sampling, simulated vs real mode. Motivation: the
+  app has outgrown "read the README first". *(2026-10-10 discussion)*
+
 ## Comparison extensions (builds on M3)
 
 - [ ] **#1 Grid side-by-side compare** — both runs' 270-head thumbnail grids
@@ -38,6 +55,23 @@ they are IDs, not positions.
   SmolLM2-135M (L13H8) and an antecedent-blind template that ranks it first;
   shipped as a fourth showcase role, a pin label and a grid-explorer sort.
   *(M1/M2 backlog; done 2026-09-03)*
+- [ ] **#15 Opening the MLP** — after #14, so the cards use glossary terms.
+  Two Layers-detail cards from one export release (v4): (a) **edit size**
+  — per token and layer, ‖Δx‖/‖x‖ for the MLP and for attention, as a
+  token × layer heatmap plus per-layer bars for the selected token
+  (computed in-graph, T × 30 numbers per block); (b) **per-layer votes**
+  — each layer's MLP output at the last position dotted with the top-k
+  candidates' rows of E (`topk_embeds` from v3), as a candidate × layer
+  grid (blue adds, red subtracts), a running-total line per candidate
+  ("logit lens") and a breakdown summing to the Logits card's score with
+  a final-norm remainder. Needs the per-layer MLP output at the last
+  position (30 × 576). Release = new Hub tag + bump
+  `ATTN_MODEL_REVISION`; sim mode needs fallbacks. Mockup with invented
+  numbers: https://claude.ai/artifact/GYLgxJPsnVC3Si8MKiVSAR. Later
+  follow-ups discussed: top firing neurons labelled by the tokens their
+  down-projection promotes (offline asset), a SwiGLU anatomy detail view,
+  and MLP knockout runs opened in the Compare view. *(2026-10-10
+  discussion)*
 
 ## Pipeline pedagogy
 
