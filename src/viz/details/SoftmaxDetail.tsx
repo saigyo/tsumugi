@@ -1,6 +1,8 @@
 import type { TraceEvent } from '../../trace/types'
 import { latestOfType, thousands } from '../selectors'
-import { shareDerivation, softmaxCallouts, softmaxExplainer } from '../softmaxText'
+import { shareDerivation, softmaxExplainer } from '../softmaxText'
+import { SOFTMAX_CALLOUTS } from '../../glossary/callouts'
+import { Term } from '../../glossary/Term'
 import { visibleToken } from '../tokenText'
 
 const BAR_W = 200
@@ -23,8 +25,8 @@ export function SoftmaxDetail({ events, cursor }: { events: TraceEvent[]; cursor
   const top = Math.max(...softmax.topK.map((c) => logitOf.get(c.id) ?? Number.NEGATIVE_INFINITY))
   return (
     <div data-testid="detail-softmax" className="detail">
-      <h3>Softmax (T={T})</h3>
-      <p>Softmax turns the scores into probabilities that sum to 100%: the second half of the readout.</p>
+      <h3>Softmax (T={T}) <Term id="softmax" variant="icon" label="About this stage" testId="stage-info">ⓘ</Term></h3>
+      <p>Softmax turns the <Term id="logit">scores</Term> into probabilities that sum to 100%: the second half of the readout.</p>
       {runStart?.vocabSize && (
         <p data-testid="logits-formula" className="logits-formula">
           logits = x_last · Eᵀ&emsp;[1×{dims}] · [{dims}×{vocab}] → [{vocab}]
@@ -51,8 +53,8 @@ export function SoftmaxDetail({ events, cursor }: { events: TraceEvent[]; cursor
         })}
       </div>
       <div className="embed-callouts">
-        {softmaxCallouts(shown, vocab, T).map((c) => (
-          <span key={c.label} data-testid="embed-callout" className="embed-callout rs-hover" title={c.text}>ⓘ {c.label}</span>
+        {SOFTMAX_CALLOUTS.map((c) => (
+          <Term key={c.label} id={c.id} section={c.section} variant="chip" testId="embed-callout">ⓘ {c.label}</Term>
         ))}
       </div>
     </div>

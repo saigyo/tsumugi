@@ -455,3 +455,6 @@ input[type="number"] { width: 4rem; }
   border-radius: 6px; padding: .2rem .3rem .2rem .6rem; display: inline-flex; align-items: center; gap: .3rem;
 }
 .gl-hint-dismiss { border: 0; background: none; padding: 0 .3rem; color: var(--ink-soft); font-size: 1rem; line-height: 1; }
+.residual-diagram { position: relative; }
+.gl-tip-svg { position: absolute; }
+.gl-svg-term:focus-visible { outline: 2px solid var(--ai); outline-offset: 2px; }

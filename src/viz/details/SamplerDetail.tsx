@@ -1,4 +1,5 @@
 import type { TraceEvent } from '../../trace/types'
+import { Term } from '../../glossary/Term'
 
 type SoftmaxEvent = Extract<TraceEvent, { type: 'softmax' }>
 type SampleEvent = Extract<TraceEvent, { type: 'sample' }>
@@ -7,8 +8,8 @@ export function SamplerDetail({ softmax, sample }: { softmax: SoftmaxEvent; samp
   let offset = 0
   return (
     <div data-testid="detail-sampler" className="detail">
-      <h3>Sampling {sample && `(${sample.method})`}</h3>
-      <p>A weighted draw across the probability strip picks the next token.</p>
+      <h3>Sampling {sample && `(${sample.method})`} <Term id="sampling" variant="icon" label="About this stage" testId="stage-info">ⓘ</Term></h3>
+      <p>A weighted <Term id="sampling">draw</Term> across the probability strip picks the next token.</p>
       <svg width="400" height="30" className="roulette">
         {softmax.topK.map((c) => {
           const x = offset

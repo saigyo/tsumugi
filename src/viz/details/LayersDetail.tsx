@@ -3,6 +3,7 @@ import type { AttentionHead, Mode, TokenInfo, TraceEvent } from '../../trace/typ
 import { AttentionGridExplorer } from '../AttentionGridExplorer'
 import { AttentionHeatmap } from '../AttentionHeatmap'
 import { ResidualStreamDiagram } from '../ResidualStreamDiagram'
+import { Term } from '../../glossary/Term'
 
 export function LayersDetail({ event, mode, attention, attentionInRun, tokens, streamShape, grid, pinnedHeads, onPin, pinNote }: {
   event: Extract<TraceEvent, { type: 'layer' }>
@@ -26,7 +27,8 @@ export function LayersDetail({ event, mode, attention, attentionInRun, tokens, s
   const focus = lastPin ? { layer: lastPin.layer, head: lastPin.head, label: lastPin.label } : undefined
   return (
     <div data-testid="detail-layers" className="detail">
-      <h3>Transformer layers {mode === 'real' && !attentionInRun && <em>(schematic — real internals not exposed)</em>}</h3>
+      <h3>Transformer layers <Term id="layer" variant="icon" label="About this stage" testId="stage-info">ⓘ</Term>{' '}
+        {mode === 'real' && !attentionInRun && <em>(schematic — real internals not exposed)</em>}</h3>
       {streamShape && (
         <ResidualStreamDiagram seqLen={streamShape.seqLen} dims={streamShape.dims} layers={event.total} />
       )}

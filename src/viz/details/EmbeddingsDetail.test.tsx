@@ -4,11 +4,12 @@ import { buildFixtureTrace, makeFixtureTrace } from '../../test/fixtures'
 import { makeGeometryAsset } from '../../test/geometryFixture'
 import type { GeometryState } from '../../geometry/useGeometry'
 import { EmbeddingsDetail } from './EmbeddingsDetail'
+import { resetGlossaryStore, useGlossaryStore } from '../../glossary/store'
 
 const ready = (): GeometryState => ({ status: 'ready', asset: makeGeometryAsset(), retry: () => {} })
 let geo: GeometryState = ready()
 vi.mock('../../geometry/useGeometry', () => ({ useGeometry: () => geo }))
-afterEach(() => { cleanup(); geo = ready() })
+afterEach(() => { cleanup(); geo = ready(); resetGlossaryStore() })
 
 // fixture indices: 2 = cycle-0 embed (The, cat), 11 = cycle-1 embed (The, cat, sat)
 
@@ -52,11 +53,13 @@ test('asset source while geometry loads says so', () => {
   expect(screen.getByTestId('embed-strip-missing')).toHaveTextContent(/loading/i)
 })
 
-test('three callouts carry their explanations', () => {
+test('three callouts open the Embedding entry at their sections', () => {
   render(<EmbeddingsDetail events={makeFixtureTrace()} cursor={2} />)
   const callouts = screen.getAllByTestId('embed-callout')
   expect(callouts.map((c) => c.textContent)).toEqual(['ⓘ learned, not designed', 'ⓘ no position here', 'ⓘ tied with Logits'])
-  expect(callouts[1].getAttribute('title')).toMatch(/rotary/)
+  expect(callouts.every((c) => c.getAttribute('title') === null)).toBe(true)
+  fireEvent.click(callouts[1])
+  expect(useGlossaryStore.getState().view).toEqual({ kind: 'entry', id: 'embedding', section: 'position' })
 })
 
 test('stack has one row per token with the newest marked', () => {

@@ -1,4 +1,6 @@
 import { poolRow } from '../geometry/math'
+import { logitsCallouts } from '../glossary/callouts'
+import { Term } from '../glossary/Term'
 import { READOUT_CELLS, type LogitCandidate } from '../trace/types'
 import { thousands } from './selectors'
 import { visibleToken } from './tokenText'
@@ -10,14 +12,6 @@ const EQ_CELL_W = 4                        // the x strip in the equation row, n
 const DOT_CELL_W = 2, DOT_CELL_H = 10      // compact product strip per candidate
 const BAR_W = 120
 
-const CALLOUTS = (shown: number, vocab: string): Array<{ label: string; text: string }> => [
-  { label: 'tied with Embeddings',
-    text: 'This is the Embeddings matrix read sideways: there a row was looked up by id; here every row is scored against x_last. Tied weights mean the model learns one vocabulary geometry, not two.' },
-  { label: 'similar rows, similar scores',
-    text: 'Tokens whose rows of E point the same way get nearly the same dot product, which is why near-synonyms sit together at the top.' },
-  { label: `${vocab} scores, ${shown} shown`,
-    text: 'The multiply produces one score per vocabulary entry; the trace keeps only the top-k the sampler can choose from.' },
-]
 
 export interface LogitsReadoutProps {
   candidates: LogitCandidate[]
@@ -138,8 +132,8 @@ export function LogitsReadout({ candidates, lastHidden, dims, vocabSize, selecte
       )}
 
       <div className="embed-callouts">
-        {CALLOUTS(candidates.length, vocab).map((c) => (
-          <span key={c.label} data-testid="embed-callout" className="embed-callout rs-hover" title={c.text}>ⓘ {c.label}</span>
+        {logitsCallouts(candidates.length, vocab).map((c) => (
+          <Term key={c.label} id={c.id} section={c.section} variant="chip" testId="embed-callout">ⓘ {c.label}</Term>
         ))}
       </div>
     </div>

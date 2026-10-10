@@ -1,13 +1,14 @@
 import type { TokenInfo } from '../../trace/types'
 import { SPACE_MARKER, visibleToken } from '../tokenText'
+import { Term } from '../../glossary/Term'
 
 export function TokenizerDetail({ tokens, truncated }: { tokens: TokenInfo[]; truncated?: boolean }) {
   const anySpace = tokens.some((t) => t.text.startsWith(' '))
   return (
     <div data-testid="detail-tokenizer" className="detail">
-      <h3>Tokenizer</h3>
+      <h3>Tokenizer <Term id="token" variant="icon" label="About this stage" testId="stage-info">ⓘ</Term></h3>
       <p>
-        The prompt is split into {tokens.length} tokens, each mapped to a vocabulary ID.
+        The prompt is split into {tokens.length} <Term id="token">tokens</Term>, each mapped to a vocabulary ID.
         {anySpace && (
           <span data-testid="tokenizer-space-note">
             {' '}{SPACE_MARKER} marks a leading space — it belongs to the token, so “{SPACE_MARKER}cat” and “cat” are different vocabulary entries.

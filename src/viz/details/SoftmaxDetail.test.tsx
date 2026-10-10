@@ -1,9 +1,10 @@
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, expect, test } from 'vitest'
 import { buildFixtureTrace, makeFixtureTrace } from '../../test/fixtures'
 import { SoftmaxDetail } from './SoftmaxDetail'
+import { resetGlossaryStore, useGlossaryStore } from '../../glossary/store'
 
-afterEach(cleanup)
+afterEach(() => { cleanup(); resetGlossaryStore() })
 
 // fixture indices: cycle 0 logits = 7, softmax = 8; candidates sat 9.1 / ran 7.2 / was 5.0 → 70% / 20% / 10%
 
@@ -54,15 +55,13 @@ test('T=0 bars say the top score takes everything', () => {
   expect(titles[0]).toMatch(/T = 0/)
 })
 
-test('callouts explain exponentiation, temperature and the top-k cut, with the ratio computed from T', () => {
+test('callouts open the Softmax entry at exp, temperature and top-k', () => {
   render(<SoftmaxDetail events={makeFixtureTrace()} cursor={8} />)
   const callouts = screen.getAllByTestId('embed-callout')
   expect(callouts.map((c) => c.textContent)).toEqual(['ⓘ why exponentiate', 'ⓘ temperature', 'ⓘ top-k only'])
-  expect(callouts[1].getAttribute('title')).toMatch(/greedy/)
-  const why = callouts[0].getAttribute('title') ?? ''
-  expect(why).toMatch(/e\^\(d \/ T\)/)
-  expect(why).toMatch(/at T = 0\.8, 1 point ahead is 3\.5×/)
-  expect(why).not.toMatch(/2\.7×/)
+  expect(callouts.map((c) => c.dataset.section)).toEqual(['exp', 'temperature', 'top-k'])
+  fireEvent.click(callouts[1])
+  expect(useGlossaryStore.getState().view).toEqual({ kind: 'entry', id: 'softmax', section: 'temperature' })
 })
 
 test('renders nothing before the cycle’s softmax event', () => {

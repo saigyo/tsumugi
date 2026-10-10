@@ -4,6 +4,8 @@ import { thousands } from './selectors'
 import { visibleToken } from './tokenText'
 import { cellFill, peakOf, rowMarkY } from './stripMath'
 import { VectorStrip } from './VectorStrip'
+import { EMBEDDING_CALLOUTS } from '../glossary/callouts'
+import { Term } from '../glossary/Term'
 
 const STRIP_CELLS = 96
 const CELL_W = 5
@@ -14,14 +16,6 @@ const STACK_CELL_W = 2
 const STACK_ROW_H = 4
 const STACK_GAP = 2
 
-const CALLOUTS: Array<{ label: string; text: string }> = [
-  { label: 'learned, not designed',
-    text: 'Every row starts random and is adjusted during training so that the rest of the network predicts well. Nobody chose what dimension 17 means.' },
-  { label: 'no position here',
-    text: 'SmolLM2 adds no position vector at this stage. Position enters inside attention, via rotary position embeddings applied to queries and keys.' },
-  { label: 'tied with Logits',
-    text: 'The same 49152 × 576 matrix is reused at the end: the final vector is compared against every row to score each token (tie_word_embeddings).' },
-]
 
 // The mechanism half of the Embeddings card: ids → one row of E → the stacked
 // residual stream x. Pure presentation; the container decides where vectors
@@ -115,8 +109,8 @@ export function EmbeddingLookup({ tokens, dims, vocabSize, selected, onSelect, v
         </div>
       </div>
       <div className="embed-callouts">
-        {CALLOUTS.map((c) => (
-          <span key={c.label} data-testid="embed-callout" className="embed-callout rs-hover" title={c.text}>ⓘ {c.label}</span>
+        {EMBEDDING_CALLOUTS.map((c) => (
+          <Term key={c.label} id={c.id} section={c.section} variant="chip" testId="embed-callout">ⓘ {c.label}</Term>
         ))}
       </div>
     </div>

@@ -118,7 +118,7 @@ test('layers detail shows the residual-stream diagram with live shapes', () => {
   expect(diagram).toHaveTextContent('× 3 layers')
   expect(diagram).toHaveTextContent(/attention/i)
   expect(diagram).toHaveTextContent(/MLP/i)
-  expect(diagram).toHaveTextContent(/multi-layer perceptron/i)  // tooltip on the MLP box
+  expect(screen.getByTestId('rs-term-mlp')).toHaveAttribute('role', 'button')  // the MLP box opens its glossary entry
 })
 
 test('logits detail frames scores as a dot-product readout', () => {
@@ -188,4 +188,21 @@ test('the stale-pin note renders', () => {
   render(<DetailPanel events={traceWithGrid()} cursor={3} mode="real"
     pinNote="run data no longer available — regenerate to explore heads" />)
   expect(screen.getByTestId('pin-note')).toHaveTextContent('regenerate')
+})
+
+test('every stage card heading has an ⓘ that opens its entry, and captions link their first term', () => {
+  const events = makeFixtureTrace()
+  // one cursor per stage: tokenize 1, embed 2, layer 3, logits 7, softmax 8, sample 9
+  const cases: Array<[number, string, string]> = [
+    [1, 'token', 'token'], [2, 'embedding', 'residual-stream'], [3, 'layer', 'layer'],
+    [7, 'logit', 'logit'], [8, 'softmax', 'logit'], [9, 'sampling', 'sampling'],
+  ]
+  for (const [cursor, headingEntry, captionEntry] of cases) {
+    render(<DetailPanel events={events} cursor={cursor} mode="sim" />)
+    const info = screen.getByTestId('stage-info')
+    expect(info.closest('h3'), `cursor ${cursor}`).not.toBeNull()
+    expect(info.dataset.term, `cursor ${cursor}`).toBe(headingEntry)
+    expect(screen.getAllByTestId('gl-term').map((t) => t.dataset.term), `cursor ${cursor}`).toContain(captionEntry)
+    cleanup()
+  }
 })
