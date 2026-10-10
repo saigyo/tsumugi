@@ -97,3 +97,18 @@ test('entry formulas are typeset MathML and every one parses', () => {
     cleanup()
   }
 })
+
+test('the MLP entry explains every symbol in its formula', () => {
+  const { container } = render(<>{getEntry('mlp')!.body()}</>)
+  const terms = [...container.querySelectorAll('dl.gl-symbols dt')].map((dt) => dt.querySelector('annotation')?.textContent ?? dt.textContent)
+  for (const symbol of ['x', '\\operatorname{norm}', 'W_{\\text{gate}}', 'W_{\\text{up}}', '\\operatorname{SiLU}', '\\odot', 'W_{\\text{down}}'])
+    expect(terms, symbol).toContain(symbol)
+  // products are written with a visible operator, so "W n" cannot read as a subscript
+  expect(container.querySelector('[data-testid="gl-mlp-steps"] annotation')?.textContent).toContain('W_{\\text{gate}} \\cdot n')
+  expect(container.querySelector('[data-testid="gl-silu-plot"]')).not.toBeNull()
+})
+
+test('the logit formula writes its product with a visible operator', () => {
+  const { container } = render(<>{getEntry('logit')!.body()}</>)
+  expect(container.querySelector('annotation')?.textContent).toContain('\\operatorname{norm}(x_{\\text{last}}) \\cdot E^{\\top}')
+})

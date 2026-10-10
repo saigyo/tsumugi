@@ -466,3 +466,10 @@ math { font-family: 'Latin Modern Math', math, 'STIX Two Math', 'Cambria Math', 
 .formula-inline { margin: 0; overflow: visible; font-size: 1em; }
 .card-formula { display: block; margin: .4rem 0 .6rem; font-size: 1.05rem; }
 .formula-error code { color: var(--shu); }
+.gl-symbols { display: grid; grid-template-columns: max-content 1fr; gap: .45rem .8rem; margin: .4rem 0; }
+.gl-symbols dt { text-align: right; font-size: 1.05rem; }
+.gl-symbols dd { margin: 0; }
+.gl-plot { display: block; margin: .4rem 0 .2rem; }
+.gl-plot-axis { stroke: var(--line-strong); stroke-width: 1; }
+.gl-plot-curve { fill: none; stroke: var(--ai); stroke-width: 2; }
+.gl-plot-label { font-size: 10px; fill: var(--ink-soft); font-family: var(--mono); }

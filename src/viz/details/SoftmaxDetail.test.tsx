@@ -12,7 +12,7 @@ afterEach(() => { cleanup(); resetGlossaryStore() })
 test('shows both formula lines as the two-step derivation, then the explanation', () => {
   render(<SoftmaxDetail events={makeFixtureTrace()} cursor={8} />)
   expect(screen.getByTestId('detail-softmax')).toHaveTextContent('Softmax (T=0.8)')
-  expect(texOf(screen.getByTestId('logits-formula'))).toContain('x_{\\text{last}}\\, E^{\\top}')   // step 1
+  expect(texOf(screen.getByTestId('logits-formula'))).toContain('x_{\\text{last}} \\cdot E^{\\top}')   // step 1
   const sm = texOf(screen.getByTestId('softmax-formula'))                                         // step 2
   expect(sm).toContain('\\frac{\\exp(\\text{logit}/T)}')
   expect(sm).toContain('3 \\text{ of } 49\\,152')

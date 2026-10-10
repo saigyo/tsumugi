@@ -24,7 +24,7 @@ export const texNumber = (n: number) => thousands(n).replace(/ /g, '\\,')
 // aligned like the rest of the card) but in display style, so fractions keep
 // their full size.
 export const logitsTex = (dims: number, vocab: number) =>
-  String.raw`\displaystyle \text{logits} = x_{\text{last}}\, E^{\top} \qquad [1 \times ${dims}] \cdot [${dims} \times ${texNumber(vocab)}] \to [${texNumber(vocab)}]`
+  String.raw`\displaystyle \text{logits} = x_{\text{last}} \cdot E^{\top} \qquad [1 \times ${dims}] \cdot [${dims} \times ${texNumber(vocab)}] \to [${texNumber(vocab)}]`
 
 export const softmaxTex = (shown: number, vocab?: number) =>
   String.raw`\displaystyle p = \frac{\exp(\text{logit}/T)}{\sum \exp(\text{logit}/T)} \qquad \text{over the top-}k\text{: } ${shown} \text{ of } ${vocab ? texNumber(vocab) : '?'} \text{ scores}`
