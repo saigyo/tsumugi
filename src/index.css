@@ -493,6 +493,7 @@ math { font-family: 'Latin Modern Math', math, 'STIX Two Math', 'Cambria Math', 
   background: linear-gradient(90deg, hsl(211 30% 94%), hsl(211 55% 24%)); }
 
 .votes-lens { margin: .5rem 0; }
+.mlp-scale-note { font-size: .7rem; color: var(--ink-soft); }
 .votes-lens figcaption { font-size: .75rem; color: var(--ai); }
 .vote-line { fill: none; stroke: var(--ai-soft); stroke-width: 1; opacity: .5; }
 .vote-line-selected { fill: none; stroke: var(--ai-deep); stroke-width: 2; }

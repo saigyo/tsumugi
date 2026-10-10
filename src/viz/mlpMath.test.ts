@@ -1,5 +1,6 @@
 import { expect, test } from 'vitest'
-import { blockTotals, ratioFill, runningTotal, topMlpLayers, votePeak } from './mlpMath'
+import { blockTotals, ratioFill, runningTotal, topMlpLayers, voteFill, votePeak } from './mlpMath'
+import { cellFill } from './stripMath'
 
 const v = { embed: 1, attn: [0.5, -0.25], mlp: [2, -1] }
 
@@ -26,4 +27,10 @@ test('ratioFill darkens with the ratio and clamps at 1', () => {
   expect(ratioFill(0)).toBe('hsl(211 30% 94%)')
   expect(ratioFill(1)).toBe('hsl(211 55% 24%)')
   expect(ratioFill(3)).toBe(ratioFill(1))
+})
+
+test('voteFill uses a square-root scale: a quarter of the peak gets the colour of half', () => {
+  expect(voteFill(1, 4)).toBe(cellFill(0.5, 1))
+  expect(voteFill(-1, 4)).toBe(cellFill(-0.5, 1))
+  expect(voteFill(4, 4)).toBe(cellFill(1, 1))
 })

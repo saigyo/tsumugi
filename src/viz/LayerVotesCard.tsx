@@ -1,9 +1,8 @@
 import { Term } from '../glossary/Term'
 import { selectedCandidate, useCandidateSelection } from './candidateSelection'
 import { Formula } from './Formula'
-import { blockTotals, runningTotal, topMlpLayers, votePeak } from './mlpMath'
+import { blockTotals, runningTotal, topMlpLayers, voteFill, votePeak } from './mlpMath'
 import type { VotedCandidate } from './selectors'
-import { cellFill } from './stripMath'
 import { visibleToken } from './tokenText'
 
 const CELL = 8, ROW_H = 14, LABEL_W = 64, LINE_W = 260, LINE_H = 90, BAR_MAX = 90
@@ -61,13 +60,14 @@ function VotesBody({ candidates, selected, onSelect }: {
               </text>
               {c.votes.mlp.map((v, l) => (
                 <rect key={l} data-testid="vote-cell" data-row={r} data-layer={l} x={LABEL_W + l * CELL} y={r * ROW_H}
-                  width={CELL - 1} height={ROW_H - 1} fill={cellFill(v, peak)} onClick={() => onSelect(r)}>
+                  width={CELL - 1} height={ROW_H - 1} fill={voteFill(v, peak)} onClick={() => onSelect(r)}>
                   <title>{`MLP ${l} → “${visibleToken(c.text)}”: ${signed(v)} to the score`}</title>
                 </rect>
               ))}
             </g>
           ))}
         </svg>
+        <figcaption className="mlp-scale-note">colours on a square-root scale, so small votes stay visible</figcaption>
       </figure>
       <RunningTotal candidates={candidates} selected={selected} />
       <table className="votes-breakdown">
