@@ -6,6 +6,7 @@ import { initialPlayerState } from './player/reducer'
 import { usePlayerStore } from './player/store'
 import { useRunsStore } from './app/runsStore'
 import { _resetArchiveForTests } from './app/runArchive'
+import { resetGlossaryStore } from './glossary/store'
 
 vi.mock('./engine/tokenizer', async (importOriginal) => {
   const mod = await importOriginal<typeof import('./engine/tokenizer')>()
@@ -33,7 +34,7 @@ beforeEach(() => {
   _resetArchiveForTests()
 })
 
-afterEach(() => cleanup())
+afterEach(() => { cleanup(); resetGlossaryStore() })
 
 test('generate in sim mode fills the trace and plays', async () => {
   render(<App />)
@@ -150,4 +151,13 @@ test('compare arms from the shelf, opens the view, and exits', async () => {
   fireEvent.click(screen.getByTestId('btn-compare-exit'))
   expect(screen.queryByTestId('compare-view')).toBeNull()
   expect(screen.getAllByTestId('stage-card').length).toBeGreaterThan(0)
+})
+
+test('the ? button opens the glossary drawer, which closes again', () => {
+  render(<App />)
+  fireEvent.click(screen.getByTestId('btn-help'))
+  expect(screen.getByTestId('glossary-drawer')).toBeInTheDocument()
+  expect(screen.getByTestId('gl-heading')).toHaveTextContent('Glossary')
+  fireEvent.click(screen.getByTestId('gl-close'))
+  expect(screen.queryByTestId('glossary-drawer')).toBeNull()
 })

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Controls } from './app/Controls'
 import { ModelStatus } from './app/ModelStatus'
 import { PromptBar } from './app/PromptBar'
@@ -20,11 +20,15 @@ import { parseRunFile, serializeRun } from './app/runFiles'
 import { createIndexedDbStorage } from './app/runStorage'
 import { useRunsStore } from './app/runsStore'
 import { CompareView } from './viz/compare/CompareView'
+import { GlossaryDrawer } from './glossary/GlossaryDrawer'
+import { HelpButton } from './glossary/HelpButton'
+import { runSummary } from './glossary/runSummary'
 
 export default function App() {
   usePlaybackTicker()
   const events = useTraceStore((s) => s.events)
   const cursor = usePlayerStore((s) => s.cursor)
+  const glossaryRun = useMemo(() => runSummary(events, cursor), [events, cursor])
   const [mode, setMode] = useState<Mode>('sim')
   const tokenizerRef = useRef<Tokenizer>(fallbackTokenizer())
   const runRef = useRef<RunHandle | null>(null)
@@ -176,7 +180,10 @@ export default function App() {
 
   return (
     <div className="app">
-      <h1><span className="app-mark">紬</span> Tsumugi <span className="app-subtitle">LLM Pipeline Visualizer</span></h1>
+      <header className="app-header">
+        <h1><span className="app-mark">紬</span> Tsumugi <span className="app-subtitle">LLM Pipeline Visualizer</span></h1>
+        <HelpButton />
+      </header>
       <PromptBar mode={mode} onModeChange={handleModeChange} onGenerate={handleGenerate}
         busy={mode === 'real' && !realReady} generating={generating} onStop={handleStop}
         examples={CURATED_EXAMPLES}
@@ -211,6 +218,7 @@ export default function App() {
           </>
         )
       })()}
+      <GlossaryDrawer run={glossaryRun} />
     </div>
   )
 }

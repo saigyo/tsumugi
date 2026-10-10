@@ -441,3 +441,17 @@ input[type="number"] { width: 4rem; }
 .gl-index-row:hover:not(:disabled) { background: var(--ai-wash); }
 .gl-index-title { color: var(--ai-deep); font-weight: 600; }
 .gl-index-summary { color: var(--ink-soft); font-size: .82rem; }
+
+/* ── Header with the glossary button ─────────────────────────────────── */
+.app-header { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem 1rem; margin: 0 0 1rem; }
+.app-header h1 { margin: 0; }
+.gl-help { margin-left: auto; display: flex; align-items: center; gap: .6rem; }
+.gl-help-btn {
+  width: 1.9rem; height: 1.9rem; padding: 0; border-radius: 999px; font-weight: 700;
+  color: var(--ai-deep); border-color: var(--ai-soft);
+}
+.gl-hint {
+  font-size: .82rem; color: var(--ink-soft); background: var(--shu-wash); border: 1px solid var(--shu-soft);
+  border-radius: 6px; padding: .2rem .3rem .2rem .6rem; display: inline-flex; align-items: center; gap: .3rem;
+}
+.gl-hint-dismiss { border: 0; background: none; padding: 0 .3rem; color: var(--ink-soft); font-size: 1rem; line-height: 1; }
