@@ -1,12 +1,20 @@
+import { attention } from './entries/attention'
 import { edit } from './entries/edit'
 import { embedding } from './entries/embedding'
 import { howToRead } from './entries/how-to-read'
 import { layer } from './entries/layer'
+import { logit } from './entries/logit'
+import { mlp } from './entries/mlp'
+import { modes } from './entries/modes'
 import { residualStream } from './entries/residual-stream'
+import { sampling } from './entries/sampling'
+import { softmax } from './entries/softmax'
 import { token } from './entries/token'
 import type { GlossaryEntry, GlossaryId, GlossaryStage } from './types'
 
-export const ENTRIES: GlossaryEntry[] = [howToRead, token, embedding, residualStream, edit, layer]
+export const ENTRIES: GlossaryEntry[] = [
+  howToRead, token, embedding, residualStream, edit, layer, attention, mlp, logit, softmax, sampling, modes,
+]
 
 const BY_ID = new Map<string, GlossaryEntry>(ENTRIES.map((e) => [e.id, e]))
 

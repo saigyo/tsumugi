@@ -1,7 +1,9 @@
 import { cleanup, render } from '@testing-library/react'
 import { afterEach, expect, test } from 'vitest'
 import { sampleRun } from '../test/glossaryFixture'
+import { EMBEDDING_CALLOUTS, logitsCallouts, SOFTMAX_CALLOUTS } from './callouts'
 import { ENTRIES, getEntry, indexGroups, STAGE_ORDER } from './registry'
+import { GLOSSARY_IDS } from './types'
 
 afterEach(cleanup)
 
@@ -64,4 +66,17 @@ test('the index lists stages in pipeline order and leaves out how-to-read', () =
   expect(order).toEqual([...order].sort((a, b) => a - b))
   expect(groups.flatMap((g) => g.entries.map((e) => e.id))).not.toContain('how-to-read')
   expect(groups[0].label).toBe('Tokenizer')
+})
+
+test('the registry holds exactly one entry per id, in the declared order', () => {
+  expect(ENTRIES.map((e) => e.id)).toEqual([...GLOSSARY_IDS])
+})
+
+test('every related id has an entry', () => {
+  for (const e of ENTRIES) for (const r of e.related) expect(getEntry(r), `${e.id} → ${r}`).toBeDefined()
+})
+
+test('every callout chip points at a section that exists', () => {
+  for (const c of [...EMBEDDING_CALLOUTS, ...logitsCallouts(3, '49 152'), ...SOFTMAX_CALLOUTS])
+    expect(sectionsOf(c.id), `${c.label} → ${c.id} § ${c.section}`).toContain(c.section)
 })
