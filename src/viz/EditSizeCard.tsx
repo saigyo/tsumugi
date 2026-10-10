@@ -10,14 +10,21 @@ const CELL = 7, ROW_H = 12, LABEL_W = 60, BAR_W = 3, BAR_H = 56
 // Bars stop at 2.0, like the heatmap's ≥ 1 colour: a first-layer edit of 12×
 // would otherwise flatten every other bar. The title keeps the true value.
 const BAR_CAP = 2
+// A long prompt would draw tokens × 30 × 2 cells: show the most recent rows.
+const MAX_ROWS = 64
+
+const lastRows = (r: EditRows): EditRows => r.tokens.length <= MAX_ROWS ? r : {
+  tokens: r.tokens.slice(-MAX_ROWS), attn: r.attn.slice(-MAX_ROWS), mlp: r.mlp.slice(-MAX_ROWS),
+}
 type Block = 'attn' | 'mlp'
 const BLOCK_NAME: Record<Block, string> = { attn: 'attention', mlp: 'MLP' }
 
 // "How much each layer changes the vector": per token and layer, the size of
 // each block's edit relative to the stream it is added to. Pure
 // presentation; the selected token is local (it only drives the bars).
-export function EditSizeCard({ rows, note }: { rows?: EditRows; note: string }) {
+export function EditSizeCard({ rows: all, note }: { rows?: EditRows; note: string }) {
   const [picked, setPicked] = useState<number | null>(null)
+  const rows = all ? lastRows(all) : undefined
   const last = rows ? rows.tokens.length - 1 : -1
   const sel = picked !== null && picked <= last ? picked : last
   return (
@@ -36,6 +43,10 @@ export function EditSizeCard({ rows, note }: { rows?: EditRows; note: string }) 
               <EditMap key={block} block={block} rows={rows} selected={sel} onSelect={setPicked} />
             ))}
           </div>
+          {all && rows && all.tokens.length > rows.tokens.length && (
+            <p data-testid="edit-rows-note" className="mlp-scale-note">
+              showing the last {rows.tokens.length} of {all.tokens.length} tokens</p>
+          )}
           <div className="mlp-scale">0 <span className="mlp-scale-ramp" aria-hidden="true" /> ≥ 1.0</div>
           <EditBars rows={rows} index={sel} />
           <div className="embed-callouts">

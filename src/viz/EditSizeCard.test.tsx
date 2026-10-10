@@ -65,3 +65,20 @@ test('bars cap at 2.0 so one huge edit does not flatten the rest; the title keep
   expect(bar('mlp', 1)).toHaveAttribute('data-capped', 'false')
   expect(bar('mlp', 0).textContent).toBe('layer 0, MLP: 12.00')
 })
+
+test('a long prompt draws only the last 64 tokens and says so', () => {
+  const n = 100
+  const long = {
+    tokens: Array.from({ length: n }, (_, i) => ({ id: i, text: ` t${i}` })),
+    attn: Array.from({ length: n }, () => [0.1, 0.2, 0.3]),
+    mlp: Array.from({ length: n }, () => [0.4, 0.5, 0.6]),
+  }
+  render(<EditSizeCard rows={long} note="unused" />)
+  const labels = screen.getAllByTestId('edit-map')[0].querySelectorAll('[data-testid="edit-row-label"]')
+  expect(labels).toHaveLength(64)
+  expect(labels[0]).toHaveTextContent('␣t36')
+  expect(screen.getByTestId('edit-rows-note')).toHaveTextContent('showing the last 64 of 100 tokens')
+  expect(screen.getByTestId('edit-bars-label')).toHaveTextContent('␣t99')
+  fireEvent.click(labels[0])
+  expect(screen.getByTestId('edit-bars-label')).toHaveTextContent('␣t36')
+})
