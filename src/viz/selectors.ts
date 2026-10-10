@@ -1,4 +1,4 @@
-import type { EmbedSource, TokenInfo, TraceEvent } from '../trace/types'
+import type { EmbedSource, LayerVotes, LogitCandidate, TokenInfo, TraceEvent } from '../trace/types'
 
 export type StageId = 'tokenizer' | 'embeddings' | 'layers' | 'logits' | 'softmax' | 'sampler' | null
 
@@ -83,7 +83,7 @@ const REPRESENTATIVE: Record<Exclude<StageId, null>, TraceEvent['type']> = {
   logits: 'logits', softmax: 'softmax', sampler: 'sample',
 }
 
-function cycleAt(events: TraceEvent[], cursor: number): number {
+export function viewedCycle(events: TraceEvent[], cursor: number): number {
   for (let i = Math.min(cursor, events.length - 1); i >= 0; i--) {
     const e = events[i]
     if ('cycle' in e) return e.cycle
@@ -94,7 +94,7 @@ function cycleAt(events: TraceEvent[], cursor: number): number {
 export function stageEventIndex(events: TraceEvent[], cursor: number, stage: Exclude<StageId, null>): number {
   const type = REPRESENTATIVE[stage]
   if (type === 'tokenize') return events.findIndex((e) => e.type === 'tokenize')
-  const cycle = cycleAt(events, cursor)
+  const cycle = viewedCycle(events, cursor)
   let fallback = -1
   for (let i = 0; i < events.length; i++) {
     const e = events[i]
@@ -129,4 +129,42 @@ export function embeddingRows(events: TraceEvent[], cursor: number): EmbeddingRo
   }
   if (!model || rows.length < tokens.length) return { tokens, source: 'asset' }
   return { tokens, rows: rows.slice(0, tokens.length), source: 'model' }
+}
+
+export interface EditRows { tokens: TokenInfo[]; attn: number[][]; mlp: number[][] }
+
+// The edit-size heatmap for the viewed cycle: rows from every edits event up
+// to and including that cycle (looked up in the whole trace, like the votes,
+// so the Layers stage shows the cycle's rows before the player reaches the
+// edits event), cut to the visible tokens. Undefined when the run has none.
+export function editRows(events: TraceEvent[], cursor: number): EditRows | undefined {
+  const cycle = viewedCycle(events, cursor)
+  const attn: number[][] = [], mlp: number[][] = []
+  for (const e of events) {
+    if (e.type !== 'edits' || e.cycle > cycle) continue
+    e.attn.forEach((row, i) => { attn[e.start + i] = row; mlp[e.start + i] = e.mlp[i] })
+  }
+  let n = 0
+  while (n < attn.length && attn[n] && mlp[n]) n++   // contiguous from position 0
+  if (n === 0) return undefined
+  const { prompt, generated } = visibleTokens(events, cursor)
+  const tokens = [...prompt, ...generated.map(({ id, text }) => ({ id, text }))]
+  const rows = Math.min(n, tokens.length)
+  return { tokens: tokens.slice(0, rows), attn: attn.slice(0, rows), mlp: mlp.slice(0, rows) }
+}
+
+export type VotedCandidate = LogitCandidate & { votes: LayerVotes }
+export type CycleVotes =
+  | { status: 'ok'; candidates: VotedCandidate[] }
+  | { status: 'pending' }   // the viewed cycle's logits are not in the trace yet
+  | { status: 'none' }      // they are, without votes for every candidate
+
+// The votes card reads the viewed cycle's logits event, which comes after
+// the layers in the trace: on the Layers stage that is a look ahead.
+export function cycleVotes(events: TraceEvent[], cursor: number): CycleVotes {
+  const cycle = viewedCycle(events, cursor)
+  const logits = events.find((e): e is Extract<TraceEvent, { type: 'logits' }> => e.type === 'logits' && e.cycle === cycle)
+  if (!logits) return { status: 'pending' }
+  if (!logits.topK.every((c) => c.votes)) return { status: 'none' }
+  return { status: 'ok', candidates: logits.topK as VotedCandidate[] }
 }

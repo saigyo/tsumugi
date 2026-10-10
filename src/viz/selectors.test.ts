@@ -1,6 +1,7 @@
 import { expect, test } from 'vitest'
 import { buildFixtureTrace, fixtureEmbedding, makeFixtureTrace } from '../test/fixtures'
-import { activeStage, cycleTickIndices, distributionFor, embeddingRows, eventAt, flowShapes, latestOfType, stageEventIndex, visibleTokens } from './selectors'
+import { activeStage, cycleTickIndices, cycleVotes, distributionFor, editRows, embeddingRows, eventAt, flowShapes, latestOfType, stageEventIndex, viewedCycle, visibleTokens } from './selectors'
+import type { TraceEvent } from '../trace/types'
 
 const trace = makeFixtureTrace()  // 2 cycles, 3 layers
 
@@ -127,4 +128,52 @@ test('embeddingRows: a token without a known row yet (cursor on append) falls ba
   const r = embeddingRows(t, 10)
   expect(r.tokens).toHaveLength(3)
   expect(r.source).toBe('asset')
+})
+
+// mlp fixture (2 prompt tokens, 3 layers, 2 cycles), indices:
+// 0 run-start, 1 tokenize, 2 embed c0, 3..5 layers, 6 attention, 7 edits, 8 logits, 9 softmax, 10 sample, 11 append,
+// 12 embed c1, 13..15 layers, 16 attention, 17 edits, 18 logits, …
+const mlpTrace = buildFixtureTrace({ mlp: true })
+
+test('editRows: on cycle 0 the prompt rows, looked up even before the edits event is reached', () => {
+  const r = editRows(mlpTrace, 3)!
+  expect(r.tokens.map((t) => t.text)).toEqual(['The', ' cat'])
+  expect(r.attn).toHaveLength(2)
+  expect(r.mlp[1]).toHaveLength(3)
+})
+
+test('editRows: on cycle 1 the generated token gets its row', () => {
+  const r = editRows(mlpTrace, 13)!
+  expect(r.tokens.map((t) => t.text)).toEqual(['The', ' cat', ' sat'])
+  expect(r.attn).toHaveLength(3)
+})
+
+test('editRows: never shows rows past the viewed cycle', () => {
+  expect(editRows(mlpTrace, 8)!.attn).toHaveLength(2)
+})
+
+test('editRows: undefined without edits events', () => {
+  expect(editRows(buildFixtureTrace(), 4)).toBeUndefined()
+})
+
+test('cycleVotes: ok on the layers stage (looks ahead to the cycle’s logits), pending before it exists, none without votes', () => {
+  const ok = cycleVotes(mlpTrace, 4)
+  expect(ok.status).toBe('ok')
+  if (ok.status === 'ok') expect(ok.candidates[0].votes.mlp).toHaveLength(3)
+  expect(cycleVotes(mlpTrace.slice(0, 7), 4)).toEqual({ status: 'pending' })
+  expect(cycleVotes(buildFixtureTrace(), 4)).toEqual({ status: 'none' })
+})
+
+test('cycleVotes: none when any candidate lacks votes', () => {
+  const t = buildFixtureTrace({ mlp: true })
+  const lg = t[8] as Extract<TraceEvent, { type: 'logits' }>
+  const { votes: _dropped, ...rest } = lg.topK[2]
+  void _dropped
+  lg.topK[2] = rest
+  expect(cycleVotes(t, 4)).toEqual({ status: 'none' })
+})
+
+test('viewedCycle follows the cursor', () => {
+  expect(viewedCycle(mlpTrace, 4)).toBe(0)
+  expect(viewedCycle(mlpTrace, 14)).toBe(1)
 })
