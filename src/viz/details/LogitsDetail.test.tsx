@@ -62,3 +62,12 @@ test('geometry loading and error states show their notes', () => {
   render(<LogitsDetail events={makeFixtureTrace()} cursor={7} />)
   expect(screen.getByTestId('readout-bench')).toHaveTextContent('unavailable')
 })
+
+test('the selected candidate survives a remount (switching stages and back)', () => {
+  const events = buildFixtureTrace({ readout: true })
+  render(<LogitsDetail events={events} cursor={7} />)
+  fireEvent.click(screen.getAllByTestId('readout-candidate')[1])
+  cleanup()
+  render(<LogitsDetail events={events} cursor={7} />)
+  expect(screen.getAllByTestId('readout-candidate')[1]).toHaveAttribute('data-selected', 'true')
+})
