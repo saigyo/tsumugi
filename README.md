@@ -234,6 +234,23 @@ they show what the mechanism computes, not *why* the model produced its
 output (Jain & Wallace, "Attention is not Explanation", 2019). Read them
 as "how information flows", never as "why the model answered X".
 
+## Opening the MLP — edit sizes and per-layer votes
+
+In a real run, the Layers detail has two more cards below the attention
+heatmaps. **How much each layer changes the vector** shows, for every token
+and layer, how big each block's edit is compared with the stream it is
+added to (‖Δx‖ / ‖x‖), as two heatmaps (MLP and attention) and per-layer
+bars for a selected token. **What each layer voted for** splits the Logits
+card's score into one share per block: holding the final norm at its real
+scale for the last position makes it linear, so embedding + attention
+votes + MLP votes add up exactly to the score. The grid shows each layer's
+MLP vote per candidate (blue adds, red subtracts), a running total traces
+the score building up through the layers, and a breakdown names the
+largest contributors. Simulated runs show a note instead: there is no MLP
+to measure.
+
+![The edit-size and per-layer votes cards](docs/screenshots/mlp.png)
+
 ## The glossary
 
 Every card links its terms to a glossary that opens in a side panel, so the

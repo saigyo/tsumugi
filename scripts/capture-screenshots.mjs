@@ -39,7 +39,7 @@ const context = await chromium.launchPersistentContext(PROFILE, {
   headless: false,
   viewport: { width: 1380, height: 940 },
 })
-// Scenes can be selected: `npm run screenshots -- pipeline glossary attention compare embeddings logits`
+// Scenes can be selected: `npm run screenshots -- pipeline glossary attention compare embeddings logits mlp`
 // (default: all). Skipping a scene preserves its existing images — useful when
 // a previous capture caught a specimen worth keeping (e.g. a great fork).
 const only = process.argv.slice(2)
@@ -193,6 +193,28 @@ try {
     await page.setViewportSize({ width: 1380, height: 940 })
     await $('maxtok-input').fill('20')
     console.log('logits-softmax.png')
+  }
+
+  // ---- mlp.png: real mode, Layers stage — edit sizes and per-layer votes
+  if (want('mlp')) {
+    await $('prompt-input').fill('The farmer bought a horse and rode it home.')
+    await $('maxtok-input').fill('1')
+    const before = await $('run-chip').count()
+    await $('btn-generate').click()
+    await $('run-chip').nth(before).waitFor({ timeout: 120000 })
+    await $('btn-live').click()
+    await $('stage-card').nth(2).click()                            // Layers
+    await $('vote-cell').first().waitFor({ timeout: 10000 })
+    await page.setViewportSize({ width: 1380, height: 1600 })
+    const cards = [await $('edit-size-card').boundingBox(), await $('votes-card').boundingBox()]
+    const pad = 12
+    const top = cards[0].y - pad, bottom = cards[1].y + cards[1].height + pad
+    await page.screenshot({ path: `${DIR}/mlp.png`, clip: {
+      x: cards[0].x - pad, y: top, width: Math.max(cards[0].width, cards[1].width) + 2 * pad, height: bottom - top,
+    } })
+    await page.setViewportSize({ width: 1380, height: 940 })
+    await $('maxtok-input').fill('20')
+    console.log('mlp.png')
   }
 } finally {
   await context.close()

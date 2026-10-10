@@ -56,7 +56,7 @@ they are IDs, not positions.
   SmolLM2-135M (L13H8) and an antecedent-blind template that ranks it first;
   shipped as a fourth showcase role, a pin label and a grid-explorer sort.
   *(M1/M2 backlog; done 2026-09-03)*
-- [ ] **#15 Opening the MLP** — *next up.* Builds on #14: the cards use glossary terms.
+- [x] **#15 Opening the MLP** — Builds on #14: the cards use glossary terms.
   Two Layers-detail cards from one export release (v4): (a) **edit size**
   — per token and layer, ‖Δx‖/‖x‖ for the MLP and for attention, as a
   token × layer heatmap plus per-layer bars for the selected token
@@ -71,8 +71,18 @@ they are IDs, not positions.
   numbers: https://claude.ai/artifact/GYLgxJPsnVC3Si8MKiVSAR. Later
   follow-ups discussed: top firing neurons labelled by the tokens their
   down-projection promotes (offline asset), a SwiGLU anatomy detail view,
-  and MLP knockout runs opened in the Compare view. *(2026-10-10
-  discussion)*
+  and MLP knockout runs opened in the Compare view (now #16–#18).
+  Shipped 2026-10-11 (spec
+  `docs/superpowers/specs/2026-10-10-opening-the-mlp-design.md`); export
+  v4. *(2026-10-10 discussion)*
+- [ ] **#16 Labelled MLP neurons** — top firing neurons per layer, each
+  labelled by the tokens its down-projection column promotes most (an
+  offline asset from the export tool). *(#15 follow-up)*
+- [ ] **#17 SwiGLU anatomy view** — a detail view of one MLP's steps
+  (norm, gate, up, SiLU, product, down) with real values for the selected
+  token. *(#15 follow-up)*
+- [ ] **#18 MLP knockout runs** — re-run a prompt with one layer's MLP
+  zeroed and open the pair in the Compare view. *(#15 follow-up)*
 
 ## Pipeline pedagogy
 
@@ -127,6 +137,7 @@ they are IDs, not positions.
 
 ## Done (for the record)
 
+- [x] Opening the MLP: edit sizes, per-layer votes; export v4 *(#15, 2026-10-11)*
 - [x] In-app glossary: 12 entries, term links, drawer, "?" index, first-visit hint *(#14, 2026-10-10)*
 - [x] Logits readout: final vector, candidate rows, visible dot product; export v3 *(#13, 2026-10-09)*
 - [x] Coreference-head detector in real mode (L13H8 spike, blind template) *(#5, 2026-09-03)*
