@@ -490,3 +490,17 @@ math { font-family: 'Latin Modern Math', math, 'STIX Two Math', 'Cambria Math', 
 .mlp-scale { font-size: .7rem; display: flex; align-items: center; gap: .3rem; }
 .mlp-scale-ramp { display: inline-block; width: 80px; height: 8px;
   background: linear-gradient(90deg, hsl(211 30% 94%), hsl(211 55% 24%)); }
+
+.votes-lens { margin: .5rem 0; }
+.votes-lens figcaption { font-size: .75rem; color: var(--ai); }
+.vote-line { fill: none; stroke: var(--ai-soft); stroke-width: 1; opacity: .5; }
+.vote-line-selected { fill: none; stroke: var(--ai-deep); stroke-width: 2; }
+.votes-breakdown { border-collapse: collapse; font-size: .8rem; }
+.votes-breakdown caption { text-align: left; font-size: .75rem; color: var(--ai); }
+.votes-breakdown th { text-align: left; font-weight: 400; padding-right: .5rem; }
+.votes-breakdown td { padding: 1px .3rem; font-family: var(--mono); }
+.votes-sub th { padding-left: 1rem; color: var(--ai); }
+.votes-total th, .votes-total td { border-top: 1px solid var(--ai-wash-strong); font-weight: 600; }
+.votes-bar { display: inline-block; height: 8px; }
+.votes-bar-pos { background: hsl(211 45% 55%); }
+.votes-bar-neg { background: hsl(13 55% 60%); }
