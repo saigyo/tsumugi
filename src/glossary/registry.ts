@@ -10,10 +10,11 @@ import { residualStream } from './entries/residual-stream'
 import { sampling } from './entries/sampling'
 import { softmax } from './entries/softmax'
 import { token } from './entries/token'
+import { votes } from './entries/votes'
 import type { GlossaryEntry, GlossaryId, GlossaryStage } from './types'
 
 export const ENTRIES: GlossaryEntry[] = [
-  howToRead, token, embedding, residualStream, edit, layer, attention, mlp, logit, softmax, sampling, modes,
+  howToRead, token, embedding, residualStream, edit, layer, attention, mlp, votes, logit, softmax, sampling, modes,
 ]
 
 const BY_ID = new Map<string, GlossaryEntry>(ENTRIES.map((e) => [e.id, e]))

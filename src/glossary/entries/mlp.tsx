@@ -9,7 +9,7 @@ export const mlp: GlossaryEntry = {
   title: 'MLP',
   summary: 'The per-token step in each layer: widen the vector, apply a nonlinearity, narrow it back.',
   stage: 'layers',
-  related: ['layer', 'edit', 'attention'],
+  related: ['layer', 'edit', 'attention', 'votes'],
   body: () => (
     <>
       <p>MLP stands for multi-layer perceptron, also called the feed-forward network. It works on each token’s
@@ -60,7 +60,9 @@ export const mlp: GlossaryEntry = {
         neuron is active.</p>
       <p>The three matrices hold 3 × 576 × 1536 ≈ 2.7 million weights per layer, about 60% of the whole model
         across its 30 layers.</p>
-      <p className="gl-aside">Tsumugi does not show the MLP’s internals yet.</p>
+      <p>In a real run the Layers detail shows what the MLPs do: <em>How much each layer changes the vector</em>{' '}
+        compares each MLP edit with the stream, and <em>What each layer voted for</em> shows how much each layer’s
+        MLP added to each candidate’s score. See <Term id="votes">per-layer votes</Term>.</p>
     </>
   ),
 }

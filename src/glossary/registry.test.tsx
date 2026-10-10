@@ -1,7 +1,7 @@
 import { cleanup, render } from '@testing-library/react'
 import { afterEach, expect, test } from 'vitest'
 import { sampleRun } from '../test/glossaryFixture'
-import { EMBEDDING_CALLOUTS, logitsCallouts, SOFTMAX_CALLOUTS } from './callouts'
+import { EDIT_CALLOUTS, EMBEDDING_CALLOUTS, logitsCallouts, SOFTMAX_CALLOUTS } from './callouts'
 import { ENTRIES, getEntry, indexGroups, STAGE_ORDER } from './registry'
 import { GLOSSARY_IDS } from './types'
 
@@ -41,7 +41,7 @@ test('every body renders', () => {
 })
 
 test('every inRun renders with a sample run and stays quiet without the data it needs', () => {
-  const bare = sampleRun({ tokens: [], cycles: 0, stream: undefined, vocabSize: undefined, softmax: undefined })
+  const bare = sampleRun({ tokens: [], cycles: 0, stream: undefined, vocabSize: undefined, softmax: undefined, edits: undefined, votes: undefined })
   for (const e of ENTRIES) {
     if (!e.inRun) continue
     const { container } = render(<>{e.inRun(sampleRun())}</>)
@@ -77,7 +77,7 @@ test('every related id has an entry', () => {
 })
 
 test('every callout chip points at a section that exists', () => {
-  for (const c of [...EMBEDDING_CALLOUTS, ...logitsCallouts(3, '49 152'), ...SOFTMAX_CALLOUTS])
+  for (const c of [...EMBEDDING_CALLOUTS, ...logitsCallouts(3, '49 152'), ...SOFTMAX_CALLOUTS, ...EDIT_CALLOUTS])
     expect(sectionsOf(c.id), `${c.label} → ${c.id} § ${c.section}`).toContain(c.section)
 })
 
@@ -139,4 +139,17 @@ test('wide formulas are broken into rows so they fit the drawer', () => {
 test('the MLP gate scales the values rather than just letting them through', () => {
   const { container } = render(<>{getEntry('mlp')!.body()}</>)
   expect(container.textContent).toContain('scaled by the gate')
+})
+
+test('the votes entry explains the frozen norm and how it differs from the logit lens', () => {
+  const { container } = render(<>{getEntry('votes')!.body()}</>)
+  expect(container.textContent).toMatch(/logit lens/i)
+  expect(container.textContent).toMatch(/root mean square/i)
+  expect(container.querySelector('[data-formula-error]')).toBeNull()
+})
+
+test('the MLP entry no longer says the app hides its internals', () => {
+  const { container } = render(<>{getEntry('mlp')!.body()}</>)
+  expect(container.textContent).not.toMatch(/does not show the MLP’s internals/)
+  expect(container.textContent).toMatch(/What each layer voted for/)
 })

@@ -6,7 +6,7 @@ import type { GenParams, Mode, TokenInfo } from '../trace/types'
 // circular. The registry test checks one entry per id.
 export const GLOSSARY_IDS = [
   'how-to-read', 'token', 'embedding', 'residual-stream', 'edit', 'layer',
-  'attention', 'mlp', 'logit', 'softmax', 'sampling', 'modes',
+  'attention', 'mlp', 'votes', 'logit', 'softmax', 'sampling', 'modes',
 ] as const
 export type GlossaryId = typeof GLOSSARY_IDS[number]
 
@@ -24,6 +24,8 @@ export interface RunSummary {
   stream?: { seqLen: number; dims: number; layers: number }
   vocabSize?: number
   softmax?: { temperature: number; top: Array<{ text: string; logit?: number; prob: number }> }
+  edits?: { token: string; layer: number; ratio: number }      // largest MLP edit of the last visible token
+  votes?: { candidate: string; layer: number; value: number }  // MLP layer adding most to the top candidate
 }
 
 export interface GlossaryEntry {

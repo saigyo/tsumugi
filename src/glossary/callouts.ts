@@ -20,3 +20,9 @@ export const SOFTMAX_CALLOUTS: CalloutTarget[] = [
   { label: 'temperature', id: 'softmax', section: 'temperature' },
   { label: 'top-k only', id: 'softmax', section: 'top-k' },
 ]
+
+export const EDIT_CALLOUTS: CalloutTarget[] = [
+  { label: 'why layer 0 is so dark', id: 'edit', section: 'layer-0' },
+  { label: 'quiet middle, loud end', id: 'edit', section: 'quiet-middle' },
+  { label: 'attention vs MLP', id: 'edit', section: 'attn-vs-mlp' },
+]

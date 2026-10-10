@@ -37,3 +37,13 @@ test('before the first softmax there is no softmax block', () => {
   expect(r.softmax).toBeUndefined()
   expect(r.stream).toEqual({ seqLen: 2, dims: 576, layers: 3 })
 })
+
+test('MLP facts: the last token’s largest MLP edit, and the MLP layer that added most to the top candidate', () => {
+  const t = buildFixtureTrace({ mlp: true, mode: 'real' })
+  const s = runSummary(t, 4)!
+  expect(s.edits?.token).toBe(' cat')
+  expect(s.edits?.ratio).toBeGreaterThan(0)
+  expect(s.votes?.candidate).toBe(' sat')
+  expect(s.votes?.layer).toBeGreaterThanOrEqual(0)
+  expect(runSummary(buildFixtureTrace(), 4)!.edits).toBeUndefined()
+})
