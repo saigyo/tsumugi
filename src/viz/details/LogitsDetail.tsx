@@ -10,7 +10,7 @@ import { selectedCandidate, useCandidateSelection } from '../candidateSelection'
 
 // Container: picks the cycle's logits event, resolves asset rows for sim and
 // legacy traces, and shows the selected candidate (shared with the votes card
-// through candidateSelection; snaps to the top candidate on another cycle).
+// through candidateSelection; the top candidate on another cycle or run).
 // The softmax step has its own card.
 export function LogitsDetail({ events, cursor }: { events: TraceEvent[]; cursor: number }) {
   const logits = latestOfType(events, cursor, 'logits')
@@ -22,7 +22,7 @@ export function LogitsDetail({ events, cursor }: { events: TraceEvent[]; cursor:
   if (!logits) return null
   const dims = embed?.dims ?? logits.lastHidden?.length ?? 576
   const vocabSize = runStart?.vocabSize
-  const selected = selectedCandidate(pick, logits.cycle, logits.topK.length)
+  const selected = selectedCandidate(pick, logits.topK)
   const covered = geo.status === 'ready' && geo.asset != null && runStart != null
     && coversModel(geo.asset.manifest, runStart.modelId)
   const asset = covered ? geo.asset : undefined
@@ -37,7 +37,7 @@ export function LogitsDetail({ events, cursor }: { events: TraceEvent[]; cursor:
         <Formula testId="logits-formula" className="card-formula" inline tex={logitsTex(dims, vocabSize)} />
       )}
       <LogitsReadout candidates={logits.topK} lastHidden={logits.lastHidden} dims={dims} vocabSize={vocabSize}
-        selected={selected} onSelect={(index) => select(logits.cycle, index)}
+        selected={selected} onSelect={(index) => select(logits.topK, index)}
         assetRowFor={assetRowFor} assetNote={assetNote} />
     </div>
   )

@@ -156,7 +156,7 @@ export function editRows(events: TraceEvent[], cursor: number): EditRows | undef
 export type VotedCandidate = LogitCandidate & { votes: LayerVotes }
 export type CycleVotes =
   | { status: 'ok'; candidates: VotedCandidate[] }
-  | { status: 'pending' }   // the viewed cycle's logits are not in the trace yet
+  | { status: 'pending' }   // the viewed cycle's logits are not in the trace yet, and the run goes on
   | { status: 'none' }      // they are, without votes for every candidate
 
 // The votes card reads the viewed cycle's logits event, which comes after
@@ -164,7 +164,7 @@ export type CycleVotes =
 export function cycleVotes(events: TraceEvent[], cursor: number): CycleVotes {
   const cycle = viewedCycle(events, cursor)
   const logits = events.find((e): e is Extract<TraceEvent, { type: 'logits' }> => e.type === 'logits' && e.cycle === cycle)
-  if (!logits) return { status: 'pending' }
+  if (!logits) return events.some((e) => e.type === 'run-end') ? { status: 'none' } : { status: 'pending' }
   if (!logits.topK.every((c) => c.votes)) return { status: 'none' }
   return { status: 'ok', candidates: logits.topK as VotedCandidate[] }
 }

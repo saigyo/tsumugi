@@ -11,6 +11,7 @@ import type { CycleVotes, EditRows } from '../selectors'
 const SIM_NOTE = 'Real model only: simulated runs have no MLP to measure.'
 const OLD_NOTE = 'This run was recorded before MLP data was exported.'
 const PENDING_NOTE = 'Votes appear once this cycle’s scores are computed.'
+const EDITS_PENDING_NOTE = 'Edit sizes appear once this cycle’s layers are measured.'
 
 export function LayersDetail({ event, mode, attention, attentionInRun, tokens, streamShape, grid, pinnedHeads, onPin, pinNote, edits, votes }: {
   event: Extract<TraceEvent, { type: 'layer' }>
@@ -60,8 +61,8 @@ export function LayersDetail({ event, mode, attention, attentionInRun, tokens, s
       )}
       {grid && explore && <AttentionGridExplorer grid={grid} onPin={onPin ?? (() => {})} />}
       <div data-testid="mlp-cards">
-        <EditSizeCard rows={mode === 'real' ? edits : undefined} note={mode === 'sim' ? SIM_NOTE : OLD_NOTE} />
-        <LayerVotesCard cycle={event.cycle}
+        <EditSizeCard rows={mode === 'real' ? edits : undefined} note={mode === 'sim' ? SIM_NOTE : votes?.status === 'pending' ? EDITS_PENDING_NOTE : OLD_NOTE} />
+        <LayerVotesCard
           candidates={mode === 'real' && votes?.status === 'ok' ? votes.candidates : undefined}
           note={mode === 'sim' ? SIM_NOTE : votes?.status === 'pending' ? PENDING_NOTE : OLD_NOTE} />
       </div>

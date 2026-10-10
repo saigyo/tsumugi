@@ -71,3 +71,11 @@ test('the selected candidate survives a remount (switching stages and back)', ()
   render(<LogitsDetail events={events} cursor={7} />)
   expect(screen.getAllByTestId('readout-candidate')[1]).toHaveAttribute('data-selected', 'true')
 })
+
+test('a pick made in one run does not carry over into the next run', () => {
+  render(<LogitsDetail events={buildFixtureTrace({ readout: true })} cursor={7} />)
+  fireEvent.click(screen.getAllByTestId('readout-candidate')[2])
+  cleanup()
+  render(<LogitsDetail events={buildFixtureTrace({ readout: true })} cursor={7} />)   // a new run, same cycle
+  expect(screen.getAllByTestId('readout-candidate')[0]).toHaveAttribute('data-selected', 'true')
+})

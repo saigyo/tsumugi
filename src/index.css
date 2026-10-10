@@ -484,6 +484,7 @@ math { font-family: 'Latin Modern Math', math, 'STIX Two Math', 'Cambria Math', 
 .edit-map-fig figcaption, .edit-bars-fig figcaption { font-size: .75rem; color: var(--ai); }
 .edit-row-label { font-size: 9px; font-family: var(--mono); cursor: pointer; fill: currentColor; }
 .edit-row-selected { font-weight: 700; fill: var(--ai-deep); }
+.edit-row-label:focus-visible { outline: none; text-decoration: underline; fill: var(--ai); }
 .edit-axis { font-size: 8px; fill: var(--ai-soft); }
 .edit-bar-attn { fill: var(--ai-soft); }
 .edit-bar-mlp { fill: var(--ai-deep); }

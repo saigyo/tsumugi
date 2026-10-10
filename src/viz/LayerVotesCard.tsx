@@ -12,7 +12,7 @@ const signed = (v: number) => `${v >= 0 ? '+' : '−'}${Math.abs(v).toFixed(2)}`
 // "What each layer voted for": the score split exactly into one share per
 // block (final norm frozen at its real scale). The candidate selection is
 // shared with the Logits card.
-export function LayerVotesCard({ candidates, cycle, note }: { candidates?: VotedCandidate[]; cycle: number; note: string }) {
+export function LayerVotesCard({ candidates, note }: { candidates?: VotedCandidate[]; note: string }) {
   const pick = useCandidateSelection((s) => s.pick)
   const select = useCandidateSelection((s) => s.select)
   return (
@@ -20,8 +20,8 @@ export function LayerVotesCard({ candidates, cycle, note }: { candidates?: Voted
       <h4>What each layer voted for{' '}
         <Term id="votes" variant="icon" label="About per-layer votes" testId="votes-info">ⓘ</Term></h4>
       {!candidates || candidates.length === 0 ? <p data-testid="votes-note" className="mlp-note">{note}</p> : (
-        <VotesBody candidates={candidates} selected={selectedCandidate(pick, cycle, candidates.length)}
-          onSelect={(i) => select(cycle, i)} />
+        <VotesBody candidates={candidates} selected={selectedCandidate(pick, candidates)}
+          onSelect={(i) => select(candidates, i)} />
       )}
     </section>
   )
@@ -52,10 +52,10 @@ function VotesBody({ candidates, selected, onSelect }: {
         <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} role="group" aria-label="MLP votes, candidates by layers">
           {candidates.map((c, r) => (
             <g key={c.id}>
-              <text data-testid="vote-row-label" data-row={r} data-selected={String(r === selected)}
+              <text data-testid="vote-row-label" data-row={r} data-selected={String(r === selected)} aria-pressed={r === selected}
                 className={`edit-row-label${r === selected ? ' edit-row-selected' : ''}`}
                 x={LABEL_W - 4} y={r * ROW_H + 10} textAnchor="end" role="button" tabIndex={0}
-                onClick={() => onSelect(r)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onSelect(r) }}>
+                onClick={() => onSelect(r)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(r) } }}>
                 {visibleToken(c.text)}
               </text>
               {c.votes.mlp.map((v, l) => (

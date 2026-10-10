@@ -82,3 +82,9 @@ test('a long prompt draws only the last 64 tokens and says so', () => {
   fireEvent.click(labels[0])
   expect(screen.getByTestId('edit-bars-label')).toHaveTextContent('␣t36')
 })
+
+test('row labels announce which token is selected', () => {
+  render(<EditSizeCard rows={rows} note="unused" />)
+  const labels = screen.getAllByTestId('edit-row-label').slice(0, 2)
+  expect(labels.map((l) => l.getAttribute('aria-pressed'))).toEqual(['false', 'true'])
+})

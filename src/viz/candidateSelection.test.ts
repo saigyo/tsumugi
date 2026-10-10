@@ -1,19 +1,25 @@
 import { expect, test } from 'vitest'
+import type { LogitCandidate } from '../trace/types'
 import { resetCandidateSelection, selectedCandidate, useCandidateSelection } from './candidateSelection'
 
-test('selectedCandidate: the pick on its own cycle, else the top candidate', () => {
-  expect(selectedCandidate(null, 0, 3)).toBe(0)
-  expect(selectedCandidate({ cycle: 1, index: 2 }, 1, 3)).toBe(2)
-  expect(selectedCandidate({ cycle: 1, index: 2 }, 0, 3)).toBe(0)
+const list = (n: number): LogitCandidate[] => Array.from({ length: n }, (_, i) => ({ id: i, text: `t${i}`, logit: 9 - i }))
+
+test('selectedCandidate: the pick on its own candidate list, else the top candidate', () => {
+  const a = list(3), b = list(3)
+  expect(selectedCandidate(null, a)).toBe(0)
+  expect(selectedCandidate({ topK: a, index: 2 }, a)).toBe(2)
+  expect(selectedCandidate({ topK: a, index: 2 }, b)).toBe(0)   // another cycle or run
 })
 
-test('selectedCandidate: an index past this cycle’s candidates falls back to 0', () => {
-  expect(selectedCandidate({ cycle: 0, index: 5 }, 0, 3)).toBe(0)
+test('selectedCandidate: an index past the list falls back to 0', () => {
+  const a = list(3)
+  expect(selectedCandidate({ topK: a, index: 5 }, a)).toBe(0)
 })
 
 test('select stores the pick; reset clears it', () => {
-  useCandidateSelection.getState().select(2, 1)
-  expect(useCandidateSelection.getState().pick).toEqual({ cycle: 2, index: 1 })
+  const a = list(2)
+  useCandidateSelection.getState().select(a, 1)
+  expect(useCandidateSelection.getState().pick).toEqual({ topK: a, index: 1 })
   resetCandidateSelection()
   expect(useCandidateSelection.getState().pick).toBeNull()
 })

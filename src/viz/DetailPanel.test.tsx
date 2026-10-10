@@ -236,3 +236,15 @@ test('live run before the cycle’s logits: the votes card says votes are coming
   expect(screen.getByTestId('votes-note')).toHaveTextContent('Votes appear once this cycle’s scores are computed.')
   expect(screen.getAllByTestId('edit-cell').length).toBeGreaterThan(0)
 })
+
+test('live run before the cycle’s edits: the edit-size card says they are coming, not that the run is old', () => {
+  const t = buildFixtureTrace({ mlp: true, mode: 'real' }).slice(0, 7)   // through cycle 0's attention
+  render(<DetailPanel events={t} cursor={4} mode="real" />)
+  expect(screen.getByTestId('edit-size-note')).toHaveTextContent('Edit sizes appear once this cycle’s layers are measured.')
+})
+
+test('an ended run without the cycle’s scores shows the older-data note, not a pending one', () => {
+  const t = [...buildFixtureTrace({ mlp: true, mode: 'real' }).slice(0, 8), { type: 'run-end', reason: 'error' } as const]
+  render(<DetailPanel events={t} cursor={4} mode="real" />)
+  expect(screen.getByTestId('votes-note')).toHaveTextContent('This run was recorded before MLP data was exported.')
+})

@@ -72,10 +72,10 @@ function EditMap({ block, rows, selected, onSelect }: {
         aria-label={`${BLOCK_NAME[block]} edit sizes, tokens by layers`}>
         {rows.tokens.map((t, r) => (
           <g key={r}>
-            <text data-testid="edit-row-label" data-row={r} data-selected={String(r === selected)}
+            <text data-testid="edit-row-label" data-row={r} data-selected={String(r === selected)} aria-pressed={r === selected}
               className={`edit-row-label${r === selected ? ' edit-row-selected' : ''}`}
               x={LABEL_W - 4} y={r * ROW_H + 9} textAnchor="end" role="button" tabIndex={0}
-              onClick={() => onSelect(r)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onSelect(r) }}>
+              onClick={() => onSelect(r)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(r) } }}>
               {visibleToken(t.text)}
             </text>
             {rows[block][r].map((v, l) => (

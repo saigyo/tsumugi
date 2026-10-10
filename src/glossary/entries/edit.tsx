@@ -3,6 +3,7 @@ import { Term } from '../Term'
 import type { GlossaryEntry } from '../types'
 import { Formula } from '../../viz/Formula'
 import { Section } from '../Section'
+import { visibleToken } from '../../viz/tokenText'
 
 const x = [0.8, -0.3, 0.1, 0.6, -0.9, 0.2, 0.4, -0.1]
 const dx = [0.1, 0.4, -0.2, 0.0, 0.3, -0.1, 0.0, 0.2]
@@ -60,7 +61,7 @@ export const edit: GlossaryEntry = {
     <>
       <p>Each layer adds two edits of [{run.stream.seqLen} × {run.stream.dims}] to your stream, one from attention
         and one from the MLP: {run.stream.layers * 2} in total.</p>
-      {run.edits && <p>The largest MLP edit for “{run.edits.token}” is at layer {run.edits.layer}:{' '}
+      {run.edits && <p>The largest MLP edit for “{visibleToken(run.edits.token)}” is at layer {run.edits.layer}:{' '}
         {run.edits.ratio.toFixed(2)} times the size of the stream it is added to.</p>}
     </>
   ) : null,

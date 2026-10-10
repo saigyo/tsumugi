@@ -153,3 +153,12 @@ test('the MLP entry no longer says the app hides its internals', () => {
   expect(container.textContent).not.toMatch(/does not show the MLP’s internals/)
   expect(container.textContent).toMatch(/What each layer voted for/)
 })
+
+test('In this run lines show whitespace tokens with their glyphs', () => {
+  const run = sampleRun({ edits: { token: '\n', layer: 3, ratio: 0.5 }, votes: { candidate: '\n', layer: 29, value: 7.6 } })
+  for (const id of ['edit', 'votes']) {
+    const { container } = render(<>{getEntry(id)!.inRun!(run)}</>)
+    expect(container.textContent, id).toContain('“↵”')
+    cleanup()
+  }
+})
