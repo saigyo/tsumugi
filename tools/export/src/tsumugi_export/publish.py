@@ -34,6 +34,12 @@ last position) and `topk_embeds` (`[batch, 16, 576]`, their rows of the
 embedding table, kept fp32). Tsumugi's Logits card shows the dot product
 `last_hidden_state · topk_embeds[i]` cell by cell, summing to the logit.
 
+For the MLP cards it also exposes `edit_ratios` (`[batch, seq, 30, 2]`,
+‖edit‖ / ‖stream before‖ per position, layer and block: 0 attention, 1 MLP)
+and `stream_parts` (`[batch, 61, 576]`, the last position's embedding,
+30 attention edits and 30 MLP edits, each multiplied by the final norm's
+gain and 1/rms, so they add up to `last_hidden_state`'s last row).
+
 Releases are tagged — this one is `{tag}` — and the app pins a tag, so
 browsers that cached an older file re-download once. Tags never move: a
 fixed model is published under the next tag.
@@ -41,7 +47,8 @@ fixed model is published under the next tag.
 Validation (see `validation-report.json`): logits parity with the stock
 export, row-stochastic causal attention rows, cached-vs-full-matrix
 equivalence, embedding-row parity, readout parity (`last_hidden_state · Eᵀ`
-reproduces the logits; `topk_embeds` are the exact rows of the top-16 ids).
+reproduces the logits; `topk_embeds` are the exact rows of the top-16 ids),
+edit-ratio parity with PyTorch hooks, and stream-part / vote sums.
 
 **Variants:** `onnx/model_quantized.onnx` (dynamic int8, `dtype: 'q8'`,
 with `/lm_head/MatMul` excluded from quantization) is the sole published

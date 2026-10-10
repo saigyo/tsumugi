@@ -2,7 +2,8 @@
 
 Exports `HuggingFaceTB/SmolLM2-135M-Instruct` to ONNX with per-layer
 attention-probability outputs, the embedding lookup (`inputs_embeds`) and the
-readout (`last_hidden_state`, `topk_ids`, `topk_embeds`), plus a
+readout (`last_hidden_state`, `topk_ids`, `topk_embeds`) and the MLP internals
+(`edit_ratios`, `stream_parts`), plus a
 vocabulary-geometry asset, quantizes it, validates the result against
 the stock model, and publishes it to `saigyo-hoshi/smollm2-135m-attn-onnx`
 on the Hugging Face Hub — for use by Tsumugi's in-browser attention
@@ -68,16 +69,18 @@ the actual acceptance checklist for a release.
    Do not skip this — `publish` refuses to run without a passing report,
    but you should also read the printed verdict table yourself (including
    confirming `a-equiv-b` actually ran, not SKIPPED, and that
-   `*:inputs-embeds-parity`, `*:last-hidden-parity`, `*:topk-parity` and
+   `*:inputs-embeds-parity`, `*:last-hidden-parity`, `*:topk-parity`,
+   `*:edit-ratios-parity`, `*:stream-parts-sum`, `*:votes-sum`,
+   `*:edit-cache-parity` and
    `geometry` must PASS) rather than relying solely on the exit code.
-7. **Publish:** `uv run python -m tsumugi_export publish --model-dir out/model --tag v3`
+7. **Publish:** `uv run python -m tsumugi_export publish --model-dir out/model --tag v4`
    Then set `ATTN_MODEL_REVISION` in `src/engine/tokenizer.ts` to the same
    tag and deploy the app. A release is always these two steps: browsers
    cache model files by URL and never re-check, so publishing alone changes
    nothing for the app, and bumping the constant alone points at a tag that
    does not exist. Tags never move and `publish` refuses an existing one: if
    the in-app check in step 8 fails, fix, re-validate, publish under the
-   **next** tag (`v4`) and bump the constant again.
+   **next** tag (`v5`) and bump the constant again.
 8. **In the actual Tsumugi app**, load the exported model in real
    (non-fallback) attention mode and check the items below. Pre-publish
    in-app testing against a not-yet-uploaded artifact is not supported in

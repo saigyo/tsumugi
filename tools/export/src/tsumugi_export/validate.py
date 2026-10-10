@@ -9,6 +9,10 @@
 6. geometry/ spot-check against exact neighbours and the tokenizer
 7. last_hidden_state · Eᵀ reproduces the last-position logits
 8. topk_ids are the exact top-k and topk_embeds their rows of E
+9. edit_ratios match PyTorch forward hooks on the stock model, and the
+   cached step-by-step rows match the single-shot rows
+10. stream_parts add up to last_hidden_state's last row, and parts · E
+    add up to the logits of the top-k ids
 Writes validation-report.json with artifact hashes; publish refuses to
 upload without a passing report."""
 import hashlib
@@ -282,6 +286,83 @@ def check_topk_parity(outputs: dict, E: np.ndarray, k: int, tol: float) -> dict:
     return {"passed": True, "detail": f"top-{k} ids exact; rows match E within {diff:.2e}"}
 
 
+def check_stream_parts_sum(outputs: dict, tol: float) -> dict:
+    """The parts (embedding, attention edits, MLP edits, each scaled by the
+    final norm) must add up to what the lm_head multiplies."""
+    for name in ("stream_parts", "last_hidden_state"):
+        if name not in outputs:
+            return {"passed": False, "detail": f"graph has no {name} output"}
+    parts, last = outputs["stream_parts"], outputs["last_hidden_state"]
+    if parts.ndim != 3 or parts.shape[0] != 1 or parts.shape[2] != last.shape[2]:
+        return {"passed": False, "detail": f"stream_parts shape {parts.shape}, expected (1, 1 + 2·layers, {last.shape[2]})"}
+    diff = float(np.max(np.abs(parts[0].sum(axis=0) - last[0, -1])))
+    return {"passed": diff <= tol, "detail": f"max|Σ parts − last_hidden|={diff:.2e} (atol {tol})"}
+
+
+def check_votes_sum(outputs: dict, tol: float) -> dict:
+    """parts · E[c] summed over the parts must reproduce each top-k logit —
+    the identity the votes card shows."""
+    for name in ("stream_parts", "topk_ids", "topk_embeds", "logits"):
+        if name not in outputs:
+            return {"passed": False, "detail": f"graph has no {name} output"}
+    votes = outputs["stream_parts"][0] @ outputs["topk_embeds"][0].T     # [parts, k]
+    want = outputs["logits"][0, -1, outputs["topk_ids"][0]]
+    diff = float(np.max(np.abs(votes.sum(axis=0) - want)))
+    return {"passed": diff <= tol, "detail": f"max|Σ votes − logit|={diff:.2e} (atol {tol})"}
+
+
+def check_edit_ratios_parity(outputs: dict, expected: np.ndarray, tol: float) -> dict:
+    """edit_ratios [1, seq, layers, 2] against a reference [seq, layers, 2]."""
+    if "edit_ratios" not in outputs:
+        return {"passed": False, "detail": "graph has no edit_ratios output"}
+    got = outputs["edit_ratios"]
+    if got.shape != (1, *expected.shape):
+        return {"passed": False, "detail": f"edit_ratios shape {got.shape}, expected (1, {', '.join(map(str, expected.shape))})"}
+    diff = float(np.max(np.abs(got[0] - expected)))
+    return {"passed": diff <= tol, "detail": f"max|Δratio|={diff:.2e} (atol {tol})"}
+
+
+def check_edit_cache_parity(single: dict, steps: list[dict], tol: float) -> dict:
+    """Step t of a cached run feeds one token; its edit_ratios row must equal
+    row t of the single-shot run over the whole sequence."""
+    if "edit_ratios" not in single or any("edit_ratios" not in s for s in steps):
+        return {"passed": False, "detail": "graph has no edit_ratios output"}
+    diff = max(float(np.max(np.abs(s["edit_ratios"][0, 0] - single["edit_ratios"][0, t])))
+               for t, s in enumerate(steps))
+    return {"passed": diff <= tol, "detail": f"max|Δratio| step-by-step vs single-shot={diff:.2e} (atol {tol})"}
+
+
+def torch_edit_ratios(ids: np.ndarray) -> np.ndarray:
+    """Reference [seq, layers, 2] from the stock PyTorch model: forward hooks
+    record each decoder layer's input x, its attention output a and its MLP
+    output m; ratios are ‖a‖/‖x‖ and ‖m‖/‖x + a‖. Heavy (loads the model)."""
+    import torch
+    from transformers import AutoModelForCausalLM
+    model = AutoModelForCausalLM.from_pretrained(
+        STOCK_MODEL_ID, torch_dtype=torch.float32, attn_implementation="eager").eval()
+    rec: dict = {}
+    hooks = []
+    for l, layer in enumerate(model.model.layers):
+        def pre(mod, args, kwargs, l=l):
+            rec[("x", l)] = (args[0] if args else kwargs["hidden_states"]).detach()
+        hooks.append(layer.register_forward_pre_hook(pre, with_kwargs=True))
+        hooks.append(layer.self_attn.register_forward_hook(
+            lambda mod, args, out, l=l: rec.__setitem__(("a", l), out[0].detach())))
+        hooks.append(layer.mlp.register_forward_hook(
+            lambda mod, args, out, l=l: rec.__setitem__(("m", l), out.detach())))
+    with torch.no_grad():
+        model(torch.tensor(ids))
+    for h in hooks:
+        h.remove()
+    layers = len(model.model.layers)
+    out = np.zeros((ids.shape[1], layers, 2), dtype=np.float32)
+    for l in range(layers):
+        x, a, m = rec[("x", l)][0], rec[("a", l)][0], rec[("m", l)][0]
+        out[:, l, 0] = (a.norm(dim=-1) / x.norm(dim=-1)).numpy()
+        out[:, l, 1] = (m.norm(dim=-1) / (x + a).norm(dim=-1)).numpy()
+    return out
+
+
 def check_geometry_files(model_dir: Path, E: np.ndarray, texts: list[str], sample: int = 32) -> dict:
     """Spot-check geometry/ against the stock matrix: file sizes match the
     manifest, every sampled token's listed neighbour ids are distinct, each
@@ -348,6 +429,9 @@ def run(args) -> int:
     from tsumugi_export.stock import stock_embeddings, stock_token_texts
     E = stock_embeddings()
     texts = stock_token_texts(E.shape[0])
+
+    ref_ids = _tokenize(model_dir, PROMPTS[0])
+    ref_ratios = torch_edit_ratios(ref_ids)
 
     for variant in ["model.onnx", "model_quantized.onnx", "model_q4.onnx", "model_fp16.onnx"]:
         path = model_dir / "onnx" / variant
@@ -422,6 +506,12 @@ def run(args) -> int:
         lh_tol = 1e-3 if variant == "model.onnx" else TOL
         checks[f"{variant}:last-hidden-parity"] = check_last_hidden_parity(ro_out, E, lh_tol)
         checks[f"{variant}:topk-parity"] = check_topk_parity(ro_out, E, TOPK, 1e-3)
+        fp32 = variant == "model.onnx"
+        checks[f"{variant}:edit-ratios-parity"] = check_edit_ratios_parity(ro_out, ref_ratios, 1e-3 if fp32 else 0.1)
+        checks[f"{variant}:stream-parts-sum"] = check_stream_parts_sum(ro_out, 1e-3)
+        checks[f"{variant}:votes-sum"] = check_votes_sum(ro_out, 1e-3 if fp32 else 1e-2)
+        checks[f"{variant}:edit-cache-parity"] = check_edit_cache_parity(
+            ro_out, _drive_cached_stepwise(sess, ro_ids), 1e-3 if fp32 else 0.1)
 
     # A≡B equivalence when the operator exported both variants
     nc = model_dir.parent / "model-nocache" / "onnx" / "model.onnx"
