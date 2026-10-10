@@ -21,17 +21,17 @@
 - Worker policy is never-fail: absent output → no data; bad shape → `console.warn`, feature off for the rest of the run, run continues.
 - Values in the trace are rounded to 3 decimals.
 - Blue adds, red subtracts: reuse `cellFill` from `src/viz/stripMath.ts` (indigo positive, vermillion negative).
-- `ATTN_MODEL_REVISION` is bumped to `'v4'` only after tag `v4` exists on the Hub; publishing needs the user's explicit go-ahead.
+- v4 is published early (Task 3, as for #13) so later tasks run against the real model; a problem found later means a fixed export under the next tag (`v5`), not a moved tag. `ATTN_MODEL_REVISION` is bumped to `'v4'` only after tag `v4` exists, on the feature branch (a push to `main` deploys). Publishing needs the user's explicit go-ahead.
 - Lint: oxlint `react-hooks/exhaustive-deps`, `react/set-state-in-effect`, `react/only-export-components` (component files export only components).
 - Node 26 hides jsdom's `localStorage`; don't touch it in new tests.
 
 ## Review Focus
 
-1. **A run whose cycles mix data and no data** (votes turned off mid-run by a bad shape, or a candidate the graph's top-16 missed because of a tie): the votes card must show the missing-data note for that cycle, never a partial grid. Pinned by the `cycleVotes` "none when any candidate lacks votes" test (Task 5).
-2. **Viewing an early cycle of a long run:** the heatmap must show only the tokens visible at that cycle, not rows from later cycles. Pinned by the `editRows` "never shows rows past the viewed cycle" test (Task 5).
-3. **Selecting the last token, then stepping back a cycle:** the token row no longer exists; the bars must fall back to the last visible token, not crash or show an empty chart. Pinned by the EditSizeCard "selection out of range falls back" test (Task 8).
-4. **Candidate selection after a new run:** the shared store keeps an index keyed by cycle; an index past the new cycle's candidate count must fall back to 0. Pinned by the `selectedCandidate` bounds test (Task 6).
-5. **Votes that don't add up** (a graph whose final-norm tracing went wrong): the worker must drop the votes rather than ship a breakdown that disagrees with the Logits card. Pinned by the `computeVotes` mismatch test (Task 4).
+1. **A run whose cycles mix data and no data** (votes turned off mid-run by a bad shape, or a candidate the graph's top-16 missed because of a tie): the votes card must show the missing-data note for that cycle, never a partial grid. Pinned by the `cycleVotes` "none when any candidate lacks votes" test (Task 6).
+2. **Viewing an early cycle of a long run:** the heatmap must show only the tokens visible at that cycle, not rows from later cycles. Pinned by the `editRows` "never shows rows past the viewed cycle" test (Task 6).
+3. **Selecting the last token, then stepping back a cycle:** the token row no longer exists; the bars must fall back to the last visible token, not crash or show an empty chart. Pinned by the EditSizeCard "selection out of range falls back" test (Task 9).
+4. **Candidate selection after a new run:** the shared store keeps an index keyed by cycle; an index past the new cycle's candidate count must fall back to 0. Pinned by the `selectedCandidate` bounds test (Task 7).
+5. **Votes that don't add up** (a graph whose final-norm tracing went wrong): the worker must drop the votes rather than ship a breakdown that disagrees with the Logits card. Pinned by the `computeVotes` mismatch test (Task 5).
 
 ---
 
@@ -652,7 +652,56 @@ git commit -m "feat(export): validate edit ratios against PyTorch hooks and the 
 
 ---
 
-### Task 3: Trace format — `edits` event, `votes` field, validation, pacing, fixture
+### Task 3: Release v4 early (operator steps — needs the user's go-ahead)
+
+Published right after the export tasks, as for #13, so every later task can be tried against the real model in the browser. A Hub tag is cheap: if a later task finds a problem in the export, fix it and publish `v5`. The deployed app pins `v3` and is unaffected. Publishing is still outward-facing and tags never move, so **stop and ask the user before Step 4.** Steps 1–3 only write under `tools/export/out/`.
+
+- [ ] **Step 1: Export both variants**
+
+```bash
+cd tools/export
+uv run python -m tsumugi_export export --out out/model
+uv run python -m tsumugi_export export --out out/model-nocache --no-cache
+```
+Expected: both print `exported (…) → out/…`. (These overwrite the local v3 export.)
+
+- [ ] **Step 2: Quantize and rebuild geometry**
+
+```bash
+uv run python -m tsumugi_export quantize --model-dir out/model
+uv run python -m tsumugi_export geometry --model-dir out/model
+```
+
+- [ ] **Step 3: Validate**
+
+```bash
+uv run python -m tsumugi_export validate --model-dir out/model
+```
+Expected: `VERDICT: PASS`, with `a-equiv-b` run (not SKIP) and every `*:edit-ratios-parity`, `*:stream-parts-sum`, `*:votes-sum`, `*:edit-cache-parity` row PASS. A quantized tolerance failure with plausible values → widen per Task 2's note, with a ledgered ruling, and re-run.
+
+- [ ] **Step 4: Ask the user, then publish**
+
+Ask: "Validation passed; publish to `saigyo-hoshi/smollm2-135m-attn-onnx` as tag `v4`?" On yes:
+
+```bash
+uv run python -m tsumugi_export publish --model-dir out/model --tag v4
+```
+
+- [ ] **Step 5: Point the app at v4 (on the feature branch) and commit**
+
+In `src/engine/tokenizer.ts`: `export const ATTN_MODEL_REVISION = 'v4'` and extend the comment with "v4 = MLP internals (edit_ratios, stream_parts)." v4 only adds outputs, so the app runs unchanged against it until the worker task reads them. Run `npx vitest run && npx tsc -b && npm run build` → all green. This commit stays on the feature branch: a push to `main` deploys.
+
+```bash
+git add src/engine/tokenizer.ts
+git commit -m "feat(mlp): point the app at export v4"
+```
+
+- [ ] **Step 6: Browser smoke test**
+
+`npm run dev`, real mode, any prompt: the run completes and the Layers, Logits and Softmax cards look as before (the new outputs are not read yet). In the browser's network panel the model files come from `…/resolve/v4/…`.
+
+
+### Task 4: Trace format — `edits` event, `votes` field, validation, pacing, fixture
 
 **Files:**
 - Modify: `src/trace/types.ts`, `src/trace/validate.ts`, `src/player/pacing.ts`, `src/viz/selectors.ts` (STAGE_OF only), `src/test/fixtures.ts`
@@ -823,14 +872,14 @@ git commit -m "feat(trace): edits event and per-candidate votes, optional for ol
 
 ---
 
-### Task 4: Worker — `extractEdits`, `computeVotes`, wiring
+### Task 5: Worker — `extractEdits`, `computeVotes`, wiring
 
 **Files:**
 - Create: `src/engine/transformers/mlpData.ts`, `src/engine/transformers/mlpData.test.ts`
 - Modify: `src/engine/transformers/readout.ts` (export `sameDims` and `r3`), `src/engine/transformers/worker.ts`
 
 **Interfaces:**
-- Consumes: `Tensorish` from `readout.ts`; `LayerVotes` from Task 3.
+- Consumes: `Tensorish` from `readout.ts`; `LayerVotes` from Task 4.
 - Produces:
   ```ts
   export interface MlpOutputs { edit_ratios?: Tensorish; stream_parts?: Tensorish; topk_ids?: Tensorish; topk_embeds?: Tensorish }
@@ -1040,6 +1089,8 @@ In `worker.ts`:
 Run: `npx tsc -b && npx vitest run src/engine`
 Expected: clean; PASS.
 
+Then try it against the published v4: `npm run dev`, a real run of a few tokens, export it from the run shelf, and check the JSON. It should contain one `edits` event per cycle, with rows of 30 values, and `votes` on every logits candidate whose parts add up to its `logit` within 0.05. The console should show no `unusable` warning.
+
 ```bash
 git add src/engine/transformers
 git commit -m "feat(worker): edits events and per-candidate votes from the v4 outputs"
@@ -1047,7 +1098,7 @@ git commit -m "feat(worker): edits events and per-candidate votes from the v4 ou
 
 ---
 
-### Task 5: Selectors and maths for the cards
+### Task 6: Selectors and maths for the cards
 
 **Files:**
 - Modify: `src/viz/selectors.ts`
@@ -1055,7 +1106,7 @@ git commit -m "feat(worker): edits events and per-candidate votes from the v4 ou
 - Test: `src/viz/selectors.test.ts`
 
 **Interfaces:**
-- Consumes: Task 3 types and `buildFixtureTrace({ mlp: true })`.
+- Consumes: Task 4 types and `buildFixtureTrace({ mlp: true })`.
 - Produces:
   ```ts
   // selectors.ts
@@ -1262,7 +1313,7 @@ git commit -m "feat(viz): selectors and maths for the edit-size and votes cards"
 
 ---
 
-### Task 6: Shared candidate selection
+### Task 7: Shared candidate selection
 
 **Files:**
 - Create: `src/viz/candidateSelection.ts`, `src/viz/candidateSelection.test.ts`
@@ -1387,7 +1438,7 @@ git commit -m "refactor(logits): candidate selection in a store shared across ca
 
 ---
 
-### Task 7: Glossary — `votes` entry, `edit` sections, run summary
+### Task 8: Glossary — `votes` entry, `edit` sections, run summary
 
 **Files:**
 - Create: `src/glossary/entries/votes.tsx`
@@ -1395,8 +1446,8 @@ git commit -m "refactor(logits): candidate selection in a store shared across ca
 - Test: `src/glossary/registry.test.tsx`, `src/glossary/runSummary.test.ts`
 
 **Interfaces:**
-- Consumes: `editRows`, `cycleVotes` (Task 5).
-- Produces: `EDIT_CALLOUTS: CalloutTarget[]` in `callouts.ts` (used by Task 8); `GLOSSARY_IDS` gains `'votes'` after `'mlp'`; `RunSummary` gains `edits?: { token: string; layer: number; ratio: number }` and `votes?: { candidate: string; layer: number; value: number }`.
+- Consumes: `editRows`, `cycleVotes` (Task 6).
+- Produces: `EDIT_CALLOUTS: CalloutTarget[]` in `callouts.ts` (used by Task 9); `GLOSSARY_IDS` gains `'votes'` after `'mlp'`; `RunSummary` gains `edits?: { token: string; layer: number; ratio: number }` and `votes?: { candidate: string; layer: number; value: number }`.
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -1571,14 +1622,14 @@ git commit -m "docs(glossary): per-layer votes entry, edit sections for the card
 
 ---
 
-### Task 8: EditSizeCard
+### Task 9: EditSizeCard
 
 **Files:**
 - Create: `src/viz/EditSizeCard.tsx`, `src/viz/EditSizeCard.test.tsx`
 - Modify: `src/index.css`
 
 **Interfaces:**
-- Consumes: `EditRows` (Task 5), `ratioFill` (Task 5), `EDIT_CALLOUTS` (Task 7), `Term`, `Formula`, `visibleToken`.
+- Consumes: `EditRows` (Task 6), `ratioFill` (Task 6), `EDIT_CALLOUTS` (Task 8), `Term`, `Formula`, `visibleToken`.
 - Produces: `export function EditSizeCard({ rows, note }: { rows?: EditRows; note: string })`. Test ids: `edit-size-card`, `edit-size-info`, `edit-size-note`, `edit-size-formula`, `edit-map` (`data-block`), `edit-cell` (`data-block`, `data-row`, `data-layer`), `edit-row-label` (`data-row`, `data-selected`), `edit-bars-label`, `edit-bar` (`data-block`, `data-layer`), chips `embed-callout`.
 
 - [ ] **Step 1: Write the failing tests**
@@ -1804,14 +1855,14 @@ git commit -m "feat(viz): edit-size card — tokens × layers heatmaps and per-t
 
 ---
 
-### Task 9: LayerVotesCard
+### Task 10: LayerVotesCard
 
 **Files:**
 - Create: `src/viz/LayerVotesCard.tsx`, `src/viz/LayerVotesCard.test.tsx`
 - Modify: `src/index.css`
 
 **Interfaces:**
-- Consumes: `VotedCandidate` (Task 5), `runningTotal`, `blockTotals`, `topMlpLayers`, `votePeak` (Task 5), `useCandidateSelection`, `selectedCandidate` (Task 6), `cellFill` from `./stripMath`.
+- Consumes: `VotedCandidate` (Task 6), `runningTotal`, `blockTotals`, `topMlpLayers`, `votePeak` (Task 6), `useCandidateSelection`, `selectedCandidate` (Task 7), `cellFill` from `./stripMath`.
 - Produces: `export function LayerVotesCard({ candidates, cycle, note }: { candidates?: VotedCandidate[]; cycle: number; note: string })`. Test ids: `votes-card`, `votes-info`, `votes-note`, `votes-formula`, `vote-row-label` (`data-row`, `data-selected`), `vote-cell` (`data-row`, `data-layer`), `vote-line` (`data-row`, `data-selected`, `data-final`), `vote-final`, `votes-row`, `votes-total`.
 
 - [ ] **Step 1: Write the failing tests**
@@ -1877,7 +1928,7 @@ test('without candidates the card keeps its heading and shows the note', () => {
 })
 ```
 
-(`cursor={8}` is the mlp fixture's cycle-0 logits event; see the index comment in Task 5.)
+(`cursor={8}` is the mlp fixture's cycle-0 logits event; see the index comment in Task 6.)
 
 - [ ] **Step 2: Run to verify they fail**
 
@@ -2007,7 +2058,7 @@ function RunningTotal({ candidates, selected }: { candidates: VotedCandidate[]; 
 }
 ```
 
-The fixture's votes add up to the logit exactly, so `data-final` equals `logit.toFixed(2)`. In real runs the worker's votes agree with the logit within rounding (Task 4's tolerance), so the line may end a hundredth away from the total row; that is accepted.
+The fixture's votes add up to the logit exactly, so `data-final` equals `logit.toFixed(2)`. In real runs the worker's votes agree with the logit within rounding (Task 5's tolerance), so the line may end a hundredth away from the total row; that is accepted.
 
 Append to `src/index.css`:
 
@@ -2030,7 +2081,7 @@ Append to `src/index.css`:
 - [ ] **Step 4: Run to verify they pass**
 
 Run: `npx vitest run src/viz/LayerVotesCard.test.tsx && npx tsc -b && npx oxlint src`
-Expected: PASS; clean (the glossary id `votes` exists since Task 7).
+Expected: PASS; clean (the glossary id `votes` exists since Task 8).
 
 - [ ] **Step 5: Commit**
 
@@ -2041,14 +2092,14 @@ git commit -m "feat(viz): votes card — MLP vote grid, running total, exact bre
 
 ---
 
-### Task 10: Layers detail wiring
+### Task 11: Layers detail wiring
 
 **Files:**
 - Modify: `src/viz/details/LayersDetail.tsx`, `src/viz/DetailPanel.tsx`
 - Test: `src/viz/DetailPanel.test.tsx`
 
 **Interfaces:**
-- Consumes: `editRows`, `cycleVotes` (Task 5), `EditSizeCard` (Task 8), `LayerVotesCard` (Task 9).
+- Consumes: `editRows`, `cycleVotes` (Task 6), `EditSizeCard` (Task 9), `LayerVotesCard` (Task 10).
 - Produces: `LayersDetail` gains props `edits?: EditRows` and `votes?: CycleVotes`.
 
 - [ ] **Step 1: Write the failing tests**
@@ -2140,7 +2191,7 @@ git commit -m "feat(layers): edit-size and votes cards in the Layers detail, wit
 
 ---
 
-### Task 11: E2E, screenshot scene, README, backlog
+### Task 12: E2E, screenshot scene, README, backlog
 
 **Files:**
 - Create: `e2e/mlp.spec.ts`
@@ -2199,7 +2250,7 @@ In `scripts/capture-screenshots.mjs`, after the `logits` scene block and before 
   }
 ```
 
-This scene needs the v4 model, so it runs after Task 12's release.
+This scene needs the v4 model, so it runs after Task 3's release.
 
 - [ ] **Step 4: README and backlog**
 
@@ -2246,50 +2297,13 @@ git commit -m "docs(mlp): e2e guard, screenshot scene, README section, backlog"
 
 ---
 
-### Task 12: Release v4 (operator steps — needs the user's go-ahead)
+### Task 13: Browser check against v4 and screenshot
 
-Publishing to the Hugging Face Hub is outward-facing and tags never move. **Stop and ask the user before Step 4.** Steps 1–3 only write under `tools/export/out/`.
-
-- [ ] **Step 1: Export both variants**
-
-```bash
-cd tools/export
-uv run python -m tsumugi_export export --out out/model
-uv run python -m tsumugi_export export --out out/model-nocache --no-cache
-```
-Expected: both print `exported (…) → out/…`. (These overwrite the local v3 export.)
-
-- [ ] **Step 2: Quantize and rebuild geometry**
-
-```bash
-uv run python -m tsumugi_export quantize --model-dir out/model
-uv run python -m tsumugi_export geometry --model-dir out/model
-```
-
-- [ ] **Step 3: Validate**
-
-```bash
-uv run python -m tsumugi_export validate --model-dir out/model
-```
-Expected: `VERDICT: PASS`, with `a-equiv-b` run (not SKIP) and every `*:edit-ratios-parity`, `*:stream-parts-sum`, `*:votes-sum`, `*:edit-cache-parity` row PASS. A quantized tolerance failure with plausible values → widen per Task 2's note, with a ledgered ruling, and re-run.
-
-- [ ] **Step 4: Ask the user, then publish**
-
-Ask: "Validation passed; publish to `saigyo-hoshi/smollm2-135m-attn-onnx` as tag `v4`?" On yes:
-
-```bash
-uv run python -m tsumugi_export publish --model-dir out/model --tag v4
-```
-
-- [ ] **Step 5: Point the app at v4**
-
-In `src/engine/tokenizer.ts`: `export const ATTN_MODEL_REVISION = 'v4'` and extend the comment with "v4 = MLP internals (edit_ratios, stream_parts)." Run `npx vitest run && npx tsc -b && npm run build` → all green.
-
-- [ ] **Step 6: Manual check in the browser, screenshots, commit**
+- [ ] **Step 1: Manual check in the browser, screenshot, commit**
 
 `npm run dev`, real mode, any prompt, Layers stage: both cards filled; select a candidate on the votes card — the breakdown's "score on the Logits card" equals the Logits card's score for that candidate, and the Logits card shows the same candidate selected. Then kill any stale server on :5199 and run `npm run screenshots -- mlp`.
 
 ```bash
-git add src/engine/tokenizer.ts docs/screenshots/mlp.png
-git commit -m "feat(mlp): point the app at export v4"
+git add docs/screenshots/mlp.png
+git commit -m "docs(mlp): screenshot of the edit-size and votes cards"
 ```
