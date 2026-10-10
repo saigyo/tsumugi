@@ -104,11 +104,13 @@ def test_readout_values_match_numpy():
 
 
 def test_postprocess_graph_combines_readout_and_inputs_embeds():
-    model = postprocess_graph(readout_graph(), k=3)
+    from test_postprocess_mlp import TABLE as LAYERED_TABLE, layered_graph
+    model = postprocess_graph(layered_graph(), k=3)
     names = [o.name for o in model.graph.output]
-    assert names == ["logits", LAST_HIDDEN_OUTPUT, TOPK_IDS_OUTPUT, TOPK_EMBEDS_OUTPUT, "inputs_embeds"]
+    assert names == ["logits", LAST_HIDDEN_OUTPUT, TOPK_IDS_OUTPUT, TOPK_EMBEDS_OUTPUT,
+                     "edit_ratios", "stream_parts", "inputs_embeds"]
     out = _run(model, np.array([[0, 6]], dtype=np.int64))
-    np.testing.assert_allclose(out["inputs_embeds"][0], TABLE[[0, 6]], atol=1e-6)
+    np.testing.assert_allclose(out["inputs_embeds"][0], LAYERED_TABLE[[0, 6]], atol=1e-6)
 
 
 def test_last_hidden_state_is_the_lm_head_input_not_the_last_hidden_states_output():

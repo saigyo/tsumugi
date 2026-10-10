@@ -7,7 +7,9 @@ embedding lookup) and drop the rest. We also add the readout, derived from
 the lm_head MatMul itself (see find_lm_head): its input as `last_hidden_state`
 (the residual stream after the final RMSNorm), and a TopK over the last
 position's logits plus a Gather of those candidates' rows from the lm_head's
-own fp32 weight, as `topk_ids` / `topk_embeds`. The tensors already in the
+own fp32 weight, as `topk_ids` / `topk_embeds`. We also add `edit_ratios` and
+`stream_parts` for the MLP cards, built from each layer's residual Add nodes and
+the final norm's own 1/rms tensor (see expose_mlp_internals). The tensors already in the
 graph stay; only the output list and a handful of tiny nodes change, so this
 costs nothing measurable at inference time."""
 from pathlib import Path
@@ -103,6 +105,142 @@ def expose_readout(model: onnx.ModelProto, k: int = TOPK) -> onnx.ModelProto:
     return model
 
 
+EDIT_RATIOS_OUTPUT = "edit_ratios"
+STREAM_PARTS_OUTPUT = "stream_parts"
+ATTN_MATMUL = "/model/layers.{l}/self_attn/o_proj/MatMul"
+MLP_MATMUL = "/model/layers.{l}/mlp/down_proj/MatMul"
+
+
+def _residual_add(graph: onnx.GraphProto, matmul_name: str) -> tuple[str, str]:
+    """(edit, stream before) of the residual Add fed by the named MatMul: the
+    MatMul's output is the block's edit, the Add's other input is the stream
+    the edit is added to."""
+    mm = next((n for n in graph.node if n.name == matmul_name), None)
+    if mm is None:
+        raise ValueError(f"no node {matmul_name}")
+    edit = mm.output[0]
+    adds = [n for n in graph.node if n.op_type == "Add" and edit in n.input]
+    if len(adds) != 1:
+        raise ValueError(f"{matmul_name}: expected one residual Add, found {len(adds)}")
+    before = [i for i in adds[0].input if i != edit]
+    if len(before) != 1:
+        raise ValueError(f"{matmul_name}: residual Add has inputs {list(adds[0].input)}")
+    return edit, before[0]
+
+
+def find_blocks(graph: onnx.GraphProto) -> list[tuple[str, str, str, str]]:
+    """Per layer (attention edit, stream before attention, MLP edit, stream
+    before MLP), located by the o_proj / down_proj MatMul names (the probe of
+    2026-10-10 found the residual Adds right behind them; the quantizer keeps
+    these tensor names, and quantize.py already relies on optimum's node
+    names for /lm_head/MatMul)."""
+    names = {n.name for n in graph.node}
+    layers = 0
+    while ATTN_MATMUL.format(l=layers) in names:
+        layers += 1
+    if layers == 0:
+        raise ValueError(f"no {ATTN_MATMUL.format(l=0)} — is this the SmolLM2 export?")
+    blocks = []
+    for l in range(layers):
+        a, xa = _residual_add(graph, ATTN_MATMUL.format(l=l))
+        m, xm = _residual_add(graph, MLP_MATMUL.format(l=l))
+        blocks.append((a, xa, m, xm))
+    return blocks
+
+
+def find_final_norm(graph: onnx.GraphProto) -> tuple[str, str]:
+    """(gain, inverse rms) of the final RMSNorm, traced back from the lm_head
+    input: Mul(gain [dims], Cast?(Mul(Cast?(x), inv))) with inv made by a Div
+    (1 / sqrt(mean(x²) + eps)). Reusing the graph's own inv makes the stream
+    parts add up to exactly what the lm_head multiplies."""
+    x, _, dims = find_lm_head(graph)
+    inits = {t.name: list(t.dims) for t in graph.initializer}
+
+    def through_casts(name: str) -> onnx.NodeProto | None:
+        node = _producer(graph, name)
+        while node is not None and node.op_type in ("Cast", "Identity"):
+            node = _producer(graph, node.input[0])
+        return node
+
+    gain_mul = through_casts(x)
+    if gain_mul is None or gain_mul.op_type != "Mul":
+        raise ValueError("the lm_head input is not produced by the final norm's gain Mul")
+    gain = next((i for i in gain_mul.input if inits.get(i) == [dims]), None)
+    if gain is None:
+        raise ValueError(f"final norm Mul has no [{dims}] gain initializer")
+    other = next(i for i in gain_mul.input if i != gain)
+    scale_mul = through_casts(other)
+    if scale_mul is None or scale_mul.op_type != "Mul":
+        raise ValueError("the final norm has no x · (1/rms) Mul")
+    inv = next((i for i in scale_mul.input
+                if (p := _producer(graph, i)) is not None and p.op_type == "Div"), None)
+    if inv is None:
+        raise ValueError("the final norm's 1/rms is not produced by a Div")
+    return gain, inv
+
+
+def expose_mlp_internals(model: onnx.ModelProto) -> onnx.ModelProto:
+    """edit_ratios [batch, seq, layers, 2]: ‖edit‖ / ‖stream before‖ per fed
+    position, layer and block (0 attention, 1 MLP). stream_parts [batch,
+    1 + 2·layers, dims]: the last position's embedding, attention edits and
+    MLP edits, each multiplied by the final norm's gain and 1/rms — so they
+    add up to what the lm_head multiplies (opset 18: axes are inputs)."""
+    graph = model.graph
+    blocks = find_blocks(graph)
+    gain, inv = find_final_norm(graph)
+    _, _, dims = find_lm_head(graph)
+    layers = len(blocks)
+    graph.initializer.extend([
+        helper.make_tensor("tsumugi_mlp_axis_last", TensorProto.INT64, [1], [-1]),
+        helper.make_tensor("tsumugi_mlp_axis_3", TensorProto.INT64, [1], [3]),
+        helper.make_tensor("tsumugi_mlp_slice_starts", TensorProto.INT64, [1], [-1]),
+        helper.make_tensor("tsumugi_mlp_slice_ends", TensorProto.INT64, [1], [INT64_MAX]),
+        helper.make_tensor("tsumugi_mlp_slice_axes", TensorProto.INT64, [1], [1]),
+    ])
+    nodes: list[onnx.NodeProto] = []
+    ratios: dict[str, list[str]] = {"attn": [], "mlp": []}
+    for l, (a, xa, m, xm) in enumerate(blocks):
+        for kind, edit, before in (("attn", a, xa), ("mlp", m, xm)):
+            p = f"tsumugi_{kind}{l}"
+            nodes += [
+                helper.make_node("ReduceL2", [edit, "tsumugi_mlp_axis_last"], [f"{p}_edit_norm"],
+                                 name=f"{p}_edit_norm", keepdims=1),
+                helper.make_node("ReduceL2", [before, "tsumugi_mlp_axis_last"], [f"{p}_stream_norm"],
+                                 name=f"{p}_stream_norm", keepdims=1),
+                helper.make_node("Div", [f"{p}_edit_norm", f"{p}_stream_norm"], [f"{p}_ratio"], name=f"{p}_ratio"),
+            ]
+            ratios[kind].append(f"{p}_ratio")   # [batch, seq, 1]
+    for kind in ("attn", "mlp"):
+        nodes += [
+            helper.make_node("Concat", ratios[kind], [f"tsumugi_{kind}_ratios"], name=f"tsumugi_{kind}_ratios", axis=2),
+            helper.make_node("Unsqueeze", [f"tsumugi_{kind}_ratios", "tsumugi_mlp_axis_3"],
+                             [f"tsumugi_{kind}_ratios_4d"], name=f"tsumugi_{kind}_ratios_4d"),
+        ]
+    nodes.append(helper.make_node("Concat", ["tsumugi_attn_ratios_4d", "tsumugi_mlp_ratios_4d"],
+                                  [EDIT_RATIOS_OUTPUT], name="tsumugi_edit_ratios", axis=3))
+
+    sources = [blocks[0][1]] + [b[0] for b in blocks] + [b[2] for b in blocks]
+    parts = []
+    for i, src in enumerate(sources):
+        nodes.append(helper.make_node(
+            "Slice", [src, "tsumugi_mlp_slice_starts", "tsumugi_mlp_slice_ends", "tsumugi_mlp_slice_axes"],
+            [f"tsumugi_part{i}"], name=f"tsumugi_part{i}"))
+        parts.append(f"tsumugi_part{i}")
+    nodes += [
+        helper.make_node("Concat", parts, ["tsumugi_parts_raw"], name="tsumugi_parts_raw", axis=1),
+        helper.make_node("Slice", [inv, "tsumugi_mlp_slice_starts", "tsumugi_mlp_slice_ends", "tsumugi_mlp_slice_axes"],
+                         ["tsumugi_inv_last"], name="tsumugi_inv_last"),
+        helper.make_node("Mul", ["tsumugi_parts_raw", "tsumugi_inv_last"], ["tsumugi_parts_scaled"],
+                         name="tsumugi_parts_scaled"),
+        helper.make_node("Mul", ["tsumugi_parts_scaled", gain], [STREAM_PARTS_OUTPUT], name="tsumugi_stream_parts"),
+    ]
+    graph.node.extend(nodes)
+    graph.output.extend([
+        helper.make_tensor_value_info(EDIT_RATIOS_OUTPUT, TensorProto.FLOAT, ["batch_size", "sequence_length", layers, 2]),
+        helper.make_tensor_value_info(STREAM_PARTS_OUTPUT, TensorProto.FLOAT, ["batch_size", 1 + 2 * layers, dims]),
+    ])
+    return model
+
 def expose_inputs_embeds(model: onnx.ModelProto) -> onnx.ModelProto:
     outputs = list(model.graph.output)
     source = next((o for o in outputs if o.name == SOURCE_OUTPUT), None)
@@ -120,11 +258,10 @@ def expose_inputs_embeds(model: onnx.ModelProto) -> onnx.ModelProto:
 
 
 def postprocess_graph(model: onnx.ModelProto, k: int = TOPK) -> onnx.ModelProto:
-    """Readout (derived from the lm_head MatMul, independent of the output
-    list), then the inputs_embeds rename, which drops every hidden_states.*
-    output."""
-    return expose_inputs_embeds(expose_readout(model, k))
-
+    """Readout and MLP internals (both derived from graph structure, independent
+    of the output list), then the inputs_embeds rename, which drops every
+    hidden_states.* output."""
+    return expose_inputs_embeds(expose_mlp_internals(expose_readout(model, k)))
 
 def postprocess_file(path: Path) -> None:
     """Rewrite `path` in place. onnx.load pulls any external data into the
