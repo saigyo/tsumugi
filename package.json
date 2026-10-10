@@ -17,6 +17,7 @@
     "@huggingface/transformers": "^4.2.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
+    "temml": "0.13.5",
     "zustand": "^5.0.15"
   },
   "devDependencies": {

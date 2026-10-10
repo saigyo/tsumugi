@@ -164,8 +164,6 @@ input[type="number"] { width: 4rem; }
   background: var(--card); box-shadow: 0 1px 3px rgba(43, 43, 49, 0.05);
 }
 
-.logits-formula { font-family: var(--mono); font-size: .78rem; color: var(--ai-deep); background: var(--ai-wash);
-  display: inline-block; padding: .2rem .5rem; border-radius: 4px; }
 .residual-diagram { margin: .3rem 0 .8rem; overflow-x: auto; }
 .rs-stream { stroke: var(--ai); stroke-width: 2.5; }
 .rs-arrowhead { fill: var(--ai); }
@@ -403,10 +401,7 @@ input[type="number"] { width: 4rem; }
 .gl-section h4 { margin: 0 0 .3rem; font-size: .9rem; color: var(--ai-deep); }
 .gl-section.gl-flash { background: var(--shu-wash); }
 .gl-figure { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; margin: .6rem 0; font-family: var(--mono); }
-.gl-formula {
-  font-family: var(--mono); font-size: .78rem; color: var(--ai-deep); background: var(--ai-wash);
-  padding: .4rem .6rem; border-radius: 4px; overflow-x: auto; white-space: pre;
-}
+.gl-example { display: flex; flex-wrap: wrap; align-items: center; gap: .3rem; }
 .gl-aside { font-size: .8rem; color: var(--ink-soft); }
 @media (prefers-reduced-motion: reduce) { .gl-section { transition: none; } }
 
@@ -458,3 +453,10 @@ input[type="number"] { width: 4rem; }
 .residual-diagram { position: relative; }
 .gl-tip-svg { position: absolute; }
 .gl-svg-term:focus-visible { outline: 2px solid var(--ai); outline-offset: 2px; }
+
+/* ── Formulas: LaTeX typeset as native MathML (temml) ────────────────── */
+math { font-family: math, 'STIX Two Math', 'Cambria Math', 'Latin Modern Math', serif; color: var(--ink); }
+.formula { margin: .7rem 0; overflow-x: auto; overflow-y: hidden; font-size: 1.05rem; }
+.formula-inline { margin: 0; overflow: visible; font-size: 1em; }
+.card-formula { display: block; margin: .4rem 0 .6rem; font-size: 1.05rem; }
+.formula-error code { color: var(--shu); }

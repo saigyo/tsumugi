@@ -2,6 +2,7 @@ import { thousands } from '../../viz/selectors'
 import { Section } from '../Section'
 import { Term } from '../Term'
 import type { GlossaryEntry } from '../types'
+import { Formula } from '../../viz/Formula'
 
 export const logit: GlossaryEntry = {
   id: 'logit',
@@ -14,8 +15,7 @@ export const logit: GlossaryEntry = {
       <p>After the last layer, the last row of the <Term id="residual-stream">residual stream</Term> is normalised
         and compared with every row of the embedding matrix E. Each comparison is a dot product: 576 products added
         up. The result is one score per vocabulary entry.</p>
-      <pre className="gl-formula">{`logits = norm(x_last) · Eᵀ
-         [1 × 576] · [576 × 49 152] → [49 152]`}</pre>
+      <Formula tex={String.raw`\begin{aligned} \text{logits} &= \operatorname{norm}(x_{\text{last}})\, E^{\top} \\ &\phantom{=}\ [1 \times 576] \cdot [576 \times 49\,152] \to [49\,152] \end{aligned}`} />
       <p>Scores have no fixed range and can be negative. <Term id="softmax">Softmax</Term> turns them into
         probabilities.</p>
       <Section id="tied" title="Tied with Embeddings">

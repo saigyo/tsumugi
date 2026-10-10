@@ -1,6 +1,7 @@
 import { VectorStrip } from '../../viz/VectorStrip'
 import { Term } from '../Term'
 import type { GlossaryEntry } from '../types'
+import { Formula } from '../../viz/Formula'
 
 const x = [0.8, -0.3, 0.1, 0.6, -0.9, 0.2, 0.4, -0.1]
 const dx = [0.1, 0.4, -0.2, 0.0, 0.3, -0.1, 0.0, 0.2]
@@ -26,8 +27,7 @@ export const edit: GlossaryEntry = {
         <span>=</span>
         <VectorStrip cells={sum} cellW={CELL} cellH={CELL} ariaLabel="x after the edit" />
       </div>
-      <pre className="gl-formula">{`x ← x + Attention(norm(x))
-x ← x + MLP(norm(x))`}</pre>
+      <Formula tex={String.raw`\begin{aligned} x &\leftarrow x + \operatorname{Attention}(\operatorname{norm}(x)) \\ x &\leftarrow x + \operatorname{MLP}(\operatorname{norm}(x)) \end{aligned}`} />
       <p>Because every block only adds, the final vector is the embedding plus all 60 edits. An edit can also
         point against what is already there and partly cancel it.</p>
       <p className="gl-aside">In papers: <em>block output</em>, <em>write to the residual stream</em>, or{' '}

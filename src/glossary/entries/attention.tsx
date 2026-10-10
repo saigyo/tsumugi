@@ -1,6 +1,7 @@
 import { Section } from '../Section'
 import { Term } from '../Term'
 import type { GlossaryEntry } from '../types'
+import { Formula } from '../../viz/Formula'
 
 export const attention: GlossaryEntry = {
   id: 'attention',
@@ -13,8 +14,7 @@ export const attention: GlossaryEntry = {
       <p>For each position, attention computes a weight for every position up to and including itself, never a
         later one. Its output is the weighted average of those positions’ value vectors, added to the{' '}
         <Term id="residual-stream">residual stream</Term> as an <Term id="edit">edit</Term>.</p>
-      <pre className="gl-formula">{`weights = softmax(q · kᵀ / √d)     one row per position, sums to 1
-output  = weights · v`}</pre>
+      <Formula tex={String.raw`\begin{aligned} \text{weights} &= \operatorname{softmax}\!\left(\frac{q\,k^{\top}}{\sqrt{d}}\right) \\ \text{output} &= \text{weights} \cdot v \end{aligned}`} />
       <p>Each layer runs several heads in parallel, each with its own weights. SmolLM2-135M has 9 heads in each of
         its 30 layers: 270 in total.</p>
       <p>In a heatmap, a row is the token doing the looking and a column is the token looked at. Darker means more

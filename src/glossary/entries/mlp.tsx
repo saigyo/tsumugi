@@ -1,5 +1,6 @@
 import { Term } from '../Term'
 import type { GlossaryEntry } from '../types'
+import { Formula } from '../../viz/Formula'
 
 export const mlp: GlossaryEntry = {
   id: 'mlp',
@@ -12,9 +13,7 @@ export const mlp: GlossaryEntry = {
       <p>MLP stands for multi-layer perceptron, also called the feed-forward network. It works on each token’s
         vector on its own, with no mixing between positions. Its result is added to the{' '}
         <Term id="residual-stream">residual stream</Term> as an <Term id="edit">edit</Term>.</p>
-      <pre className="gl-formula">{`n    = norm(x)                                  [576]
-h    = SiLU(W_gate · n) ⊙ (W_up · n)            [1536]
-edit = W_down · h                               [576]`}</pre>
+      <Formula tex={String.raw`\begin{aligned} n &= \operatorname{norm}(x) && \in \mathbb{R}^{576} \\ h &= \operatorname{SiLU}(W_{\text{gate}}\, n) \odot (W_{\text{up}}\, n) && \in \mathbb{R}^{1536} \\ \text{edit} &= W_{\text{down}}\, h && \in \mathbb{R}^{576} \end{aligned}`} />
       <p>The gate and up projections widen the vector to 1536 numbers; SiLU and the element-wise product let some
         of them through and suppress others; the down projection brings the result back to 576. This variant is
         called SwiGLU.</p>

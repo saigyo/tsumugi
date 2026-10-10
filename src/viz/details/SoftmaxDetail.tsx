@@ -4,6 +4,8 @@ import { shareDerivation, softmaxExplainer } from '../softmaxText'
 import { SOFTMAX_CALLOUTS } from '../../glossary/callouts'
 import { Term } from '../../glossary/Term'
 import { visibleToken } from '../tokenText'
+import { Formula } from '../Formula'
+import { logitsTex, softmaxTex } from '../tex'
 
 const BAR_W = 200
 
@@ -28,13 +30,9 @@ export function SoftmaxDetail({ events, cursor }: { events: TraceEvent[]; cursor
       <h3>Softmax (T={T}) <Term id="softmax" variant="icon" label="About this stage" testId="stage-info">ⓘ</Term></h3>
       <p>Softmax turns the <Term id="logit">scores</Term> into probabilities that sum to 100%: the second half of the readout.</p>
       {runStart?.vocabSize && (
-        <p data-testid="logits-formula" className="logits-formula">
-          logits = x_last · Eᵀ&emsp;[1×{dims}] · [{dims}×{vocab}] → [{vocab}]
-        </p>
+        <Formula testId="logits-formula" className="card-formula" inline tex={logitsTex(dims, runStart.vocabSize)} />
       )}
-      <p data-testid="softmax-formula" className="logits-formula">
-        p = exp(logit / T) ÷ Σ exp(logit / T)&emsp;over the top-k: {shown} of {vocab} scores
-      </p>
+      <Formula testId="softmax-formula" className="card-formula" inline tex={softmaxTex(shown, runStart?.vocabSize)} />
       <p data-testid="softmax-explainer" className="softmax-explainer">{softmaxExplainer(T, shown, vocab)}</p>
       <div className="softmax-bars">
         {softmax.topK.map((c, i) => {

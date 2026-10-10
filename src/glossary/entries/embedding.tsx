@@ -1,6 +1,7 @@
 import { Section } from '../Section'
 import { Term } from '../Term'
 import type { GlossaryEntry } from '../types'
+import { Formula } from '../../viz/Formula'
 
 export const embedding: GlossaryEntry = {
   id: 'embedding',
@@ -13,8 +14,7 @@ export const embedding: GlossaryEntry = {
       <p>The embedding step is a lookup, not a computation. Each token id selects one row of a matrix E with one
         row per vocabulary entry. Stacked up, the rows form the <Term id="residual-stream">residual stream</Term> that
         enters the first layer.</p>
-      <pre className="gl-formula">{`x[i] = E[id_i]        E: [49 152 × 576]
-x    = [T × 576]      one row per token`}</pre>
+      <Formula tex={String.raw`\begin{aligned} x_i &= E[\,\mathrm{id}_i\,] && E \in \mathbb{R}^{49\,152 \times 576} \\ x &= [\,x_1; \dots; x_T\,] && x \in \mathbb{R}^{T \times 576} \end{aligned}`} />
       <Section id="learned" title="Learned, not designed">
         <p>Every row starts random and is adjusted during training so that the rest of the network predicts well.
           Nobody chose what dimension 17 means. Tokens used in similar contexts end up with rows that point in

@@ -3,6 +3,7 @@ import { visibleToken } from '../../viz/tokenText'
 import { Section } from '../Section'
 import { Term } from '../Term'
 import type { GlossaryEntry } from '../types'
+import { Formula } from '../../viz/Formula'
 
 export const softmax: GlossaryEntry = {
   id: 'softmax',
@@ -14,10 +15,10 @@ export const softmax: GlossaryEntry = {
     <>
       <p>Softmax takes the <Term id="logit">scores</Term> of the top-k candidates, divides each by the temperature
         T, exponentiates, and divides each result by the sum of all of them.</p>
-      <pre className="gl-formula">{`p_i = exp(logit_i / T) ÷ Σ_j exp(logit_j / T)`}</pre>
+      <Formula tex={String.raw`p_i = \frac{\exp(\text{logit}_i / T)}{\sum_j \exp(\text{logit}_j / T)}`} />
       <Section id="exp" title="Why exponentiate">
         <p>Scores can be negative and differ by any amount. <code>exp</code> makes them all positive and turns a
-          difference of d points into a ratio of e^(d / T). At T = 1, one point ahead means about 2.7 times the
+          difference of <Formula inline tex="d" /> points into a ratio of <Formula inline tex="e^{d/T}" />. At T = 1, one point ahead means about 2.7 times the
           probability; two points about 7.4 times.</p>
       </Section>
       <Section id="temperature" title="Temperature">

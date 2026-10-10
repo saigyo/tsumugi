@@ -3,6 +3,7 @@ import { afterEach, expect, test, vi } from 'vitest'
 import { makeFixtureTrace, makeGridEvent } from '../test/fixtures'
 import type { AttentionHead } from '../trace/types'
 import { DetailPanel } from './DetailPanel'
+import { texOf } from '../test/tex'
 
 const trace = makeFixtureTrace()  // cursor 1=tokenize, 2=embed, 3..5=layers, 6=attention
 
@@ -124,8 +125,8 @@ test('layers detail shows the residual-stream diagram with live shapes', () => {
 test('logits detail frames scores as a dot-product readout', () => {
   render(<DetailPanel events={trace} cursor={7} mode="sim" />)
   const formula = screen.getByTestId('logits-formula')
-  expect(formula).toHaveTextContent('[1×576]')
-  expect(formula).toHaveTextContent('[576×49 152]')
+  expect(texOf(formula)).toContain('[1 \\times 576]')
+  expect(texOf(formula)).toContain('[576 \\times 49\\,152]')
   expect(screen.getByTestId('detail-logits')).toHaveTextContent(/dot product/i)
 })
 

@@ -4,6 +4,7 @@ import { buildFixtureTrace, makeFixtureTrace } from '../../test/fixtures'
 import { makeGeometryAsset } from '../../test/geometryFixture'
 import type { GeometryState } from '../../geometry/useGeometry'
 import { LogitsDetail } from './LogitsDetail'
+import { texOf } from '../../test/tex'
 
 const ready = (): GeometryState => ({ status: 'ready', asset: makeGeometryAsset(), retry: () => {} })
 let geo: GeometryState = ready()
@@ -14,7 +15,7 @@ afterEach(() => { cleanup(); geo = ready() })
 
 test('real fixture: bench sum equals the top candidate’s logit; formula and copy present', () => {
   render(<LogitsDetail events={buildFixtureTrace({ readout: true })} cursor={7} />)
-  expect(screen.getByTestId('logits-formula')).toHaveTextContent('[1×576]')
+  expect(texOf(screen.getByTestId('logits-formula'))).toContain('[1 \\times 576]')
   expect(screen.getByTestId('detail-logits')).toHaveTextContent(/dot product/i)
   expect(screen.getByTestId('readout-sum')).toHaveTextContent('9.1')
 })

@@ -86,3 +86,14 @@ test('How to read Tsumugi walks the screen in the order the app lays it out', ()
   const steps = [...container.querySelectorAll('li > strong')].map((el) => el.textContent)
   expect(steps).toEqual(['Prompt and mode.', 'Run shelf.', 'Generate.', 'Pipeline band.', 'Playback.', 'Detail panel.'])
 })
+
+test('entry formulas are typeset MathML and every one parses', () => {
+  const withMath = ['embedding', 'residual-stream', 'edit', 'layer', 'attention', 'mlp', 'logit', 'softmax']
+  for (const e of ENTRIES) {
+    const { container } = render(<>{e.body()}</>)
+    expect(container.querySelector('[data-formula-error]'), e.id).toBeNull()
+    expect(container.querySelector('pre.gl-formula'), `${e.id} still has a monospace formula`).toBeNull()
+    if (withMath.includes(e.id)) expect(container.querySelector('math'), e.id).not.toBeNull()
+    cleanup()
+  }
+})

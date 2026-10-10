@@ -1,5 +1,6 @@
 import { Term } from '../Term'
 import type { GlossaryEntry } from '../types'
+import { Formula } from '../../viz/Formula'
 
 export const residualStream: GlossaryEntry = {
   id: 'residual-stream',
@@ -12,8 +13,7 @@ export const residualStream: GlossaryEntry = {
       <p>The residual stream starts as the stacked <Term id="embedding">embeddings</Term>, one 576-number row per
         token. Each <Term id="layer">layer</Term> reads it and adds its <Term id="edit">edits</Term> back. Nothing
         ever replaces it, so the original embedding stays underneath everything the layers add.</p>
-      <pre className="gl-formula">{`x₀  = embeddings                 [T × 576]
-x₃₀ = x₀ + all 60 edits          same shape`}</pre>
+      <Formula tex={String.raw`\begin{aligned} x_0 &= \text{embeddings} && \in \mathbb{R}^{T \times 576} \\ x_{30} &= x_0 + \sum_{k=1}^{60} \text{edit}_k && \text{same shape} \end{aligned}`} />
       <p>After the last layer, only the last row is read out to score the next token (see{' '}
         <Term id="logit">logit</Term>).</p>
       <p className="gl-aside">Why “stream”: each row carries information forward from layer to layer, and any layer

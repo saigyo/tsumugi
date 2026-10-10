@@ -3,6 +3,7 @@ import { afterEach, expect, test } from 'vitest'
 import { buildFixtureTrace, makeFixtureTrace } from '../../test/fixtures'
 import { SoftmaxDetail } from './SoftmaxDetail'
 import { resetGlossaryStore, useGlossaryStore } from '../../glossary/store'
+import { texOf } from '../../test/tex'
 
 afterEach(() => { cleanup(); resetGlossaryStore() })
 
@@ -11,10 +12,10 @@ afterEach(() => { cleanup(); resetGlossaryStore() })
 test('shows both formula lines as the two-step derivation, then the explanation', () => {
   render(<SoftmaxDetail events={makeFixtureTrace()} cursor={8} />)
   expect(screen.getByTestId('detail-softmax')).toHaveTextContent('Softmax (T=0.8)')
-  expect(screen.getByTestId('logits-formula')).toHaveTextContent('x_last · Eᵀ')          // step 1
-  const sm = screen.getByTestId('softmax-formula')                                      // step 2
-  expect(sm).toHaveTextContent('exp(logit / T)')
-  expect(sm).toHaveTextContent('3 of 49 152')
+  expect(texOf(screen.getByTestId('logits-formula'))).toContain('x_{\\text{last}}\\, E^{\\top}')   // step 1
+  const sm = texOf(screen.getByTestId('softmax-formula'))                                         // step 2
+  expect(sm).toContain('\\frac{\\exp(\\text{logit}/T)}')
+  expect(sm).toContain('3 \\text{ of } 49\\,152')
   const why = screen.getByTestId('softmax-explainer')
   expect(why).toHaveTextContent(/divided by the temperature/)
   // the ratio is e^(1/T): at T = 0.8 a 1-point lead is 3.5×, 2 points 12.2× (2.7× holds only at T = 1)

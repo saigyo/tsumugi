@@ -14,7 +14,10 @@ export const token: GlossaryEntry = {
       <p>The model never sees letters. The tokenizer splits text into pieces from a fixed vocabulary of 49 152
         entries and replaces each piece with its id. Common words are one token; rare words are split into
         several.</p>
-      <pre className="gl-formula">{`"The cat sat"  →  The | ␣cat | ␣sat  →  three ids`}</pre>
+      <p className="gl-example">“The cat sat” →{' '}
+        <span className="token-chip hue-0"><span className="chip-text">The</span></span>{' '}
+        <span className="token-chip hue-1"><span className="chip-text">␣cat</span></span>{' '}
+        <span className="token-chip hue-2"><span className="chip-text">␣sat</span></span> → three ids</p>
       <p>A leading space belongs to the token, shown as ␣: “␣cat” and “cat” are different vocabulary entries.
         Some ids are control markers rather than text, such as <code>{'<|im_end|>'}</code>, which ends a turn.</p>
       <p>Generation works on ids too: each cycle produces one new id, which the tokenizer turns back into

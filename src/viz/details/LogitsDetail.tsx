@@ -3,8 +3,10 @@ import { coversModel } from '../../geometry/asset'
 import { useGeometry } from '../../geometry/useGeometry'
 import type { TraceEvent } from '../../trace/types'
 import { LogitsReadout } from '../LogitsReadout'
-import { latestOfType, thousands } from '../selectors'
+import { latestOfType } from '../selectors'
 import { Term } from '../../glossary/Term'
+import { Formula } from '../Formula'
+import { logitsTex } from '../tex'
 
 // Container: picks the cycle's logits event, resolves asset rows for sim and
 // legacy traces, and owns the selected candidate (snaps to the top candidate
@@ -30,9 +32,7 @@ export function LogitsDetail({ events, cursor }: { events: TraceEvent[]; cursor:
       <h3>Logits <Term id="logit" variant="icon" label="About this stage" testId="stage-info">ⓘ</Term></h3>
       <p>Each <Term id="logit">score</Term> is a dot product: the last token’s final vector against one row of E — the same matrix the Embeddings stage looked rows up in.</p>
       {vocabSize && (
-        <p data-testid="logits-formula" className="logits-formula">
-          logits = x_last · Eᵀ&emsp;[1×{dims}] · [{dims}×{thousands(vocabSize)}] → [{thousands(vocabSize)}]
-        </p>
+        <Formula testId="logits-formula" className="card-formula" inline tex={logitsTex(dims, vocabSize)} />
       )}
       <LogitsReadout candidates={logits.topK} lastHidden={logits.lastHidden} dims={dims} vocabSize={vocabSize}
         selected={selected} onSelect={(index) => setPick({ cycle: logits.cycle, index })}
