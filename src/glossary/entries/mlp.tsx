@@ -47,7 +47,8 @@ export const mlp: GlossaryEntry = {
             <SiluPlot /></dd>
           <dt><Formula inline tex={String.raw`\odot`} /></dt>
           <dd>Element-wise product: position 1 times position 1, position 2 times position 2, and so on. Where the
-            gate is near zero, the matching value of <Formula inline tex="u" /> is blocked; where it is large, the value passes.</dd>
+            gate is near zero, the matching value of <Formula inline tex="u" /> is blocked; where it is large, the value passes, scaled by the gate. SiLU has no upper limit, so that factor can be
+            larger than 1.</dd>
           <dt><Formula inline tex={String.raw`W_{\text{down}}`} /></dt>
           <dd>A learned matrix of 576 rows × 1536 columns that turns the 1536 values back into a 576-number
             edit.</dd>

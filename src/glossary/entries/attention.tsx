@@ -16,7 +16,9 @@ export const attention: GlossaryEntry = {
         <Term id="residual-stream">residual stream</Term> as an <Term id="edit">edit</Term>.</p>
       <p>For one head and the token at position <Formula inline tex="i" />:</p>
       <Formula tex={String.raw`\begin{aligned}
-        q_i &= W_Q \cdot n_i \quad k_j = W_K \cdot n_j \quad v_j = W_V \cdot n_j \\
+        q_i &= W_Q \cdot n_i \\
+        k_j &= W_K \cdot n_j \\
+        v_j &= W_V \cdot n_j \\
         a_{ij} &= \operatorname{softmax}_{j \le i}\!\left(\frac{q_i \cdot k_j}{\sqrt{d}}\right) \\
         o_i &= \textstyle\sum_{j \le i} a_{ij}\, v_j
       \end{aligned}`} />

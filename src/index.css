@@ -464,7 +464,7 @@ input[type="number"] { width: 4rem; }
 math { font-family: 'Latin Modern Math', math, 'STIX Two Math', 'Cambria Math', serif; color: var(--ink); }
 .formula { margin: .7rem 0; overflow-x: auto; overflow-y: hidden; font-size: 1.05rem; }
 .formula-inline { margin: 0; overflow: visible; font-size: 1em; }
-.card-formula { display: block; margin: .4rem 0 .6rem; font-size: 1.05rem; }
+.card-formula { display: block; margin: .4rem 0 .6rem; font-size: 1.05rem; max-width: 100%; overflow-x: auto; overflow-y: hidden; }
 .formula-error code { color: var(--shu); }
 .gl-symbols { display: grid; grid-template-columns: max-content 1fr; gap: .45rem .8rem; margin: .4rem 0; }
 .gl-symbols dt { text-align: right; font-size: 1.05rem; }

@@ -122,3 +122,21 @@ test('the attention entry explains q, k, v and d and links to softmax', () => {
   expect(container.querySelector('[data-term="softmax"]')).not.toBeNull()
   expect(entry.related).toContain('softmax')
 })
+
+test('wide formulas are broken into rows so they fit the drawer', () => {
+  const tex = (id: string) => {
+    const { container } = render(<>{getEntry(id)!.body()}</>)
+    const t = [...container.querySelectorAll('div.formula annotation')].map((a) => a.textContent ?? '').join('\n')
+    cleanup()
+    return t
+  }
+  // attention: q, k and v on rows of their own
+  expect(tex('attention')).toMatch(/q_i &= W_Q \\cdot n_i \\\\[\s\S]*k_j &= W_K[\s\S]*v_j &= W_V/)
+  // logit: the shape line is its own row, not an indented continuation
+  expect(tex('logit')).not.toContain('\\phantom')
+})
+
+test('the MLP gate scales the values rather than just letting them through', () => {
+  const { container } = render(<>{getEntry('mlp')!.body()}</>)
+  expect(container.textContent).toContain('scaled by the gate')
+})

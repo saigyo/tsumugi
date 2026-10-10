@@ -20,11 +20,12 @@ export function texToMathML(tex: string, inline = false): string {
 // 49152 → '49\,152': thousands grouped with a thin space, as in the cards' text.
 export const texNumber = (n: number) => thousands(n).replace(/ /g, '\\,')
 
-// The cards' formula lines, with the run's own sizes. Rendered inline (left
-// aligned like the rest of the card) but in display style, so fractions keep
-// their full size.
+// The cards' formula lines, with the run's own sizes: the formula on the first
+// row, the shapes (or the top-k note) on the second, so the line never gets
+// wider than a phone. Rendered inline (left aligned like the rest of the card)
+// but in display style, so fractions keep their full size.
 export const logitsTex = (dims: number, vocab: number) =>
-  String.raw`\displaystyle \text{logits} = x_{\text{last}} \cdot E^{\top} \qquad [1 \times ${dims}] \cdot [${dims} \times ${texNumber(vocab)}] \to [${texNumber(vocab)}]`
+  String.raw`\displaystyle \begin{aligned} &\text{logits} = \operatorname{norm}(x_{\text{last}}) \cdot E^{\top} \\ &[1 \times ${dims}] \cdot [${dims} \times ${texNumber(vocab)}] \to [${texNumber(vocab)}] \end{aligned}`
 
 export const softmaxTex = (shown: number, vocab?: number) =>
-  String.raw`\displaystyle p = \frac{\exp(\text{logit}/T)}{\sum \exp(\text{logit}/T)} \qquad \text{over the top-}k\text{: } ${shown} \text{ of } ${vocab ? texNumber(vocab) : '?'} \text{ scores}`
+  String.raw`\displaystyle \begin{aligned} &p_i = \frac{\exp(\text{logit}_i / T)}{\sum_j \exp(\text{logit}_j / T)} \\ &\text{over the top-}k\text{: } ${shown} \text{ of } ${vocab ? texNumber(vocab) : '?'} \text{ scores} \end{aligned}`
