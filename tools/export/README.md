@@ -73,6 +73,10 @@ the actual acceptance checklist for a release.
    `*:edit-ratios-parity`, `*:stream-parts-sum`, `*:votes-sum`,
    `*:edit-cache-parity` and
    `geometry` must PASS) rather than relying solely on the exit code.
+   The quantized variant's edit-ratio checks compare values clipped at
+   2.0 with atol 0.25: q8 moves the huge first-token MLP ratios (≈100 at
+   layer 11) by ~10%, and the card draws every ratio ≥ 1 alike. The fp32
+   checks (atol 1e-3, unclipped) are what prove the outputs are wired right.
 7. **Publish:** `uv run python -m tsumugi_export publish --model-dir out/model --tag v4`
    Then set `ATTN_MODEL_REVISION` in `src/engine/tokenizer.ts` to the same
    tag and deploy the app. A release is always these two steps: browsers

@@ -63,3 +63,22 @@ def test_edit_cache_parity_compares_each_step_with_its_single_shot_row():
     assert check_edit_cache_parity(single, steps, tol=1e-4)["passed"]
     steps[2] = {"edit_ratios": steps[2]["edit_ratios"] + 0.2}
     assert not check_edit_cache_parity(single, steps, tol=1e-4)["passed"]
+
+
+def test_clipped_comparison_ignores_differences_far_above_the_display_range():
+    """q8 moves the huge first-token MLP ratios (≈100) by ~10%; the card draws
+    everything ≥ 1 alike, so the quantized gate compares values clipped at 2."""
+    out = good_outputs()
+    expected = out["edit_ratios"][0].copy()
+    out["edit_ratios"][0, 0, 1, 1] = 150.0
+    expected[0, 1, 1] = 130.0
+    assert not check_edit_ratios_parity(out, expected, tol=0.1)["passed"]
+    assert check_edit_ratios_parity(out, expected, tol=0.1, clip=2.0)["passed"]
+    out["edit_ratios"][0, 1, 0, 0] = expected[1, 0, 0] + 0.5      # inside the display range: still caught
+    assert not check_edit_ratios_parity(out, expected, tol=0.1, clip=2.0)["passed"]
+    single = good_outputs()
+    steps = [{"edit_ratios": single["edit_ratios"][:, t:t + 1].copy()} for t in range(SEQ)]
+    single["edit_ratios"][0, 2, 0, 1] = 90.0
+    steps[2]["edit_ratios"][0, 0, 0, 1] = 110.0
+    assert not check_edit_cache_parity(single, steps, tol=0.1)["passed"]
+    assert check_edit_cache_parity(single, steps, tol=0.1, clip=2.0)["passed"]
