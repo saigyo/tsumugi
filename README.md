@@ -18,6 +18,9 @@ You type a prompt, hit generate, and watch the pipeline stages light up as
 each token is produced — live, or one step at a time via manual playback
 controls.
 
+New to the concepts? The **?** button in the app's header opens a glossary,
+and underlined words and ⓘ chips in the cards open the matching entry.
+
 ![The pipeline at the end of a run: token stream, stage band, playback controls, and the run summary](docs/screenshots/pipeline.png)
 
 ## Modes
@@ -230,6 +233,16 @@ Second, even real attention weights are **not explanations** —
 they show what the mechanism computes, not *why* the model produced its
 output (Jain & Wallace, "Attention is not Explanation", 2019). Read them
 as "how information flows", never as "why the model answered X".
+
+## The glossary
+
+Every card links its terms to a glossary that opens in a side panel, so the
+visualisation stays in view while you read. Entries start with a one-line
+summary, then go into the formula and SmolLM2's real shapes. Where the active
+run has something to add, an "In this run" block shows its numbers — here the
+probability ratios at the run's temperature.
+
+![Glossary drawer open next to the Softmax card](docs/screenshots/glossary.png)
 
 ## Comparing runs
 

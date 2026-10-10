@@ -11,7 +11,7 @@ they are IDs, not positions.
 
 ## Help and explanations
 
-- [ ] **#14 In-app glossary** — *next up; do before #15.* One glossary of
+- [x] **#14 In-app glossary** — One glossary of
   concept entries (id, title, one-line summary, formatted body with
   formulas, links to related entries), reached two ways: underlined terms
   in captions show the summary on hover and open the full entry on click,
@@ -24,7 +24,8 @@ they are IDs, not positions.
   vector a block adds to the stream; papers say block output / residual
   update), attention head and the detected roles, MLP, logit, softmax and
   temperature, top-k sampling, simulated vs real mode. Motivation: the
-  app has outgrown "read the README first". *(2026-10-10 discussion)*
+  app has outgrown "read the README first". Shipped 2026-10-10 (spec
+  `docs/superpowers/specs/2026-10-10-in-app-glossary-design.md`). *(2026-10-10 discussion)*
 
 ## Comparison extensions (builds on M3)
 
@@ -55,7 +56,7 @@ they are IDs, not positions.
   SmolLM2-135M (L13H8) and an antecedent-blind template that ranks it first;
   shipped as a fourth showcase role, a pin label and a grid-explorer sort.
   *(M1/M2 backlog; done 2026-09-03)*
-- [ ] **#15 Opening the MLP** — after #14, so the cards use glossary terms.
+- [ ] **#15 Opening the MLP** — *next up.* Builds on #14: the cards use glossary terms.
   Two Layers-detail cards from one export release (v4): (a) **edit size**
   — per token and layer, ‖Δx‖/‖x‖ for the MLP and for attention, as a
   token × layer heatmap plus per-layer bars for the selected token
@@ -126,6 +127,7 @@ they are IDs, not positions.
 
 ## Done (for the record)
 
+- [x] In-app glossary: 12 entries, term links, drawer, "?" index, first-visit hint *(#14, 2026-10-10)*
 - [x] Logits readout: final vector, candidate rows, visible dot product; export v3 *(#13, 2026-10-09)*
 - [x] Coreference-head detector in real mode (L13H8 spike, blind template) *(#5, 2026-09-03)*
 - [x] Embeddings explained: real rows, neighbours, similarity *(M4, 2026-09-02)*

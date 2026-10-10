@@ -39,7 +39,7 @@ const context = await chromium.launchPersistentContext(PROFILE, {
   headless: false,
   viewport: { width: 1380, height: 940 },
 })
-// Scenes can be selected: `npm run screenshots -- pipeline attention compare embeddings logits`
+// Scenes can be selected: `npm run screenshots -- pipeline glossary attention compare embeddings logits`
 // (default: all). Skipping a scene preserves its existing images — useful when
 // a previous capture caught a specimen worth keeping (e.g. a great fork).
 const only = process.argv.slice(2)
@@ -63,6 +63,20 @@ try {
     await $('btn-live').click()
     await page.screenshot({ path: `${DIR}/pipeline.png` })
     console.log('pipeline.png')
+  }
+
+  // ---- glossary.png: simulated run, Softmax card with the drawer open -------
+  if (want('glossary')) {
+    await $('example-chip').first().click()                  // auto-generates
+    await $('run-chip').first().waitFor({ timeout: 15000 })
+    await $('btn-live').click()
+    await $('stage-card').nth(4).click()                     // Softmax
+    await $('embed-callout').filter({ hasText: 'why exponentiate' }).click()
+    await $('gl-in-run').waitFor({ timeout: 5000 })
+    await page.waitForTimeout(800)                           // let the section scroll and the highlight settle
+    await page.screenshot({ path: `${DIR}/glossary.png` })
+    await $('gl-close').click()
+    console.log('glossary.png')
   }
 
   // real mode serves the remaining scenes
