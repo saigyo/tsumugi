@@ -249,6 +249,12 @@ the score building up through the layers, and a breakdown names the
 largest contributors. Simulated runs show a note instead: there is no MLP
 to measure.
 
+The empty layer-11 column in the MLP heatmap is an artefact of the 8-bit
+model the browser runs: its activation quantization uses one scale per
+batch, and the first token's huge layer-11 values round every other prompt
+token's MLP input to zero. The full-precision model has no such gap
+(backlog #19).
+
 ![The edit-size and per-layer votes cards](docs/screenshots/mlp.png)
 
 ## The glossary

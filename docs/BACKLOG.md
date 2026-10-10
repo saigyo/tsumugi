@@ -111,6 +111,23 @@ they are IDs, not positions.
   improve real-mode output quality and is honest about how instruct models
   are invoked. Touches the tokenize stage's story. *(v1 spec, out of scope)*
 
+- [ ] **#19 Faithful browser model** — the published q8 model
+  (dynamic int8, one activation scale per tensor) loses the small
+  activations whenever the first token's huge values share a batch with
+  them: layer 11's MLP outputs exactly 0 for every prompt token after the
+  first, and under browser semantics the next-token argmax differs from
+  fp32 on 4/4 validation prompts (max |Δlogit| 8–15). Python's validator
+  missed it because ORT's full graph optimization fuses
+  DynamicQuantizeLinear + MatMulInteger into a kernel that keeps them;
+  onnxruntime-web (WASM and WebGPU) runs the unfused graph, as does Python
+  with `ORT_DISABLE_ALL`. Keeping the down-projections in fp32 is not
+  enough (still 2/4 argmax mismatches). Next: (a) the validator runs
+  quantized variants with optimizations disabled, so the gate matches the
+  browser; (b) try weight-only quantization (MatMulNBits, 8- or 4-bit, if
+  onnxruntime-web supports it on WASM and WebGPU) or a re-try of fp16;
+  (c) publish as v5. Affects real mode since M1. *(#15 final review,
+  2026-10-11)*
+
 ## Housekeeping / parked minors
 
 - [x] **#6 Storage-consistency follow-up** — two parked M3 minors together:
