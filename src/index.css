@@ -455,7 +455,13 @@ input[type="number"] { width: 4rem; }
 .gl-svg-term:focus-visible { outline: 2px solid var(--ai); outline-offset: 2px; }
 
 /* ── Formulas: LaTeX typeset as native MathML (temml) ────────────────── */
-math { font-family: math, 'STIX Two Math', 'Cambria Math', 'Latin Modern Math', serif; color: var(--ink); }
+@font-face {
+  font-family: 'Latin Modern Math';
+  src: url('./assets/fonts/latinmodern-math.woff2') format('woff2');
+  font-display: swap;
+}
+/* bundled Latin Modern Math first: the LaTeX look on every device */
+math { font-family: 'Latin Modern Math', math, 'STIX Two Math', 'Cambria Math', serif; color: var(--ink); }
 .formula { margin: .7rem 0; overflow-x: auto; overflow-y: hidden; font-size: 1.05rem; }
 .formula-inline { margin: 0; overflow: visible; font-size: 1em; }
 .card-formula { display: block; margin: .4rem 0 .6rem; font-size: 1.05rem; }
