@@ -6,23 +6,24 @@ import { ratioFill } from './mlpMath'
 import type { EditRows } from './selectors'
 import { visibleToken } from './tokenText'
 
-const CELL = 7, ROW_H = 12, LABEL_W = 60, BAR_W = 3, BAR_H = 56
+type Block = 'attn' | 'mlp'
+const BLOCK_NAME: Record<Block, string> = { attn: 'attention', mlp: 'MLP' }
 // Bars stop at 2.0, like the heatmap's ≥ 1 colour: a first-layer edit of 12×
 // would otherwise flatten every other bar. The title keeps the true value.
 const BAR_CAP = 2
-// A long prompt would draw tokens × 30 × 2 cells: show the most recent rows.
+// A long prompt would draw tokens × 30 cells: show the most recent rows.
 const MAX_ROWS = 64
 
 const lastRows = (r: EditRows): EditRows => r.tokens.length <= MAX_ROWS ? r : {
   tokens: r.tokens.slice(-MAX_ROWS), attn: r.attn.slice(-MAX_ROWS), mlp: r.mlp.slice(-MAX_ROWS),
 }
-type Block = 'attn' | 'mlp'
-const BLOCK_NAME: Record<Block, string> = { attn: 'attention', mlp: 'MLP' }
 
 // "How much each layer changes the vector": per token and layer, the size of
-// each block's edit relative to the stream it is added to. Pure
-// presentation; the selected token is local (it only drives the bars).
+// each block's edit relative to the stream it is added to — one heatmap with
+// an MLP / attention toggle, and bars for the selected token. Pure
+// presentation; the block and the token are local view state.
 export function EditSizeCard({ rows: all, note }: { rows?: EditRows; note: string }) {
+  const [block, setBlock] = useState<Block>('mlp')
   const [picked, setPicked] = useState<number | null>(null)
   const rows = all ? lastRows(all) : undefined
   const last = rows ? rows.tokens.length - 1 : -1
@@ -31,23 +32,27 @@ export function EditSizeCard({ rows: all, note }: { rows?: EditRows; note: strin
     <section data-testid="edit-size-card" className="mlp-card">
       <h4>How much each layer changes the vector{' '}
         <Term id="edit" variant="icon" label="About edit sizes" testId="edit-size-info">ⓘ</Term></h4>
-      {!rows ? <p data-testid="edit-size-note" className="mlp-note">{note}</p> : (
+      {!rows || !all ? <p data-testid="edit-size-note" className="mlp-note">{note}</p> : (
         <>
           <p className="mlp-caption">Every block adds an <Term id="edit">edit</Term> to the{' '}
             <Term id="residual-stream">residual stream</Term>. The colour shows how big that edit is compared with
             the vector it is added to: 1.0 means the block wrote something as large as everything before it.</p>
           <Formula testId="edit-size-formula" className="card-formula" inline
             tex={String.raw`\displaystyle \text{size} = \frac{\lVert \Delta x \rVert}{\lVert x \rVert}`} />
-          <div className="edit-maps">
-            {(['mlp', 'attn'] as const).map((block) => (
-              <EditMap key={block} block={block} rows={rows} selected={sel} onSelect={setPicked} />
-            ))}
+          <div className="mlp-controls">
+            <div className="mlp-seg" role="group" aria-label="Which block">
+              {(['mlp', 'attn'] as const).map((b) => (
+                <button key={b} type="button" data-testid="edit-block-toggle" aria-pressed={b === block}
+                  onClick={() => setBlock(b)}>{BLOCK_NAME[b]}</button>
+              ))}
+            </div>
+            <div data-testid="edit-legend" className="mlp-legend">0 <span className="mlp-ramp" aria-hidden="true" /> ≥ 1.0</div>
           </div>
-          {all && rows && all.tokens.length > rows.tokens.length && (
+          <EditHeatmap rows={rows} block={block} selected={sel} onSelect={setPicked} />
+          {all.tokens.length > rows.tokens.length && (
             <p data-testid="edit-rows-note" className="mlp-scale-note">
               showing the last {rows.tokens.length} of {all.tokens.length} tokens</p>
           )}
-          <div className="mlp-scale">0 <span className="mlp-scale-ramp" aria-hidden="true" /> ≥ 1.0</div>
           <EditBars rows={rows} index={sel} />
           <div className="embed-callouts">
             {EDIT_CALLOUTS.map((c) => (
@@ -60,63 +65,77 @@ export function EditSizeCard({ rows: all, note }: { rows?: EditRows; note: strin
   )
 }
 
-function EditMap({ block, rows, selected, onSelect }: {
-  block: Block; rows: EditRows; selected: number; onSelect: (row: number) => void
+function EditHeatmap({ rows, block, selected, onSelect }: {
+  rows: EditRows; block: Block; selected: number; onSelect: (row: number) => void
 }) {
   const layers = rows[block][0]?.length ?? 0
-  const w = LABEL_W + layers * CELL, h = rows.tokens.length * ROW_H + 14
   return (
-    <figure className="edit-map-fig">
-      <figcaption>{BLOCK_NAME[block]}</figcaption>
-      <svg data-testid="edit-map" data-block={block} width={w} height={h} viewBox={`0 0 ${w} ${h}`} role="group"
-        aria-label={`${BLOCK_NAME[block]} edit sizes, tokens by layers`}>
-        {rows.tokens.map((t, r) => (
-          <g key={r}>
-            <text data-testid="edit-row-label" data-row={r} data-selected={String(r === selected)} aria-pressed={r === selected}
-              className={`edit-row-label${r === selected ? ' edit-row-selected' : ''}`}
-              x={LABEL_W - 4} y={r * ROW_H + 9} textAnchor="end" role="button" tabIndex={0}
-              onClick={() => onSelect(r)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(r) } }}>
-              {visibleToken(t.text)}
-            </text>
+    <div className="mlp-heatmap" role="group" aria-label={`${BLOCK_NAME[block]} edit sizes, tokens by layers`}>
+      {rows.tokens.map((t, r) => (
+        <div key={r} className="mlp-heatmap-row">
+          <button type="button" data-testid="edit-row-label" aria-pressed={r === selected}
+            className="mlp-tok" onClick={() => onSelect(r)}>{visibleToken(t.text)}</button>
+          <div className="mlp-cells" style={{ gridTemplateColumns: `repeat(${layers}, 1fr)` }}>
             {rows[block][r].map((v, l) => (
-              <rect key={l} data-testid="edit-cell" data-block={block} data-row={r} data-layer={l}
-                x={LABEL_W + l * CELL} y={r * ROW_H} width={CELL - 1} height={ROW_H - 1} fill={ratioFill(v)}
-                onClick={() => onSelect(r)}>
-                <title>{`“${visibleToken(t.text)}”, layer ${l}, ${BLOCK_NAME[block]}: ${v.toFixed(2)}`}</title>
-              </rect>
+              <div key={l} data-testid="edit-cell" data-block={block} data-row={r} data-layer={l}
+                style={{ background: ratioFill(v) }} onClick={() => onSelect(r)}
+                title={`“${visibleToken(t.text)}”, layer ${l}, ${BLOCK_NAME[block]}: ${v.toFixed(2)}`} />
             ))}
-          </g>
-        ))}
-        {[0, 10, 20].filter((l) => l < layers).map((l) => (
-          <text key={l} className="edit-axis" x={LABEL_W + l * CELL} y={h - 2}>L{l}</text>
-        ))}
-      </svg>
-    </figure>
+          </div>
+        </div>
+      ))}
+      <div className="mlp-heatmap-row">
+        <span />
+        <div data-testid="edit-axis" className="mlp-cells mlp-axis" style={{ gridTemplateColumns: `repeat(${layers}, 1fr)` }}>
+          {Array.from({ length: layers }, (_, l) => <span key={l}>{l % 5 === 0 ? `L${l}` : ''}</span>)}
+        </div>
+      </div>
+    </div>
   )
 }
 
+// The bar chart's frame, in viewBox units (the SVG stretches to the card).
+const W = 900, H = 196, X0 = 40, Y0 = 164, TOP = 30
+
 function EditBars({ rows, index }: { rows: EditRows; index: number }) {
   const a = rows.attn[index], m = rows.mlp[index]
-  const peak = Math.min(BAR_CAP, Math.max(...a, ...m)) || 1
-  const w = a.length * (2 * BAR_W + 2)
+  const layers = a.length
+  const y = (v: number) => Y0 - (Math.min(v, BAR_CAP) / BAR_CAP) * (Y0 - TOP)
+  const slot = (W - X0 - 8) / layers
+  const bw = Math.max(1, (slot - 4) / 2)
   return (
-    <figure className="edit-bars-fig">
-      <figcaption data-testid="edit-bars-label">edit size per layer for “{visibleToken(rows.tokens[index].text)}”,
-        attention vs MLP (bars stop at 2.0)</figcaption>
-      <svg width={w} height={BAR_H} viewBox={`0 0 ${w} ${BAR_H}`} role="img"
+    <figure className="mlp-chart-fig">
+      <figcaption data-testid="edit-bars-label" className="mlp-chart-label">edit size per layer for
+        “{visibleToken(rows.tokens[index].text)}”, attention vs MLP</figcaption>
+      <svg data-testid="edit-bars" className="mlp-chart mlp-chart-wide" viewBox={`0 0 ${W} ${H}`} role="img"
         aria-label="edit size per layer, attention and MLP bars">
+        {[0, 0.5, 1, 1.5, 2].map((t) => (
+          <g key={t}>
+            <line x1={X0} x2={W - 6} y1={y(t)} y2={y(t)} data-testid={t === 1 ? 'edit-bars-ref' : undefined}
+              className={t === 1 ? 'mlp-ref-line' : 'mlp-grid-line'} />
+            <text x={X0 - 6} y={y(t) + 3} textAnchor="end" className="mlp-tick">{t.toFixed(1)}</text>
+          </g>
+        ))}
+        <text x={W - 8} y={y(1) - 4} textAnchor="end" className="mlp-ref-label">edit as large as the stream itself</text>
         {a.map((_, l) => (['attn', 'mlp'] as const).map((block, j) => {
           const v = block === 'attn' ? a[l] : m[l]
           const capped = v > BAR_CAP
-          const bh = (Math.min(v, BAR_CAP) / peak) * (BAR_H - 2)
           return (
             <rect key={`${l}-${block}`} data-testid="edit-bar" data-block={block} data-layer={l} data-value={v.toFixed(2)}
-              data-capped={String(capped)} className={`edit-bar edit-bar-${block}${capped ? ' edit-bar-capped' : ''}`} x={l * (2 * BAR_W + 2) + j * BAR_W} y={BAR_H - bh}
-              width={BAR_W - 0.5} height={bh}>
+              data-capped={String(capped)} className={`edit-bar edit-bar-${block}${capped ? ' edit-bar-capped' : ''}`}
+              x={X0 + l * slot + 2 + j * (bw + 1)} y={y(v)} width={bw} height={Y0 - y(v)}>
               <title>{`layer ${l}, ${BLOCK_NAME[block]}: ${v.toFixed(2)}`}</title>
             </rect>
           )
         }))}
+        {a.map((_, l) => l % 5 === 0 && (
+          <text key={l} x={X0 + l * slot + slot / 2} y={Y0 + 14} textAnchor="middle" className="mlp-tick">L{l}</text>
+        ))}
+        <rect x={X0 + 6} y={4} width={10} height={10} className="edit-bar-attn" />
+        <text x={X0 + 20} y={13} className="mlp-tick">attention</text>
+        <rect x={X0 + 90} y={4} width={10} height={10} className="edit-bar-mlp" />
+        <text x={X0 + 104} y={13} className="mlp-tick">MLP</text>
+        <text x={X0 + 150} y={13} className="mlp-tick">· bars stop at 2.0</text>
       </svg>
     </figure>
   )

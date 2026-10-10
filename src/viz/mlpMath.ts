@@ -15,6 +15,15 @@ export function runningTotal(v: LayerVotes): number[] {
 
 const sum = (a: number[]) => a.reduce((s, x) => s + x, 0)
 
+// The same build-up one point per layer: after the embedding, then after
+// each layer's attention and MLP together (the running-score chart).
+export function layerTotals(v: LayerVotes): number[] {
+  const out = [v.embed]
+  let s = v.embed
+  v.attn.forEach((a, l) => { s += a + v.mlp[l]; out.push(s) })
+  return out
+}
+
 export const blockTotals = (v: LayerVotes) => ({ embed: v.embed, attn: sum(v.attn), mlp: sum(v.mlp) })
 
 export function topMlpLayers(v: LayerVotes, n = 3): Array<{ layer: number; value: number }> {

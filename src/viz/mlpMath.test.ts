@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import { blockTotals, ratioFill, runningTotal, topMlpLayers, voteFill, votePeak } from './mlpMath'
+import { blockTotals, layerTotals, ratioFill, runningTotal, topMlpLayers, voteFill, votePeak } from './mlpMath'
 import { cellFill } from './stripMath'
 
 const v = { embed: 1, attn: [0.5, -0.25], mlp: [2, -1] }
@@ -33,4 +33,8 @@ test('voteFill uses a square-root scale: a quarter of the peak gets the colour o
   expect(voteFill(1, 4)).toBe(cellFill(0.5, 1))
   expect(voteFill(-1, 4)).toBe(cellFill(-0.5, 1))
   expect(voteFill(4, 4)).toBe(cellFill(1, 1))
+})
+
+test('layerTotals: the score after the embedding and after each whole layer', () => {
+  expect(layerTotals(v)).toEqual([1, 3.5, 2.25])
 })
