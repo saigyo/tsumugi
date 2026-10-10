@@ -54,3 +54,10 @@ test('without candidates the card keeps its heading and shows the note', () => {
   expect(screen.getByTestId('votes-note')).toHaveTextContent(/Votes appear/)
   expect(screen.queryAllByTestId('vote-cell')).toHaveLength(0)
 })
+
+test('the caption names the Logits card’s score even when the rounded votes miss it by a hundredth', () => {
+  const off = [{ ...cands[0], logit: 9.09 }, ...cands.slice(1)]   // votes still add up to 9.10
+  render(<LayerVotesCard candidates={off} cycle={0} note="unused" />)
+  expect(screen.getByTestId('vote-final')).toHaveTextContent('9.09')
+  expect(screen.getByTestId('votes-total')).toHaveTextContent('9.09')
+})

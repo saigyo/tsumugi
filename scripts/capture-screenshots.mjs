@@ -80,7 +80,7 @@ try {
   }
 
   // real mode serves the remaining scenes
-  if (want('attention') || want('compare') || want('embeddings') || want('logits')) {
+  if (want('attention') || want('compare') || want('embeddings') || want('logits') || want('mlp')) {
     await $('mode-toggle').check()
     await $('model-status-slot').getByText(/attn/).waitFor({ timeout: 300000 })  // first run downloads the model
   }
@@ -205,14 +205,13 @@ try {
     await $('btn-live').click()
     await $('stage-card').nth(2).click()                            // Layers
     await $('vote-cell').first().waitFor({ timeout: 10000 })
-    await page.setViewportSize({ width: 1380, height: 1600 })
-    const cards = [await $('edit-size-card').boundingBox(), await $('votes-card').boundingBox()]
-    const pad = 12
-    const top = cards[0].y - pad, bottom = cards[1].y + cards[1].height + pad
-    await page.screenshot({ path: `${DIR}/mlp.png`, clip: {
-      x: cards[0].x - pad, y: top, width: Math.max(cards[0].width, cards[1].width) + 2 * pad, height: bottom - top,
-    } })
-    await page.setViewportSize({ width: 1380, height: 940 })
+    // the detail panel scrolls on its own, so a page clip would miss the lower
+    // card: screenshot the element that holds both cards instead
+    // the sticky playback bar would cover the cards' top once scrolled there
+    const unstick = await page.addStyleTag({ content: '.controls { position: static !important; }' })
+    await page.waitForTimeout(300)
+    await $('mlp-cards').screenshot({ path: `${DIR}/mlp.png` })
+    await unstick.evaluate((el) => el.remove())
     await $('maxtok-input').fill('20')
     console.log('mlp.png')
   }

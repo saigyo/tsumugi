@@ -54,3 +54,14 @@ test('three chips open the edit entry’s sections', () => {
   expect(chips.map((c) => c.getAttribute('data-section'))).toEqual(['layer-0', 'quiet-middle', 'attn-vs-mlp'])
   expect(chips[0]).toHaveTextContent('why layer 0 is so dark')
 })
+
+test('bars cap at 2.0 so one huge edit does not flatten the rest; the title keeps the true value', () => {
+  render(<EditSizeCard rows={{ tokens: [{ id: 1, text: 'The' }], attn: [[0.5, 1, 0.2]], mlp: [[12, 1, 0.3]] }} note="unused" />)
+  const bar = (block: string, layer: number) => screen.getAllByTestId('edit-bar')
+    .find((b) => b.getAttribute('data-block') === block && b.getAttribute('data-layer') === String(layer))!
+  const h = (el: Element) => Number(el.getAttribute('height'))
+  expect(h(bar('mlp', 1)) / h(bar('mlp', 0))).toBeCloseTo(0.5, 2)
+  expect(bar('mlp', 0)).toHaveAttribute('data-capped', 'true')
+  expect(bar('mlp', 1)).toHaveAttribute('data-capped', 'false')
+  expect(bar('mlp', 0).textContent).toBe('layer 0, MLP: 12.00')
+})

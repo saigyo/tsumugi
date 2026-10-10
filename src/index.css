@@ -487,6 +487,7 @@ math { font-family: 'Latin Modern Math', math, 'STIX Two Math', 'Cambria Math', 
 .edit-axis { font-size: 8px; fill: var(--ai-soft); }
 .edit-bar-attn { fill: var(--ai-soft); }
 .edit-bar-mlp { fill: var(--ai-deep); }
+.edit-bar-capped { stroke: var(--shu); stroke-width: 1; stroke-dasharray: 2 1; }
 .mlp-scale { font-size: .7rem; display: flex; align-items: center; gap: .3rem; }
 .mlp-scale-ramp { display: inline-block; width: 80px; height: 8px;
   background: linear-gradient(90deg, hsl(211 30% 94%), hsl(211 55% 24%)); }

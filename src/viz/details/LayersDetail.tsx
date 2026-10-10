@@ -59,10 +59,12 @@ export function LayersDetail({ event, mode, attention, attentionInRun, tokens, s
         </button>
       )}
       {grid && explore && <AttentionGridExplorer grid={grid} onPin={onPin ?? (() => {})} />}
-      <EditSizeCard rows={mode === 'real' ? edits : undefined} note={mode === 'sim' ? SIM_NOTE : OLD_NOTE} />
-      <LayerVotesCard cycle={event.cycle}
-        candidates={mode === 'real' && votes?.status === 'ok' ? votes.candidates : undefined}
-        note={mode === 'sim' ? SIM_NOTE : votes?.status === 'pending' ? PENDING_NOTE : OLD_NOTE} />
+      <div data-testid="mlp-cards">
+        <EditSizeCard rows={mode === 'real' ? edits : undefined} note={mode === 'sim' ? SIM_NOTE : OLD_NOTE} />
+        <LayerVotesCard cycle={event.cycle}
+          candidates={mode === 'real' && votes?.status === 'ok' ? votes.candidates : undefined}
+          note={mode === 'sim' ? SIM_NOTE : votes?.status === 'pending' ? PENDING_NOTE : OLD_NOTE} />
+      </div>
     </div>
   )
 }

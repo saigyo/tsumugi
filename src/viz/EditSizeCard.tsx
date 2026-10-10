@@ -7,6 +7,9 @@ import type { EditRows } from './selectors'
 import { visibleToken } from './tokenText'
 
 const CELL = 7, ROW_H = 12, LABEL_W = 60, BAR_W = 3, BAR_H = 56
+// Bars stop at 2.0, like the heatmap's ≥ 1 colour: a first-layer edit of 12×
+// would otherwise flatten every other bar. The title keeps the true value.
+const BAR_CAP = 2
 type Block = 'attn' | 'mlp'
 const BLOCK_NAME: Record<Block, string> = { attn: 'attention', mlp: 'MLP' }
 
@@ -83,20 +86,21 @@ function EditMap({ block, rows, selected, onSelect }: {
 
 function EditBars({ rows, index }: { rows: EditRows; index: number }) {
   const a = rows.attn[index], m = rows.mlp[index]
-  const peak = Math.max(...a, ...m) || 1
+  const peak = Math.min(BAR_CAP, Math.max(...a, ...m)) || 1
   const w = a.length * (2 * BAR_W + 2)
   return (
     <figure className="edit-bars-fig">
       <figcaption data-testid="edit-bars-label">edit size per layer for “{visibleToken(rows.tokens[index].text)}”,
-        attention vs MLP</figcaption>
+        attention vs MLP (bars stop at 2.0)</figcaption>
       <svg width={w} height={BAR_H} viewBox={`0 0 ${w} ${BAR_H}`} role="img"
         aria-label="edit size per layer, attention and MLP bars">
         {a.map((_, l) => (['attn', 'mlp'] as const).map((block, j) => {
           const v = block === 'attn' ? a[l] : m[l]
-          const bh = (v / peak) * (BAR_H - 2)
+          const capped = v > BAR_CAP
+          const bh = (Math.min(v, BAR_CAP) / peak) * (BAR_H - 2)
           return (
             <rect key={`${l}-${block}`} data-testid="edit-bar" data-block={block} data-layer={l} data-value={v.toFixed(2)}
-              className={`edit-bar edit-bar-${block}`} x={l * (2 * BAR_W + 2) + j * BAR_W} y={BAR_H - bh}
+              data-capped={String(capped)} className={`edit-bar edit-bar-${block}${capped ? ' edit-bar-capped' : ''}`} x={l * (2 * BAR_W + 2) + j * BAR_W} y={BAR_H - bh}
               width={BAR_W - 0.5} height={bh}>
               <title>{`layer ${l}, ${BLOCK_NAME[block]}: ${v.toFixed(2)}`}</title>
             </rect>

@@ -98,11 +98,10 @@ function RunningTotal({ candidates, selected }: { candidates: VotedCandidate[]; 
   const x = (j: number) => (j / steps) * (LINE_W - 4) + 2
   const y = (v: number) => LINE_H - 4 - ((v - lo) / (hi - lo || 1)) * (LINE_H - 8)
   const sel = candidates[selected]
-  const final = series[selected].at(-1)!
   return (
     <figure className="votes-lens">
       <figcaption>running score, “{visibleToken(sel.text)}” against the rest — ends at{' '}
-        <span data-testid="vote-final">{final.toFixed(2)}</span></figcaption>
+        <span data-testid="vote-final">{sel.logit.toFixed(2)}</span></figcaption>
       <svg width={LINE_W} height={LINE_H} viewBox={`0 0 ${LINE_W} ${LINE_H}`} role="img"
         aria-label="each candidate's score building up across the layers">
         {series.map((s, r) => (
