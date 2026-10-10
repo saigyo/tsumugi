@@ -1,4 +1,4 @@
-import { READOUT_CELLS, type AttentionGridCell, type LogitCandidate, type Mode, type RunEndReason, type TraceEvent, type TokenInfo } from '../trace/types'
+import { READOUT_CELLS, type AttentionGridCell, type LayerVotes, type LogitCandidate, type Mode, type RunEndReason, type TraceEvent, type TokenInfo } from '../trace/types'
 import type { RunRecord } from '../app/runsStore'
 
 export interface FixtureTraceOpts {
@@ -14,6 +14,8 @@ export interface FixtureTraceOpts {
   embedRows?: boolean
   // logits events carry lastHidden and per-candidate row/dot strips
   readout?: boolean
+  // edits events and per-candidate votes (v4 export data)
+  mlp?: boolean
 }
 
 const DEFAULT_WORDS = [' sat', ' on', ' the', ' mat']
@@ -40,6 +42,19 @@ export function fixtureReadout(id: number, logit: number): { row: number[]; dot:
   dot[READOUT_CELLS - 1] = Math.round((logit - partial) * 1e6) / 1e6
   return { row, dot }
 }
+
+// Deterministic votes whose parts add up to the logit exactly (the embedding
+// share absorbs the rounding), because the votes card shows that identity.
+export function fixtureVotes(id: number, logit: number, layers: number): LayerVotes {
+  const attn = Array.from({ length: layers }, (_, l) => r3(0.2 * Math.sin(id * 0.3 + l)))
+  const mlp = Array.from({ length: layers }, (_, l) => r3((logit / layers) * 0.8 + 0.4 * Math.cos(id * 0.5 + l * 0.7)))
+  const rest = [...attn, ...mlp].reduce((a, b) => a + b, 0)
+  return { embed: Math.round((logit - rest) * 1e6) / 1e6, attn, mlp }
+}
+
+// Deterministic edit ratio for a position, layer and block, in [0, 1.4].
+export const fixtureRatio = (pos: number, layer: number, block: 0 | 1) =>
+  r3(0.7 + 0.7 * Math.sin(pos * 0.9 + layer * 0.5 + block * 1.3))
 
 export function buildFixtureTrace(opts: FixtureTraceOpts = {}): TraceEvent[] {
   const cycles = opts.cycles ?? 2
@@ -73,13 +88,22 @@ export function buildFixtureTrace(opts: FixtureTraceOpts = {}): TraceEvent[] {
       { layer: 2, head: 1, label: 'previous-token',
         matrix: Array.from({ length: seq }, (_, i) => i === 0 ? [1] : row(i, [[i - 1, 0.8], [i, 0.2]])) },
     ] })
+    if (opts.mlp) {
+      const start = c === 0 ? 0 : promptTokens.length + c - 1
+      const positions = Array.from({ length: fed.length }, (_, i) => start + i)
+      events.push({ type: 'edits', cycle: c, start,
+        attn: positions.map((p) => Array.from({ length: layers }, (_, l) => fixtureRatio(p, l, 0))),
+        mlp: positions.map((p) => Array.from({ length: layers }, (_, l) => fixtureRatio(p, l, 1))) })
+    }
     const scored: LogitCandidate[] = [
       { ...chosen, logit: 9.1 }, { id: 200, text: ' ran', logit: 7.2 }, { id: 201, text: ' was', logit: 5.0 },
     ]
+    const withVotes = (s: LogitCandidate): LogitCandidate =>
+      opts.mlp ? { ...s, votes: fixtureVotes(s.id, s.logit, layers) } : s
     events.push(opts.readout
       ? { type: 'logits', cycle: c, lastHidden: fixtureLastHidden(c),
-          topK: scored.map((s) => ({ ...s, ...fixtureReadout(s.id, s.logit) })) }
-      : { type: 'logits', cycle: c, topK: scored })
+          topK: scored.map((s) => withVotes({ ...s, ...fixtureReadout(s.id, s.logit) })) }
+      : { type: 'logits', cycle: c, topK: scored.map(withVotes) })
     events.push({ type: 'softmax', cycle: c, temperature, topK: [
       { ...chosen, prob: 0.7 }, { id: 200, text: ' ran', prob: 0.2 }, { id: 201, text: ' was', prob: 0.1 },
     ] })

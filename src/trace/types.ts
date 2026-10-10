@@ -39,12 +39,18 @@ export type EmbedSource = 'model' | 'asset'
 // Logits card's pooling of lastHidden, so the strips line up cell for cell.
 export const READOUT_CELLS = 64
 
+// Real mode with the v4 export: one candidate's score split into the
+// embedding's share and one share per attention and MLP block, each part
+// scaled by the final norm, so embed + Σ attn + Σ mlp = the logit.
+export interface LayerVotes { embed: number; attn: number[]; mlp: number[] }
+
 export interface LogitCandidate extends TokenInfo {
   logit: number
   // real mode with the v3 export: the candidate's row of E pooled by mean,
   // and the element-wise product x_last ⊙ E[id] pooled by sum (Σ dot ≈ logit)
   row?: number[]
   dot?: number[]
+  votes?: LayerVotes
 }
 
 export type TraceEvent =
@@ -53,6 +59,8 @@ export type TraceEvent =
   | { type: 'embed'; cycle: number; seqLen: number; dims: number; source: EmbedSource; rows?: number[][] }
   | { type: 'layer'; cycle: number; index: number; total: number; activationNorm?: number }
   | { type: 'attention'; cycle: number; heads: AttentionHead[] }
+  // v4 export: ‖edit‖/‖stream before‖ per fed position (rows start at `start`) and layer
+  | { type: 'edits'; cycle: number; start: number; attn: number[][]; mlp: number[][] }
   | { type: 'logits'; cycle: number; topK: LogitCandidate[]; lastHidden?: number[] }
   | { type: 'softmax'; cycle: number; temperature: number; topK: Array<TokenInfo & { prob: number }> }
   | { type: 'sample'; cycle: number; chosen: TokenInfo; method: 'greedy' | 'top-k' }

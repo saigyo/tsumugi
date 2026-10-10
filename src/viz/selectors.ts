@@ -3,7 +3,7 @@ import type { EmbedSource, TokenInfo, TraceEvent } from '../trace/types'
 export type StageId = 'tokenizer' | 'embeddings' | 'layers' | 'logits' | 'softmax' | 'sampler' | null
 
 const STAGE_OF: Partial<Record<TraceEvent['type'], StageId>> = {
-  tokenize: 'tokenizer', embed: 'embeddings', layer: 'layers', attention: 'layers',
+  tokenize: 'tokenizer', embed: 'embeddings', layer: 'layers', attention: 'layers', edits: 'layers',
   logits: 'logits', softmax: 'softmax', sample: 'sampler', append: 'sampler',
 }
 

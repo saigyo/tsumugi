@@ -9,11 +9,14 @@ export function validateTrace(events: TraceEvent[]): string[] {
   const CYCLE = ['embed', 'layer', 'logits', 'softmax', 'sample', 'append'] as const
   let phase: (typeof CYCLE)[number] = 'embed'
   let layerIdx = 0
+  let layerTotal = 0
+  let seqLen = 0
   for (const e of events.slice(2, -1)) {
     if (e.type === 'attention-grid') continue  // placement checked below
     if (e.type === 'layer') {
       if (phase !== 'layer' && phase !== 'logits') { errs.push(`unexpected layer in phase ${phase}`); continue }
       if (e.index !== layerIdx) errs.push(`layer index ${e.index}, expected ${layerIdx}`)
+      layerTotal = e.total
       layerIdx++
       phase = layerIdx >= e.total ? 'logits' : 'layer'
       continue
@@ -30,7 +33,21 @@ export function validateTrace(events: TraceEvent[]): string[] {
       }
       continue
     }
+    if (e.type === 'edits') {
+      // optional slot, like attention: after the cycle's layers, before its logits
+      if (phase !== 'logits') { errs.push(`unexpected edits in phase ${phase}`); continue }
+      const ok = (r: unknown) => Array.isArray(r) && r.length === layerTotal
+        && r.every((v) => typeof v === 'number' && Number.isFinite(v))
+      if (e.attn.length !== e.mlp.length)
+        errs.push(`edits cycle ${e.cycle} has ${e.attn.length} attn rows but ${e.mlp.length} mlp rows`)
+      e.attn.forEach((r, i) => { if (!ok(r)) errs.push(`edits cycle ${e.cycle} attn row ${i} is not ${layerTotal} finite numbers`) })
+      e.mlp.forEach((r, i) => { if (!ok(r)) errs.push(`edits cycle ${e.cycle} mlp row ${i} is not ${layerTotal} finite numbers`) })
+      if (e.start < 0 || e.start + e.attn.length > seqLen)
+        errs.push(`edits cycle ${e.cycle} rows ${e.start}..${e.start + e.attn.length} exceed seqLen ${seqLen}`)
+      continue
+    }
     if (e.type === 'embed' && phase === 'embed') {
+      seqLen = e.seqLen
       if (e.rows) {
         e.rows.forEach((row, i) => {
           if (!Array.isArray(row) || row.length !== e.dims || row.some((v) => typeof v !== 'number' || !Number.isFinite(v)))
@@ -81,6 +98,10 @@ export function validateTrace(events: TraceEvent[]): string[] {
           if (v !== undefined && (!finite(v) || v.length !== READOUT_CELLS))
             errs.push(`logits cycle ${e.cycle} candidate ${c.id} ${key} is not ${READOUT_CELLS} finite numbers`)
         }
+        const v = c.votes
+        if (v !== undefined && (typeof v.embed !== 'number' || !Number.isFinite(v.embed)
+          || !finite(v.attn) || !finite(v.mlp) || v.attn.length !== layerTotal || v.mlp.length !== layerTotal))
+          errs.push(`logits cycle ${e.cycle} candidate ${c.id} votes are not ${layerTotal} finite numbers per block`)
       }
     }
   }

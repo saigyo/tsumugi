@@ -133,3 +133,35 @@ test('fixtureReadout is deterministic and sums to the logit', () => {
   expect(fixtureReadout(42, 9.1)).toEqual(fixtureReadout(42, 9.1))
   expect(fixtureReadout(42, 9.1).dot.reduce((a, b) => a + b, 0)).toBeCloseTo(9.1, 6)
 })
+
+test('a trace with MLP data validates; old traces still do', () => {
+  expect(validateTrace(buildFixtureTrace({ mlp: true, readout: true }))).toEqual([])
+  expect(validateTrace(buildFixtureTrace())).toEqual([])
+})
+
+test('edits rows must be one value per layer and fit the sequence', () => {
+  const t = buildFixtureTrace({ mlp: true })
+  const i = t.findIndex((e) => e.type === 'edits')
+  const e = t[i] as Extract<TraceEvent, { type: 'edits' }>
+  t[i] = { ...e, attn: e.attn.map((r) => r.slice(1)) }
+  expect(validateTrace(t).join()).toMatch(/edits cycle 0 attn row 0 is not 3 finite numbers/)
+  t[i] = { ...e, start: 5 }
+  expect(validateTrace(t).join()).toMatch(/edits cycle 0 rows 5\.\.7 exceed seqLen 2/)
+  t[i] = { ...e, mlp: e.mlp.slice(1) }
+  expect(validateTrace(t).join()).toMatch(/edits cycle 0 has 2 attn rows but 1 mlp rows/)
+})
+
+test('edits sit after the layers, before logits', () => {
+  const t = buildFixtureTrace({ mlp: true })
+  const i = t.findIndex((e) => e.type === 'edits')
+  const [ev] = t.splice(i, 1)
+  t.splice(3, 0, ev)   // right after embed, before the layers
+  expect(validateTrace(t).join()).toMatch(/unexpected edits in phase layer/)
+})
+
+test('votes need one value per layer', () => {
+  const t = buildFixtureTrace({ mlp: true })
+  const lg = t.find((e) => e.type === 'logits') as Extract<TraceEvent, { type: 'logits' }>
+  lg.topK[0] = { ...lg.topK[0], votes: { ...lg.topK[0].votes!, mlp: [1] } }
+  expect(validateTrace(t).join()).toMatch(/candidate \d+ votes are not 3 finite numbers per block/)
+})
