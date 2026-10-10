@@ -112,3 +112,13 @@ test('the logit formula writes its product with a visible operator', () => {
   const { container } = render(<>{getEntry('logit')!.body()}</>)
   expect(container.querySelector('annotation')?.textContent).toContain('\\operatorname{norm}(x_{\\text{last}}) \\cdot E^{\\top}')
 })
+
+test('the attention entry explains q, k, v and d and links to softmax', () => {
+  const entry = getEntry('attention')!
+  const { container } = render(<>{entry.body()}</>)
+  const terms = [...container.querySelectorAll('dl.gl-symbols dt')].map((dt) => dt.querySelector('annotation')?.textContent ?? dt.textContent)
+  for (const symbol of ['q_i', 'k_j', 'v_j', 'd', 'a_{ij}', 'o_i', 'W_O'])
+    expect(terms, symbol).toContain(symbol)
+  expect(container.querySelector('[data-term="softmax"]')).not.toBeNull()
+  expect(entry.related).toContain('softmax')
+})
