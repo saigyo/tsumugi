@@ -1,6 +1,6 @@
-import { useState, type KeyboardEvent, type SVGProps } from 'react'
+import { useEffect, useState, type KeyboardEvent, type SVGProps } from 'react'
 import { getEntry } from '../glossary/registry'
-import { useGlossaryStore } from '../glossary/store'
+import { consumeReturnedFocus, useGlossaryStore } from '../glossary/store'
 import { Term } from '../glossary/Term'
 
 type BoxId = 'attention' | 'mlp'
@@ -18,6 +18,12 @@ export function ResidualStreamDiagram({ seqLen, dims, layers }: {
 }) {
   const openEntry = useGlossaryStore((s) => s.openEntry)
   const [tip, setTip] = useState<BoxId | null>(null)
+  useEffect(() => {
+    if (!tip) return
+    const onKey = (e: globalThis.KeyboardEvent) => { if (e.key === 'Escape') setTip(null) }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [tip])
   const boxProps = (id: BoxId): SVGProps<SVGGElement> => ({
     role: 'button', tabIndex: 0, className: 'rs-hover gl-svg-term',
     'aria-label': `${getEntry(id)?.title}: open the glossary entry`,
@@ -26,7 +32,7 @@ export function ResidualStreamDiagram({ seqLen, dims, layers }: {
       if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setTip(null); openEntry(id, undefined, e.currentTarget) }
     },
     onMouseEnter: () => setTip(id), onMouseLeave: () => setTip(null),
-    onFocus: () => setTip(id), onBlur: () => setTip(null),
+    onFocus: (e) => { if (!consumeReturnedFocus(e.currentTarget)) setTip(id) }, onBlur: () => setTip(null),
   })
   return (
     <div data-testid="residual-diagram" className="residual-diagram">

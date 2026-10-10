@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, expect, test } from 'vitest'
 import { resetGlossaryStore, useGlossaryStore } from '../glossary/store'
 import { ResidualStreamDiagram } from './ResidualStreamDiagram'
@@ -37,4 +37,12 @@ test('the boxes stay reachable for screen readers (the svg is a group, not an im
   const svg = screen.getByTestId('residual-diagram').querySelector('svg')!
   expect(svg.getAttribute('role')).toBe('group')
   expect(screen.getByRole('button', { name: /^MLP/ })).toBe(screen.getByTestId('rs-term-mlp'))
+})
+
+test('focus returned to a box by the closing drawer does not show its tooltip', () => {
+  render(<ResidualStreamDiagram seqLen={4} dims={576} layers={30} />)
+  const mlpBox = screen.getByTestId('rs-term-mlp')
+  fireEvent.click(mlpBox)
+  act(() => useGlossaryStore.getState().close('pointer'))
+  expect(screen.queryByTestId('gl-tip')).toBeNull()
 })

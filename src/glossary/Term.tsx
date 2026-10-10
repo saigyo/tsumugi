@@ -1,6 +1,6 @@
-import { useId, useState, type ReactNode } from 'react'
+import { useEffect, useId, useState, type ReactNode } from 'react'
 import { getEntry } from './registry'
-import { useGlossaryStore } from './store'
+import { consumeReturnedFocus, useGlossaryStore } from './store'
 import type { GlossaryId } from './types'
 
 const CLASS = { text: 'gl-term', chip: 'embed-callout gl-term gl-term-chip', icon: 'gl-term-icon' } as const
@@ -22,6 +22,13 @@ export function Term({ id, section, variant = 'text', label, testId, children }:
   // keeps it out of the drawer's scroll clipping
   const [tip, setTip] = useState<{ left: number; top: number } | null>(null)
   const tipId = useId()
+  // Escape hides an open tooltip (WCAG 1.4.13)
+  useEffect(() => {
+    if (!tip) return
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setTip(null) }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [tip])
   const entry = getEntry(id)
   if (!entry) return <span>{children}</span>
   return (
@@ -30,7 +37,8 @@ export function Term({ id, section, variant = 'text', label, testId, children }:
         data-term={id} data-section={section} aria-label={label}
         aria-describedby={tip ? tipId : undefined}
         onMouseEnter={(e) => setTip(place(e.currentTarget))} onMouseLeave={() => setTip(null)}
-        onFocus={(e) => setTip(place(e.currentTarget))} onBlur={() => setTip(null)}
+        onFocus={(e) => { if (!consumeReturnedFocus(e.currentTarget)) setTip(place(e.currentTarget)) }}
+        onBlur={() => setTip(null)}
         onClick={(e) => { setTip(null); openEntry(entry.id, section, e.currentTarget) }}>
         {children}
       </button>

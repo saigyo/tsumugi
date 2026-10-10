@@ -131,3 +131,15 @@ test('“All entries” link opens the index from an entry', () => {
   fireEvent.click(screen.getByTestId('gl-all-entries'))
   expect(screen.getByTestId('gl-heading')).toHaveTextContent('Glossary')
 })
+
+test('Escape closes as a keyboard action, a mouse click on × as a pointer action', () => {
+  const close = vi.spyOn(useGlossaryStore.getState(), 'close')
+  render(<GlossaryDrawer run={null} />)
+  open(() => useGlossaryStore.getState().openEntry('edit'))
+  fireEvent.keyDown(document, { key: 'Escape' })
+  expect(close).toHaveBeenLastCalledWith('keyboard')
+  open(() => useGlossaryStore.getState().openEntry('edit'))
+  fireEvent.click(screen.getByTestId('gl-close'), { detail: 1 })
+  expect(close).toHaveBeenLastCalledWith('pointer')
+  close.mockRestore()
+})

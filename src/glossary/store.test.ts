@@ -79,3 +79,18 @@ test('close with a detached opener focuses the help button', () => {
   expect(() => s().close()).not.toThrow()
   expect(document.activeElement).toBe(help)
 })
+
+test('closing with the pointer returns focus quietly (no outline); with the keyboard it stays visible', () => {
+  const btn = document.createElement('button')
+  document.body.append(btn)
+  s().openEntry('edit', undefined, btn)
+  s().close('pointer')
+  expect(document.activeElement).toBe(btn)
+  expect(btn).toHaveAttribute('data-quiet-focus')
+  btn.blur()
+  expect(btn).not.toHaveAttribute('data-quiet-focus')
+  s().openEntry('edit', undefined, btn)
+  s().close('keyboard')
+  expect(document.activeElement).toBe(btn)
+  expect(btn).not.toHaveAttribute('data-quiet-focus')
+})

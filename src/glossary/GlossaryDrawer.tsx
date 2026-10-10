@@ -56,7 +56,7 @@ export function GlossaryDrawer({ run }: { run: RunSummary | null }) {
 
   useEffect(() => {
     if (!view) return
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') close() }
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') close('keyboard') }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
   }, [view, close])
@@ -70,7 +70,8 @@ export function GlossaryDrawer({ run }: { run: RunSummary | null }) {
         {canGoBack
           ? <button type="button" data-testid="gl-back" className="gl-link" onClick={back}>← Back</button>
           : <span />}
-        <button type="button" data-testid="gl-close" className="gl-close" aria-label="Close glossary" onClick={close}>×</button>
+        <button type="button" data-testid="gl-close" className="gl-close" aria-label="Close glossary"
+          onClick={(e) => close(e.detail === 0 ? 'keyboard' : 'pointer')}>×</button>
       </div>
       <div ref={bodyRef} className="gl-drawer-body">
         {entry ? (

@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, expect, test } from 'vitest'
 import { resetGlossaryStore, useGlossaryStore } from './store'
 import { Term } from './Term'
@@ -59,4 +59,23 @@ test('the tooltip is placed in the viewport, clamped away from the right edge', 
   const tip = screen.getByTestId('gl-tip')
   expect(parseFloat(tip.style.left)).toBeLessThanOrEqual(1024 - 296)
   expect(tip.style.top).toBe('122px')
+})
+
+test('focus returned by the closing drawer does not bring the tooltip back', () => {
+  render(<Term id="edit">edit</Term>)
+  const term = screen.getByTestId('gl-term')
+  fireEvent.click(term)                                   // opens the drawer, tooltip gone
+  act(() => useGlossaryStore.getState().close('pointer'))  // focus comes back to the term
+  expect(document.activeElement).toBe(term)
+  expect(screen.queryByTestId('gl-tip')).toBeNull()
+  act(() => { term.blur() })
+  fireEvent.focus(term)                                    // a real later focus shows it again
+  expect(screen.getByTestId('gl-tip')).toBeInTheDocument()
+})
+
+test('Escape hides the tooltip', () => {
+  render(<Term id="edit">edit</Term>)
+  fireEvent.mouseEnter(screen.getByTestId('gl-term'))
+  fireEvent.keyDown(document, { key: 'Escape' })
+  expect(screen.queryByTestId('gl-tip')).toBeNull()
 })
