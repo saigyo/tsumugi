@@ -162,3 +162,10 @@ test('In this run lines show whitespace tokens with their glyphs', () => {
     cleanup()
   }
 })
+
+test('the votes entry builds the idea in steps, with a figure of two edits and their shares', () => {
+  const { container } = render(<>{getEntry('votes')!.body()}</>)
+  expect(container.querySelectorAll('ol.gl-steps > li')).toHaveLength(5)
+  expect(container.querySelector('[data-testid="gl-votes-figure"]')).not.toBeNull()
+  expect(container.textContent).toMatch(/\(a \+ b\) · E = a · E \+ b · E/)
+})

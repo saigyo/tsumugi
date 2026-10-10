@@ -120,3 +120,12 @@ test('with many candidates only the selected one and the four highest final scor
     .toEqual(['␣c0', '␣c1', '␣c2', '␣c3', '␣c7'])
   expect(screen.getAllByTestId('vote-line')).toHaveLength(8)
 })
+
+test('the caption explains the vote as each piece’s share of the comparison with the candidate’s row', () => {
+  render(<LayerVotesCard candidates={cands} note="unused" />)
+  const card = screen.getByTestId('votes-card')
+  expect(card).toHaveTextContent('The vector the layers hand to the Logits step is a sum')
+  expect(card).toHaveTextContent('positive if the edit pushed the vector toward this candidate, negative if away from it')
+  expect(texOf(screen.getByTestId('votes-formula'))).toContain('divided by the same number')
+  expect(screen.getByTestId('votes-legend')).toHaveTextContent('blue: pushed toward the candidate · red: pushed away')
+})

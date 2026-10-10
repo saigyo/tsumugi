@@ -57,10 +57,13 @@ function VotesBody({ candidates, selected, onSelect }: {
   const columns = { gridTemplateColumns: `repeat(${layers}, 1fr)` }
   return (
     <>
-      <p className="mlp-caption">The <Term id="logit">score</Term> on the Logits card splits exactly into one
-        share per block. Each cell is how much one layer added to (blue) or took from (red) a candidate’s
-        score.</p>
-      <Formula testId="votes-formula" className="card-formula" inline tex={String.raw`\displaystyle \begin{aligned} &\text{score}(c) = e \cdot E_c + \sum_{\ell} a_\ell \cdot E_c + \sum_{\ell} m_\ell \cdot E_c \\ &\text{each part scaled by the final norm} \end{aligned}`} />
+      <p className="mlp-caption">The vector the layers hand to the Logits step is a sum: the token’s embedding plus
+        one <Term id="edit">edit</Term> from every block (30 attention, 30 MLP). A candidate’s{' '}
+        <Term id="logit">score</Term> compares that sum with the candidate’s row of E, and that comparison splits into
+        one share per piece: each edit’s own comparison with the row. That share is the edit’s{' '}
+        <Term id="votes">vote</Term>: positive if the edit pushed the vector toward this candidate, negative if away
+        from it. The votes of all pieces add up exactly to the score on the Logits card.</p>
+      <Formula testId="votes-formula" className="card-formula" inline tex={String.raw`\displaystyle \begin{aligned} &\text{score}(c) = e \cdot E_c + \sum_{\ell} a_\ell \cdot E_c + \sum_{\ell} m_\ell \cdot E_c \\ &\text{final norm: every piece divided by the same number} \end{aligned}`} />
       <div className="mlp-controls">
         <div className="mlp-seg" role="group" aria-label="Which blocks">
           {(['mlp', 'attn', 'both'] as const).map((b) => (
@@ -70,7 +73,8 @@ function VotesBody({ candidates, selected, onSelect }: {
         </div>
         <div data-testid="votes-legend" className="mlp-legend">−{peak.toFixed(1)}{' '}
           <span className="mlp-ramp-diverging" aria-hidden="true" /> +{peak.toFixed(1)}
-          <span className="mlp-legend-note">square-root scale, so small votes stay visible</span></div>
+          <span className="mlp-legend-note">blue: pushed toward the candidate · red: pushed away ·
+            square-root scale, so small votes stay visible</span></div>
       </div>
       <div className="votes-grid" role="group" aria-label={`${BLOCKS_NAME[blocks]} votes, candidates by layers`}
         onMouseLeave={() => setHover(null)}>
