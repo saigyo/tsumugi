@@ -4,8 +4,15 @@ import { AttentionGridExplorer } from '../AttentionGridExplorer'
 import { AttentionHeatmap } from '../AttentionHeatmap'
 import { ResidualStreamDiagram } from '../ResidualStreamDiagram'
 import { Term } from '../../glossary/Term'
+import { EditSizeCard } from '../EditSizeCard'
+import { LayerVotesCard } from '../LayerVotesCard'
+import type { CycleVotes, EditRows } from '../selectors'
 
-export function LayersDetail({ event, mode, attention, attentionInRun, tokens, streamShape, grid, pinnedHeads, onPin, pinNote }: {
+const SIM_NOTE = 'Real model only: simulated runs have no MLP to measure.'
+const OLD_NOTE = 'This run was recorded before MLP data was exported.'
+const PENDING_NOTE = 'Votes appear once this cycle’s scores are computed.'
+
+export function LayersDetail({ event, mode, attention, attentionInRun, tokens, streamShape, grid, pinnedHeads, onPin, pinNote, edits, votes }: {
   event: Extract<TraceEvent, { type: 'layer' }>
   mode: Mode
   attention?: Extract<TraceEvent, { type: 'attention' }>
@@ -16,6 +23,8 @@ export function LayersDetail({ event, mode, attention, attentionInRun, tokens, s
   pinnedHeads?: AttentionHead[]
   onPin?: (layer: number, head: number) => void
   pinNote?: string | null
+  edits?: EditRows
+  votes?: CycleVotes
 }) {
   const [explore, setExplore] = useState(false)
   const cycleHeads = attention?.heads ?? []
@@ -50,6 +59,10 @@ export function LayersDetail({ event, mode, attention, attentionInRun, tokens, s
         </button>
       )}
       {grid && explore && <AttentionGridExplorer grid={grid} onPin={onPin ?? (() => {})} />}
+      <EditSizeCard rows={mode === 'real' ? edits : undefined} note={mode === 'sim' ? SIM_NOTE : OLD_NOTE} />
+      <LayerVotesCard cycle={event.cycle}
+        candidates={mode === 'real' && votes?.status === 'ok' ? votes.candidates : undefined}
+        note={mode === 'sim' ? SIM_NOTE : votes?.status === 'pending' ? PENDING_NOTE : OLD_NOTE} />
     </div>
   )
 }

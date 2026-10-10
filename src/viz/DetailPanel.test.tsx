@@ -1,6 +1,6 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, expect, test, vi } from 'vitest'
-import { makeFixtureTrace, makeGridEvent } from '../test/fixtures'
+import { buildFixtureTrace, makeFixtureTrace, makeGridEvent } from '../test/fixtures'
 import type { AttentionHead } from '../trace/types'
 import { DetailPanel } from './DetailPanel'
 import { texOf } from '../test/tex'
@@ -206,4 +206,33 @@ test('every stage card heading has an ⓘ that opens its entry, and captions lin
     expect(screen.getAllByTestId('gl-term').map((t) => t.dataset.term), `cursor ${cursor}`).toContain(captionEntry)
     cleanup()
   }
+})
+
+test('real run with MLP data: both cards below the attention section', () => {
+  render(<DetailPanel events={buildFixtureTrace({ mlp: true, mode: 'real' })} cursor={4} mode="real" />)
+  const layers = screen.getByTestId('detail-layers')
+  expect(within(layers).getAllByTestId('edit-cell').length).toBeGreaterThan(0)
+  expect(within(layers).getAllByTestId('vote-cell').length).toBeGreaterThan(0)
+  const order = [...layers.querySelectorAll('[data-testid="edit-size-card"], [data-testid="votes-card"]')]
+    .map((el) => el.getAttribute('data-testid'))
+  expect(order).toEqual(['edit-size-card', 'votes-card'])
+})
+
+test('simulated run: both cards show the real-model-only note', () => {
+  render(<DetailPanel events={buildFixtureTrace({ mlp: true })} cursor={4} mode="sim" />)
+  expect(screen.getByTestId('edit-size-note')).toHaveTextContent('Real model only: simulated runs have no MLP to measure.')
+  expect(screen.getByTestId('votes-note')).toHaveTextContent('Real model only: simulated runs have no MLP to measure.')
+})
+
+test('real run recorded before MLP data: the older-data note on both cards', () => {
+  render(<DetailPanel events={buildFixtureTrace({ mode: 'real' })} cursor={4} mode="real" />)
+  expect(screen.getByTestId('edit-size-note')).toHaveTextContent('This run was recorded before MLP data was exported.')
+  expect(screen.getByTestId('votes-note')).toHaveTextContent('This run was recorded before MLP data was exported.')
+})
+
+test('live run before the cycle’s logits: the votes card says votes are coming', () => {
+  const t = buildFixtureTrace({ mlp: true, mode: 'real' }).slice(0, 8)   // through cycle 0's edits
+  render(<DetailPanel events={t} cursor={4} mode="real" />)
+  expect(screen.getByTestId('votes-note')).toHaveTextContent('Votes appear once this cycle’s scores are computed.')
+  expect(screen.getAllByTestId('edit-cell').length).toBeGreaterThan(0)
 })
