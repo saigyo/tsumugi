@@ -35,13 +35,15 @@ export function GlossaryDrawer({ run }: { run: RunSummary | null }) {
   const headingRef = useRef<HTMLHeadingElement>(null)
   const bodyRef = useRef<HTMLDivElement>(null)
   const key = viewKey(view)
+  const kind = view?.kind
+  const section = view?.kind === 'entry' ? view.section : undefined
 
-  // focus and scroll only when the view changes — never on a run re-render
+  // focus and scroll only when the view changes (key also covers switching
+  // between entries) — never on a run re-render
   useEffect(() => {
-    if (!view) return
+    if (!kind) return
     headingRef.current?.focus()
-    if (view.kind !== 'entry' || !view.section) { bodyRef.current?.scrollTo?.({ top: 0 }); return }
-    const section = view.section
+    if (!section) { bodyRef.current?.scrollTo?.({ top: 0 }); return }
     const el = [...(bodyRef.current?.querySelectorAll('[data-gl-section]') ?? [])]
       .find((s) => s.getAttribute('data-gl-section') === section)
     if (!el) return
@@ -50,8 +52,7 @@ export function GlossaryDrawer({ run }: { run: RunSummary | null }) {
     el.classList.add('gl-flash')
     const t = setTimeout(() => el.classList.remove('gl-flash'), FLASH_MS)
     return () => { clearTimeout(t); el.classList.remove('gl-flash') }
-    // keyed on the view identity on purpose: `view` is a new object only when it changes
-  }, [key])
+  }, [key, kind, section])
 
   useEffect(() => {
     if (!view) return
