@@ -1,10 +1,11 @@
 /// <reference lib="webworker" />
-import type { GenParams, RunEndReason, TokenInfo, TraceEvent } from '../../trace/types'
+import type { GenParams, LayerVotes, RunEndReason, TokenInfo, TraceEvent } from '../../trace/types'
 import { ATTN_MODEL_ID, ATTN_MODEL_REVISION } from '../tokenizer'
 import { sampleIndex, softmax, topK } from '../math'
 import { addAttentionOutput, createAccumulator, type AttnAccumulator } from './attentionAccum'
 import { extractEmbedRows } from './embedRows'
 import { extractReadout, type ReadoutResult } from './readout'
+import { computeVotes, extractEdits } from './mlpData'
 import type { WorkerRequest, WorkerResponse } from './protocol'
 import { headStats, resolveHeadLabel, selectShowcaseHeads, type HeadStats, type ShowcasePrev } from './attentionStats'
 import { buildGridCells } from './attentionThumbs'
@@ -138,6 +139,9 @@ async function run(runId: number, prompt: string, params: GenParams) {
   let embedsOff = promptIds.length > EMBED_MAX_PROMPT
   // Readout for the Logits card (v3 export); flipped by a bad shape — never-fail.
   let readoutOff = false
+  // MLP cards (v4 export): each flipped by a bad shape — never-fail.
+  let editsOff = false
+  let votesOff = false
   let stats: HeadStats[] | null = null
   let prevSel: ShowcasePrev = {}
 
@@ -203,6 +207,16 @@ async function run(runId: number, prompt: string, params: GenParams) {
         } catch { attnBroken = true }
       }
 
+      if (!editsOff) {
+        const r = extractEdits(out, nextInputIds.length, numLayers)
+        if (r.status === 'ok')
+          emit({ type: 'edits', cycle, start: allIds.length - nextInputIds.length, attn: r.attn, mlp: r.mlp })
+        else if (r.status === 'bad-shape') {
+          editsOff = true
+          console.warn(`edit_ratios unusable (${r.detail}) — the edit-size card shows its note`)
+        }
+      }
+
       const [, seq, vocab] = out.logits.dims as [number, number, number]
       const lastLogits: Float32Array = out.logits.data.slice((seq - 1) * vocab, seq * vocab)
       const top = topK(lastLogits, params.topK).map((c) => ({ ...tokenInfo(c.id), logit: Math.round(c.logit * 100) / 100 }))
@@ -215,9 +229,19 @@ async function run(runId: number, prompt: string, params: GenParams) {
           console.warn(`readout outputs unusable (${readout.detail}) — the Logits card shows the schematic readout`)
         }
       }
+      let votes = new Map<number, LayerVotes>()
+      if (!votesOff) {
+        const v = computeVotes(out, numLayers, dims, (id) => lastLogits[id])
+        if (v.status === 'ok') votes = v.byId
+        else if (v.status === 'bad-shape') {
+          votesOff = true
+          console.warn(`stream_parts unusable (${v.detail}) — the votes card shows its note`)
+        }
+      }
       const candidates = top.map((c) => {
         const r = readout.status === 'ok' ? readout.byId.get(c.id) : undefined
-        return r ? { ...c, row: r.row, dot: r.dot } : c
+        const v = votes.get(c.id)
+        return { ...c, ...(r ? { row: r.row, dot: r.dot } : {}), ...(v ? { votes: v } : {}) }
       })
       emit({ type: 'logits', cycle, topK: candidates,
         ...(readout.status === 'ok' ? { lastHidden: readout.lastHidden } : {}) })

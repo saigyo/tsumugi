@@ -14,7 +14,7 @@ export type ReadoutResult =
   | { status: 'bad-shape'; detail: string }
   | { status: 'ok'; lastHidden: number[]; byId: Map<number, { row: number[]; dot: number[] }> }
 
-const r3 = (v: number) => Math.round(v * 1000) / 1000
+export const r3 = (v: number) => Math.round(v * 1000) / 1000
 
 function poolSum(values: number[], cells: number): number[] {
   const len = values.length
@@ -28,7 +28,7 @@ function poolSum(values: number[], cells: number): number[] {
   return out
 }
 
-const sameDims = (t: Tensorish, want: number[]) =>
+export const sameDims = (t: Tensorish, want: number[]) =>
   t.dims.length === want.length && t.dims.every((d, i) => d === want[i])
 
 export function extractReadout(out: ReadoutOutputs, fed: number, dims: number, cells = READOUT_CELLS): ReadoutResult {
