@@ -1,6 +1,6 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, expect, test, vi } from 'vitest'
-import { makeFixtureTrace } from '../test/fixtures'
+import { buildFixtureTrace, makeFixtureTrace } from '../test/fixtures'
 import { PipelineBand } from './PipelineBand'
 
 const trace = makeFixtureTrace()
@@ -133,4 +133,14 @@ test('at a later cycle’s Embeddings step the loop arrow is the one lit, not th
   expect(screen.getByTestId('loop-arrow').dataset.active).toBe('false')
   rerender(<PipelineBand events={trace} cursor={11} />)                       // cycle 1 embed
   expect(screen.getByTestId('loop-arrow').dataset.active).toBe('true')
+})
+
+test('summaries show whitespace tokens as glyphs, like the token chips', () => {
+  const nl = buildFixtureTrace({ cycles: 1, chosen: [{ id: 198, text: '\n' }] })
+  render(<PipelineBand events={nl} cursor={nl.length - 1} />)
+  const summaryOf = (stage: string) =>
+    screen.getAllByTestId('stage-card').find((c) => c.dataset.stage === stage)!.querySelector('.stage-summary')!.textContent
+  expect(summaryOf('logits')).toBe('top: ↵')
+  expect(summaryOf('softmax')).toBe('↵: 70%')
+  expect(summaryOf('sampler')).toBe('chose ↵')
 })

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { AttentionHead, AttentionLabel, TokenInfo } from '../trace/types'
+import { visibleToken } from './tokenText'
 
 const HINTS: Record<AttentionLabel, string> = {
   'attention-sink': 'A bright first column: surplus attention parks on the first token as a learned “do nothing” default.',
@@ -37,7 +38,8 @@ export function AttentionHeatmap({ heads, tokens, focus }: {
 
   if (!head) return null
   const n = head.matrix.length
-  const label = (i: number) => tokens[i]?.text.trim() ?? `#${i}`
+  // compact labels: leading spaces dropped, newlines and tabs as glyphs
+  const label = (i: number) => tokens[i] ? visibleToken(tokens[i].text.replace(/^ +/, '')) : `#${i}`
 
   return (
     <div data-testid="attention-heatmap" className="attention-heatmap">

@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef, useState } from 'react'
 import type { TraceEvent } from '../trace/types'
+import { visibleToken } from './tokenText'
 import { activeStage, eventAt, flowShapes, latestOfType, stageEventIndex, thousands, viewedCycle, type FlowShapes, type StageId } from './selectors'
 
 // what travels along the connector INTO stage i (see FlowShapes)
@@ -32,16 +33,16 @@ function summaryFor(stage: Exclude<StageId, null>, events: TraceEvent[], cursor:
     }
     case 'logits': {
       const e = latestOfType(events, cursor, 'logits')
-      return e ? `top: ${e.topK[0]?.text ?? '—'}` : null
+      return e ? `top: ${e.topK[0] ? visibleToken(e.topK[0].text) : '—'}` : null
     }
     case 'softmax': {
       const e = latestOfType(events, cursor, 'softmax')
       const top = e?.topK[0]
-      return top ? `${top.text}: ${Math.round(top.prob * 100)}%` : null
+      return top ? `${visibleToken(top.text)}: ${Math.round(top.prob * 100)}%` : null
     }
     case 'sampler': {
       const e = latestOfType(events, cursor, 'sample')
-      return e ? `chose ${e.chosen.text}` : null
+      return e ? `chose ${visibleToken(e.chosen.text)}` : null
     }
   }
 }

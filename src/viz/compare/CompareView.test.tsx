@@ -30,7 +30,7 @@ test('fork cycle is marked on both streams and the ruler', () => {
   render(<CompareView a={makeRunRecord(1)} b={divergentB()} />)
   const forked = screen.getAllByTestId('cmp-token').filter((t) => t.dataset.fork === 'true')
   expect(forked).toHaveLength(2)              // one per stream, at cycle 1
-  expect(forked.map((t) => t.textContent)).toEqual([' on', ' off'])
+  expect(forked.map((t) => t.textContent)).toEqual(['␣on', '␣off'])
   const ticks = screen.getAllByTestId('cmp-tick')
   expect(ticks[1].dataset.fork).toBe('true')
   expect(screen.queryByTestId('cmp-note')).toBeNull()
@@ -157,7 +157,7 @@ test('ruler selection highlights the matching word chips in both streams', () =>
   render(<CompareView a={makeRunRecord(1)} b={makeRunRecord(2)} />)
   fireEvent.click(screen.getAllByTestId('cmp-tick')[0])
   const selected = screen.getAllByTestId('cmp-token').filter((t) => t.dataset.selected === 'true')
-  expect(selected.map((t) => t.textContent)).toEqual([' sat', ' sat'])
+  expect(selected.map((t) => t.textContent)).toEqual(['␣sat', '␣sat'])
 })
 
 test('panel sides carry the run identity labels', () => {
@@ -166,4 +166,11 @@ test('panel sides carry the run identity labels', () => {
   const sides = screen.getAllByTestId('cmp-dist-side')
   expect(sides[0]).toHaveTextContent('A #3')
   expect(sides[1]).toHaveTextContent('B #1')
+})
+
+test('whitespace tokens show as glyphs in the token strips and the bars', () => {
+  const nl = (seq: number) => makeRunRecord(seq, { chosen: [{ id: 198, text: '\n' }, { id: 100, text: ' sat' }] })
+  render(<CompareView a={nl(1)} b={nl(2)} />)
+  expect(screen.getAllByTestId('cmp-token')[0]).toHaveTextContent('↵')
+  expect(screen.getByTestId('cmp-stream-a')).toHaveTextContent('␣cat')
 })

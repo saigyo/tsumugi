@@ -5,6 +5,7 @@ import { AttentionHeatmap } from '../AttentionHeatmap'
 import { Thumb } from '../AttentionGridExplorer'
 import { distributionFor, latestOfType, visibleTokens } from '../selectors'
 import { alignRuns, combinedDistribution, pairedHeads, type CombinedRow, type PairedHead } from './compareSelectors'
+import { visibleToken } from '../tokenText'
 
 const runTokens = (events: TraceEvent[]): TokenInfo[] => {
   const { prompt, generated } = visibleTokens(events, events.length - 1)
@@ -37,7 +38,7 @@ function DistSide({ events, cycle, name, lastCycle }: {
       {d.softmax.topK.map((t) => (
         <div key={t.id} data-testid="cmp-bar-row" data-chosen={String(t.id === d.sample.chosen.id)}
           className="cmp-bar-row">
-          <span className="cmp-bar-token">{t.text.trim() || '·'}</span>
+          <span className="cmp-bar-token">{visibleToken(t.text)}</span>
           <span className="cmp-bar" style={{ width: `${Math.max(2, Math.round(t.prob * 100))}%` }} />
           <span className="cmp-bar-prob">{Math.round(t.prob * 100)}%</span>
         </div>
@@ -68,7 +69,7 @@ function CombinedDist({ rows, chosenA, chosenB, sort, nameA, nameB }: {
         <div key={r.id} data-testid="cmp-delta-row" data-token={r.text} data-approx={String(r.approx)}
           data-chosen-a={String(r.id === chosenA)} data-chosen-b={String(r.id === chosenB)}
           className="cmp-delta-row">
-          <span className="cmp-bar-token">{r.text.trim() || '·'}</span>
+          <span className="cmp-bar-token">{visibleToken(r.text)}</span>
           <span className="cmp-delta-p" data-chosen={String(r.id === chosenA)}>{pct(r.pA)}</span>
           <span className="cmp-delta-bar">
             <span className="cmp-delta-fill" data-sign={r.delta > 0 ? 'a' : r.delta < 0 ? 'b' : 'zero'}
@@ -138,12 +139,12 @@ export function CompareView({ a, b }: { a: RunRecord; b: RunRecord }) {
     return (
       <div data-testid={`cmp-stream-${which}`} className="cmp-stream">
         <span className="cmp-side-name">{which.toUpperCase()} #{record.meta.seq}</span>
-        {prompt.map((t, i) => <span key={`p${i}`} className="cmp-token cmp-token-prompt">{t.text}</span>)}
+        {prompt.map((t, i) => <span key={`p${i}`} className="cmp-token cmp-token-prompt">{visibleToken(t.text)}</span>)}
         <span className="cmp-stream-divider" aria-hidden="true" />
         {chosen.map((t, c) => (
           <button key={`c${c}`} data-testid="cmp-token" data-fork={String(aligned.forkCycle === c)}
             data-selected={String(cycle === c)} className="cmp-token cmp-token-generated"
-            title={`inspect cycle ${c}`} onClick={() => selectCycle(c)}>{t.text}</button>
+            title={`inspect cycle ${c}`} onClick={() => selectCycle(c)}>{visibleToken(t.text)}</button>
         ))}
       </div>
     )

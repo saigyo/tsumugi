@@ -1,5 +1,6 @@
 import type { TraceEvent } from '../../trace/types'
 import { Term } from '../../glossary/Term'
+import { visibleToken } from '../tokenText'
 
 type SoftmaxEvent = Extract<TraceEvent, { type: 'softmax' }>
 type SampleEvent = Extract<TraceEvent, { type: 'sample' }>
@@ -22,7 +23,7 @@ export function SamplerDetail({ softmax, sample }: { softmax: SoftmaxEvent; samp
       </svg>
       {sample && (
         <p data-testid="chosen-marker" className="chosen-marker">
-          → chose "{sample.chosen.text}" (id {sample.chosen.id})
+          → chose "{visibleToken(sample.chosen.text)}" (id {sample.chosen.id})
         </p>
       )}
     </div>

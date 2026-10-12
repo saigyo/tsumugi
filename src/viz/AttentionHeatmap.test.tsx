@@ -94,3 +94,9 @@ test('data-active tracks the clamped selection after heads shrinks', () => {
   expect(shrunkChips).toHaveLength(1)
   expect(shrunkChips[0].dataset.active).toBe('true')
 })
+
+test('a newline token gets the ↵ glyph as its label, not an empty one', () => {
+  render(<AttentionHeatmap heads={attn.heads} tokens={[{ id: 10, text: 'The' }, { id: 198, text: '\n' }]} />)
+  expect(screen.getAllByTestId('attn-cell').map((c) => c.textContent)).toContain('↵ → The: ' + c0(attn.heads[0].matrix[1][0]))
+})
+const c0 = (w: number) => `${Math.round(w * 100)}%`
