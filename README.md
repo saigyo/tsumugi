@@ -7,8 +7,9 @@ output token by token into text, each new thread pulled from the
 probability distribution the model spins over its vocabulary.
 
 Tsumugi is a single-page app that visualizes how a prompt flows through
-an LLM's autoregressive generation loop — tokenize → embed → transformer
-layers → logits → softmax → sample → append → repeat. Built for
+an LLM's autoregressive generation loop — tokenize once, then embed →
+transformer layers → logits → softmax → sample → append the sampled token
+id and loop back to embed. Built for
 developers and CS students who are comfortable with code but want to
 *see* what happens between typing a prompt and getting tokens back:
 tokenization, embeddings, per-layer activations, attention patterns,

@@ -111,7 +111,7 @@ input[type="number"] { width: 4rem; }
 .popover-row[data-chosen="true"] .popover-bar { background: var(--shu); }
 .popover-pct { color: var(--ink-soft); font-family: var(--mono); font-size: .72rem; }
 
-.pipeline-band { display: flex; align-items: center; gap: .25rem; position: relative; padding-bottom: 1.5rem; overflow-x: auto; }
+.pipeline-band { display: flex; align-items: center; gap: .25rem; position: relative; padding-bottom: 1.5rem; padding-right: 1.4rem; overflow-x: auto; }
 .stage-wrap { display: flex; align-items: center; gap: .25rem; }
 .stage-card {
   border: 1.5px solid var(--line-strong); border-radius: 8px; padding: .6rem .9rem;
@@ -124,12 +124,14 @@ input[type="number"] { width: 4rem; }
 .stage-arrow-wrap { display: inline-flex; flex-direction: column; align-items: center; gap: .05rem; }
 .stage-arrow { color: var(--line-strong); transition: color .3s; }
 .flow-shape { font-family: var(--mono); font-size: .62rem; color: var(--ai); white-space: nowrap; }
-/* sits just above the loop arrow's shaft (which runs at ~.3rem from the band's bottom edge), inside the
-   band's bottom padding, so it never reaches up into the stage cards above */
-.loop-label { position: absolute; bottom: .45rem; left: 50%; transform: translateX(-50%); line-height: 1;
+/* centred on the loop's bottom run, in the band's bottom padding; the background cuts the line behind it */
+.loop-label { position: absolute; transform: translate(-50%, -50%); line-height: 1;
   font-family: var(--mono); font-size: .62rem; color: var(--ai); background: var(--washi); padding: 0 .3rem; }
-.stage-wrap:has(.stage-card[data-active="true"]) .stage-arrow { color: var(--shu); }
-.loop-arrow { position: absolute; bottom: 0; left: 0; width: 100%; height: 1.2rem; color: var(--ai-soft); }
+.stage-wrap:has(.stage-card[data-active="true"]):not([data-via-loop]) .stage-arrow { color: var(--shu); }
+.loop-arrow[data-active="true"] { color: var(--shu); }
+.loop-arrow { position: absolute; top: 0; left: 0; pointer-events: none; color: var(--ai-soft); overflow: visible; }
+.stage-card[data-outside-loop="true"]:not([data-active="true"]) { border-style: dashed; color: var(--ink-soft); background: transparent; }
+.tokenizer-note { margin: .25rem 0 .5rem; font-size: .8rem; color: var(--ink-soft); }
 
 .example-chip-row { flex-basis: 100%; display: flex; gap: .4rem; align-items: center; flex-wrap: wrap; }
 .example-chip-label { font-size: .8rem; color: var(--ink-soft); }

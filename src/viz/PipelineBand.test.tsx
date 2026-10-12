@@ -82,3 +82,55 @@ test('embeddings summary shows the embedding-table shape', () => {
   render(<PipelineBand events={makeFixtureTrace()} cursor={2} />)
   expect(screen.getAllByTestId('stage-card')[1]).toHaveTextContent('49 152 × 576')
 })
+
+const tokenizerCard = () => screen.getAllByTestId('stage-card').find((c) => c.dataset.stage === 'tokenizer')!
+
+test('during the first cycle the tokenizer card still seeks to the tokenize event', () => {
+  const onStageClick = vi.fn()
+  render(<PipelineBand events={trace} cursor={4} onStageClick={onStageClick} />)
+  expect(tokenizerCard().dataset.outsideLoop).toBe('false')
+  fireEvent.click(tokenizerCard())
+  expect(onStageClick).toHaveBeenCalledWith(1)
+})
+
+test('after the first cycle the tokenizer card is dimmed and explains itself instead of rewinding', () => {
+  const onStageClick = vi.fn()
+  render(<PipelineBand events={trace} cursor={13} onStageClick={onStageClick} />)
+  expect(tokenizerCard().dataset.outsideLoop).toBe('true')
+  expect(screen.queryByTestId('tokenizer-note')).not.toBeInTheDocument()
+  fireEvent.click(tokenizerCard())
+  expect(onStageClick).not.toHaveBeenCalled()
+  expect(screen.getByTestId('tokenizer-note')).toHaveTextContent('The tokenizer runs once, before the loop')
+  expect(screen.getByTestId('tokenizer-note')).toHaveTextContent('never tokenized')
+  fireEvent.click(tokenizerCard())
+  expect(screen.queryByTestId('tokenizer-note')).not.toBeInTheDocument()
+})
+
+test('the note goes away when the cursor returns to the first cycle', () => {
+  const { rerender } = render(<PipelineBand events={trace} cursor={13} onStageClick={() => {}} />)
+  fireEvent.click(tokenizerCard())
+  rerender(<PipelineBand events={trace} cursor={4} onStageClick={() => {}} />)
+  expect(screen.queryByTestId('tokenizer-note')).not.toBeInTheDocument()
+})
+
+test('the loop arrow runs from the Sampler back to the Embeddings card', () => {
+  render(<PipelineBand events={trace} cursor={7} />)
+  const loop = screen.getByTestId('loop-arrow')
+  expect(loop.dataset.from).toBe('sampler')
+  expect(loop.dataset.to).toBe('embeddings')
+})
+
+test('back in a later cycle after visiting the first, the note stays closed', () => {
+  const { rerender } = render(<PipelineBand events={trace} cursor={13} onStageClick={() => {}} />)
+  fireEvent.click(tokenizerCard())
+  rerender(<PipelineBand events={trace} cursor={4} onStageClick={() => {}} />)
+  rerender(<PipelineBand events={trace} cursor={13} onStageClick={() => {}} />)
+  expect(screen.queryByTestId('tokenizer-note')).not.toBeInTheDocument()
+})
+
+test('at a later cycle’s Embeddings step the loop arrow is the one lit, not the tokenizer’s', () => {
+  const { rerender } = render(<PipelineBand events={trace} cursor={2} />)   // cycle 0 embed
+  expect(screen.getByTestId('loop-arrow').dataset.active).toBe('false')
+  rerender(<PipelineBand events={trace} cursor={11} />)                       // cycle 1 embed
+  expect(screen.getByTestId('loop-arrow').dataset.active).toBe('true')
+})
