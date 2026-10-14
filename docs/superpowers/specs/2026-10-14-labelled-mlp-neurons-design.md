@@ -77,7 +77,7 @@ selection: picking a candidate in either card changes both.
 | neuron | `N1233` |
 | activation | signed, one decimal |
 | vote for "<candidate>" | signed bar (blue positive, red negative) and number, two decimals |
-| when it fires like this, it pushes toward | top 5 tokens for the sign it fired with; when its vote is negative, the chips are preceded by an "away from" chip |
+| when it fires like this, it pushes toward | top 5 tokens for the sign it fired with; when its vote is negative, an "away from" chip followed by the top 5 tokens of the opposite sign (what it pushes away from, as in the mockup's N600 row) |
 | "<candidate>" in that list | badge: top 0.1% / top 1% / top 10% / not in top 10%, with "(away)" when the vote is negative |
 
 Below the 8 rows:
@@ -127,6 +127,8 @@ The candidates' embedding rows come from the existing v3 readout output
     scale per column;
   - per neuron and sign: the top 5 token ids and three cosine thresholds,
     for the top 0.1%, 1% and 10% of the vocabulary.
+- `neurons/tokens.json`: the decoded text of every id, for the labels (about
+  450 KB; the geometry asset would mean an extra 5 MB uncached download).
 - `neurons/manifest.json`: the byte layout of the layer files, the final
   norm weight vector g (576 float32 values), the label method ("cosine
   against g⊙E rows, fp32 weights, both signs"), the model tag, and a
@@ -152,28 +154,28 @@ new outputs and the asset. `ATTN_MODEL_REVISION` moves to v5.
 
 ## 3. Run data and the computation in the browser
 
-**New trace event `neurons`**, one per cycle of a real run:
+**Neuron data on the `edits` event**, as an optional field, one per cycle of
+a real run. Every trace event is a player step, so a separate event would add
+an empty step. As a field it has no playback time of its own and appears
+with the edits step:
 
 ```ts
-interface NeuronsEvent {
-  type: 'neurons';
-  cycle: number;
-  activations: string;      // base64 of float16 [30 × 1536], layer-major
-  candidateRows: number[][]; // 10 × 576, full precision, order of the cycle's candidates
-  invRms: number;           // final norm 1/rms for the last token
+interface NeuronData {
+  neurons: number;                                // per layer (1536)
+  activations: string;                            // base64 of float16 [30 × 1536], layer-major
+  invRms: number;                                 // final norm 1/rms for the last token
+  candidates: Array<{ id: number; row: string }>; // each candidate's row of E, base64 float32 [576]
 }
+// edits event: { …; neurons?: NeuronData }
 ```
 
 About 150 KB per generated token, so about 3 MB for a 20-token run, in the
 archive and in exported files.
 
-**Worker.** It emits the event alongside `edits`. Following the
+**Worker.** It adds the field to the `edits` event, which it now emits after computing the cycle's top candidates (still before `logits`). Following the
 `editsOff`/`votesOff` pattern, a `neuronsOff` flag stops the event, with one
 `console.warn`, if the outputs are missing or malformed. The run is never
 failed because of this event.
-
-**Playback.** The event is not a pipeline step. It gets no playback time of
-its own and appears together with the `edits` step.
 
 **Math module** (pure, main thread). Input: one layer file, that layer's
 activations, a candidate row r, g, and inv_rms. With W_i the dequantized
@@ -210,9 +212,12 @@ the magnitude).
   so that the largest-vote default applies again.
 - The candidate selection is the votes card's existing state.
 - The mode toggle is local state of the card.
+- The detail panel uses the viewed run's own mode (from its `run-start`),
+  so an archived real run keeps its MLP cards while the app is in sim mode.
+  Today such a run wrongly shows the simulated notes on the #15 cards too.
 
-**Imports.** The trace validator accepts the new event. A malformed or
-truncated `neurons` event is dropped with a note in the import result, and
+**Imports.** The trace validator checks the new field. A malformed or
+truncated `neurons` field is dropped with a note in the import result, and
 the rest of the file still loads. This fixes, for this event, the deferred
 #15 minor where a broken import threw an error.
 
