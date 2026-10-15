@@ -1,11 +1,12 @@
 /// <reference lib="webworker" />
-import type { GenParams, LayerVotes, RunEndReason, TokenInfo, TraceEvent } from '../../trace/types'
+import type { GenParams, LayerVotes, NeuronData, RunEndReason, TokenInfo, TraceEvent } from '../../trace/types'
 import { ATTN_MODEL_ID, ATTN_MODEL_REVISION } from '../tokenizer'
 import { sampleIndex, softmax, topK } from '../math'
 import { addAttentionOutput, createAccumulator, type AttnAccumulator } from './attentionAccum'
 import { extractEmbedRows } from './embedRows'
 import { extractReadout, type ReadoutResult } from './readout'
 import { computeVotes, extractEdits } from './mlpData'
+import { extractNeurons } from './neuronData'
 import type { WorkerRequest, WorkerResponse } from './protocol'
 import { headStats, resolveHeadLabel, selectShowcaseHeads, type HeadStats, type ShowcasePrev } from './attentionStats'
 import { buildGridCells } from './attentionThumbs'
@@ -142,6 +143,8 @@ async function run(runId: number, prompt: string, params: GenParams) {
   // MLP cards (v4 export): each flipped by a bad shape — never-fail.
   let editsOff = false
   let votesOff = false
+  // neuron card (v5 export): flipped by a bad shape — never-fail
+  let neuronsOff = false
   let stats: HeadStats[] | null = null
   let prevSel: ShowcasePrev = {}
 
@@ -207,19 +210,30 @@ async function run(runId: number, prompt: string, params: GenParams) {
         } catch { attnBroken = true }
       }
 
+      const [, seq, vocab] = out.logits.dims as [number, number, number]
+      const lastLogits: Float32Array = out.logits.data.slice((seq - 1) * vocab, seq * vocab)
+      const top = topK(lastLogits, params.topK).map((c) => ({ ...tokenInfo(c.id), logit: Math.round(c.logit * 100) / 100 }))
+      // After `top`: the neuron data carries the rows of exactly these candidates.
       if (!editsOff) {
         const r = extractEdits(out, nextInputIds.length, numLayers)
-        if (r.status === 'ok')
-          emit({ type: 'edits', cycle, start: allIds.length - nextInputIds.length, attn: r.attn, mlp: r.mlp })
-        else if (r.status === 'bad-shape') {
+        if (r.status === 'ok') {
+          let neurons: NeuronData | undefined
+          if (!neuronsOff) {
+            const n = extractNeurons(out, numLayers, dims, top.map((c) => c.id))
+            if (n.status === 'ok') neurons = n.data
+            else if (n.status === 'bad-shape') {
+              neuronsOff = true
+              console.warn(`neuron outputs unusable (${n.detail}) — the neuron card shows its note`)
+            }
+          }
+          emit({ type: 'edits', cycle, start: allIds.length - nextInputIds.length, attn: r.attn, mlp: r.mlp,
+            ...(neurons ? { neurons } : {}) })
+        } else if (r.status === 'bad-shape') {
           editsOff = true
           console.warn(`edit_ratios unusable (${r.detail}) — the edit-size card shows its note`)
         }
       }
 
-      const [, seq, vocab] = out.logits.dims as [number, number, number]
-      const lastLogits: Float32Array = out.logits.data.slice((seq - 1) * vocab, seq * vocab)
-      const top = topK(lastLogits, params.topK).map((c) => ({ ...tokenInfo(c.id), logit: Math.round(c.logit * 100) / 100 }))
       // Readout for the Logits card (v3 export): never-fail, like inputs_embeds.
       let readout: ReadoutResult = { status: 'absent' }
       if (!readoutOff) {
