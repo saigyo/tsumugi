@@ -21,7 +21,7 @@
   - viewed cycle not finished: "Votes appear once this cycle’s scores are computed." (the votes card's pending note)
   - layer file loading: "Loading the MLP weights (about 0.9 MB per layer, once per model version)…"
   - layer file failed: "Couldn’t load the MLP weights." plus a Retry button
-  - total outside tolerance: "The 8-bit weights are slightly off for this layer, so the neuron votes don’t add up exactly to the votes card."
+  - total outside tolerance: "The browser’s 8-bit model rounds this MLP’s inputs, so the neuron votes don’t add up exactly to the votes card."
 - Badges: `top 0.1%`, `top 1%`, `top 10%`, `not in top 10%`, with " (away)" appended when the vote is negative.
 - Exactness tolerance (same as #15): `0.05 + 0.01 · |votes card value|`.
 - Labels: cosine between ±column and the rows of g ⊙ E, computed from the stock fp32 weights, both signs, 5 tokens per sign.
@@ -2128,8 +2128,9 @@ export const mlpNeuron: GlossaryEntry = {
           the space the readout compares with, so a column’s closest rows of E say little about what the neuron
           does there.</p>
       </Section>
-      <p className="gl-aside">The browser uses an 8-bit copy of the down matrix for these numbers. When rounding
-        makes the neuron votes miss the votes card’s number by more than a small tolerance, the total shows “≈”.</p>
+      <p className="gl-aside">In real mode the browser runs an 8-bit compressed copy of the model, which rounds each
+        MLP’s inputs before the down matrix. The card computes the neuron votes from the unrounded activations, so
+        for some layers they miss the votes card’s number by a little; the total then shows “≈”.</p>
     </>
   ),
 }
@@ -2288,7 +2289,7 @@ test('a total off by more than the tolerance shows ≈ and the note', async () =
   card({ candidates: off })
   await waitFor(() => screen.getAllByTestId('neuron-row'))
   expect(screen.getByTestId('neuron-total')).toHaveTextContent('≈')
-  expect(screen.getByTestId('neuron-approx-note')).toHaveTextContent('The 8-bit weights are slightly off for this layer')
+  expect(screen.getByTestId('neuron-approx-note')).toHaveTextContent('The browser’s 8-bit model rounds this MLP’s inputs')
 })
 
 test('a load error offers retry', async () => {
@@ -2361,7 +2362,7 @@ const MODE_NAME: Record<Mode, string> = { vote: 'behind the vote', size: 'firing
 const LOADING = 'Loading the MLP weights (about 0.9 MB per layer, once per model version)…'
 const MISMATCH = 'This run’s neuron data doesn’t match the MLP weights file.'
 const NO_ROW = 'No neuron data for this candidate.'
-const APPROX = 'The 8-bit weights are slightly off for this layer, so the neuron votes don’t add up exactly to the votes card.'
+const APPROX = 'The browser’s 8-bit model rounds this MLP’s inputs, so the neuron votes don’t add up exactly to the votes card.'
 const BAR_MAX = 70
 
 const signed = (v: number, digits = 2) => `${v >= 0 ? '+' : '−'}${Math.abs(v).toFixed(digits)}`

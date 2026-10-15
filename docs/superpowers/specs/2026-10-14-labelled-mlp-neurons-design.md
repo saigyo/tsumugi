@@ -107,7 +107,7 @@ glossary entry (section 5):
 | viewed cycle not finished yet | the votes card's pending note, same wording |
 | layer file loading | "Loading the MLP weights (about 0.9 MB per layer, once per model version)…" |
 | layer file failed to load | "Couldn't load the MLP weights." and a Retry button |
-| total outside tolerance (section 3) | table shown; total line reads "≈ <computed total>"; note: "The 8-bit weights are slightly off for this layer, so the neuron votes don't add up exactly to the votes card." |
+| total outside tolerance (section 3) | table shown; total line reads "≈ <computed total>"; note: "The browser's 8-bit model rounds this MLP's inputs, so the neuron votes don't add up exactly to the votes card." |
 
 ## 2. Export v5, the asset and delivery
 
