@@ -31,6 +31,16 @@ test('rejects a file whose trace fails validation', () => {
   expect(parseRunFile(broken)).toMatchObject({ ok: false, error: expect.stringContaining('invalid trace') })
 })
 
+test('an events array holding null or a non-object is rejected, not thrown on', () => {
+  const record = makeRunRecord(1)
+  for (const bad of [null, 7, 'x']) {
+    const text = JSON.stringify({ formatVersion: 1, meta: record.meta,
+      events: [record.events[0], bad, ...record.events.slice(1)] })
+    expect(() => parseRunFile(text)).not.toThrow()
+    expect(parseRunFile(text)).toMatchObject({ ok: false, error: expect.stringContaining('invalid trace') })
+  }
+})
+
 test('slug falls back for an unusable prompt', () => {
   const record = makeRunRecord(1, { prompt: '   ', endedAt: Date.UTC(2026, 7, 28) })
   expect(serializeRun(record).filename).toBe('tsumugi-run-run-20260828.json')

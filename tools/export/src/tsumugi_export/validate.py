@@ -639,7 +639,7 @@ def run(args) -> int:
         checks[f"{variant}:edit-cache-parity"] = check_edit_cache_parity(
             ro_out, _drive_cached_stepwise(sess, ro_ids), ratio_tol, ratio_clip)
         # fp32 proves the wiring tightly; q8 computes on quantized activations
-        # and weights (measured 2026-10-15: activations off by up to ~0.18,
+        # and weights (measured 2026-10-15: activations off by up to ~5.9 at layer 29,
         # 1/rms by ~3 %), so its gate only catches a wrong tensor
         act_abs, act_rel, inv_rtol = (1e-3, 1e-3, 1e-4) if fp32 else (0.5, 0.25, 0.1)
         checks[f"{variant}:activations-parity"] = check_activations_parity(ro_out, ref_acts, act_abs, act_rel)

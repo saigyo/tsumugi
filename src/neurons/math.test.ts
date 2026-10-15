@@ -69,6 +69,12 @@ test('reconcile adopts the votes card value within tolerance, keeps the computed
   expect(far.total).toBeCloseTo(5.08, 4)
 })
 
+test('reconcile never calls a non-finite total exact', () => {
+  const t = behindTheVote(m, layer, acts, row, g, INV, 2)
+  expect(reconcile({ ...t, total: NaN }, 5).exact).toBe(false)
+  expect(reconcile({ ...t, total: Infinity }, 5).exact).toBe(false)
+})
+
 test('layerActivations slices one layer out of the layer-major array', () => {
   expect([...layerActivations(Float32Array.from([1, 2, 3, 4, 5, 6]), 1, 3)]).toEqual([4, 5, 6])
 })

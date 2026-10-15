@@ -178,7 +178,7 @@ export default function App() {
       const parsed = parseRunFile(text)
       if (parsed.ok) { setImportError(parsed.note ?? null); archiveImport({ meta: parsed.meta, events: parsed.events }) }
       else setImportError(parsed.error)
-    })
+    }).catch(() => setImportError('could not read the file'))
   }
 
   return (

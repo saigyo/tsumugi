@@ -31,6 +31,8 @@ export function parseRunFile(text: string): ParsedRunFile {
     || typeof m.params !== 'object' || m.params === null)
     return { ok: false, error: 'missing or malformed run metadata' }
   if (!Array.isArray(d.events)) return { ok: false, error: 'missing events' }
+  const nonObject = d.events.findIndex((e) => typeof e !== 'object' || e === null)
+  if (nonObject >= 0) return { ok: false, error: `invalid trace: event ${nonObject} is not an object` }
   const { events, dropped } = dropBrokenNeurons(d.events as TraceEvent[])
   const problems = validateTrace(events)
   if (problems.length > 0) return { ok: false, error: `invalid trace: ${problems[0]}` }

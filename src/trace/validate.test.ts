@@ -189,6 +189,13 @@ test('neuronProblems names each defect', () => {
   expect(neuronProblems(null, 3, 576)).toEqual(['neurons is not an object'])
 })
 
+test('neuronProblems rejects a candidate row with non-finite values', () => {
+  const good = neuronData(3)
+  const row = new Float32Array(576).fill(1); row[5] = NaN
+  const bad = { ...good, candidates: [{ ...good.candidates[0], row: packFloat32(row) }] }
+  expect(neuronProblems(bad, 3, 576)).toEqual([`candidate ${good.candidates[0].id} row is not all finite`])
+})
+
 test('validateTrace reports a broken neurons field with its cycle', () => {
   expect(validateTrace(withNeurons(neuronData(2)))[0]).toMatch(/^edits cycle 0 activations hold/)
 })

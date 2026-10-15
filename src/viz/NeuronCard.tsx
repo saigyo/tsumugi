@@ -108,19 +108,20 @@ function NeuronTable({ data, asset, weights, layer, mode, cand }: {
   const m = asset.manifest
   const fits = data.neurons === m.neurons && activationsOf(data).length === m.layers * m.neurons
   const rowB64 = data.candidates.find((c) => c.id === cand.id)?.row
-  const acts = fits ? layerActivations(activationsOf(data), layer, m.neurons) : null
+  const acts = useMemo(() => (fits ? layerActivations(activationsOf(data), layer, m.neurons) : null), [fits, data, layer, m])
   const table = useMemo(() => {
     if (!acts || mode !== 'vote' || !rowB64) return null
     const row = unpackFloat32(rowB64)
     if (row.length !== m.dims) return null
     return reconcile(behindTheVote(m, weights, acts, row, asset.g, data.invRms), cand.votes.mlp[layer])
   }, [acts, mode, rowB64, m, weights, asset.g, data.invRms, cand, layer])
+  const sizeRows = useMemo(() => (acts && mode === 'size' ? firingMost(m, weights, acts) : null), [acts, mode, m, weights])
   if (!acts) return <p data-testid="neuron-note" className="mlp-note">{MISMATCH}</p>
   const chips = (ids: number[]) => ids.map((id, j) => (
     <span key={j} data-testid="neuron-label" className="neuron-chip">{visibleToken(asset.text(id))}</span>
   ))
-  if (mode === 'size') {
-    const rows = firingMost(m, weights, acts)
+  if (mode === 'size' && sizeRows) {
+    const rows = sizeRows
     const peak = Math.max(...rows.map((r) => r.size)) || 1
     return (
       <table data-testid="neuron-table" className="neuron-table">

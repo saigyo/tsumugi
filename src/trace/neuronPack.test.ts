@@ -11,11 +11,13 @@ test('float16 round trip stays within half-precision rounding', () => {
   })
 })
 
-test('float16 saturates to infinity beyond its range and keeps the sign of zero', () => {
-  const back = unpackHalf(packHalf([1e6, -1e6, -0]))
-  expect(back[0]).toBe(Infinity)
-  expect(back[1]).toBe(-Infinity)
+test('float16 clamps finite values beyond its range to ±65504, keeps real infinities and the sign of zero', () => {
+  const back = unpackHalf(packHalf([1e6, -1e6, -0, Infinity, -Infinity]))
+  expect(back[0]).toBe(65504)
+  expect(back[1]).toBe(-65504)
   expect(Object.is(back[2], -0)).toBe(true)
+  expect(back[3]).toBe(Infinity)
+  expect(back[4]).toBe(-Infinity)
 })
 
 test('a long array survives (chunked base64)', () => {

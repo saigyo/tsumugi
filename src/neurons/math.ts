@@ -76,7 +76,7 @@ export const voteTolerance = (v: number) => 0.05 + 0.01 * Math.abs(v)
 // Within tolerance, the table adopts the votes card's number, so its lines add
 // up to exactly what that card shows; outside it, the computed total stays.
 export function reconcile(table: VoteTable, cardValue: number): VoteTable & { exact: boolean } {
-  if (Math.abs(table.total - cardValue) > voteTolerance(cardValue)) return { ...table, exact: false }
+  if (!Number.isFinite(table.total) || Math.abs(table.total - cardValue) > voteTolerance(cardValue)) return { ...table, exact: false }
   const shown = table.rows.reduce((a, r) => a + r.vote, 0)
   return { ...table, total: cardValue, rest: cardValue - shown, exact: true }
 }

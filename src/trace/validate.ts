@@ -129,8 +129,9 @@ export function neuronProblems(n: unknown, layers: number, dims: number): string
   else for (const c of d.candidates) {
     const id = (c as { id?: unknown })?.id
     try {
-      if (typeof id !== 'number' || unpackFloat32(String(c.row)).length !== dims)
-        out.push(`candidate ${String(id)} row is not ${dims} float32 values`)
+      const row = typeof id === 'number' ? unpackFloat32(String(c.row)) : null
+      if (!row || row.length !== dims) out.push(`candidate ${String(id)} row is not ${dims} float32 values`)
+      else if (row.some((v) => !Number.isFinite(v))) out.push(`candidate ${id} row is not all finite`)
     } catch { out.push(`candidate ${String(id)} row is not base64 float32`) }
   }
   return out

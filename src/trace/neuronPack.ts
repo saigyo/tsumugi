@@ -7,6 +7,7 @@ const f32 = new Float32Array(1)
 const u32 = new Uint32Array(f32.buffer)
 
 function toHalf(v: number): number {
+  if (Number.isFinite(v) && Math.abs(v) > 65504) return (v < 0 ? 0x8000 : 0) | 0x7bff  // clamp to ±65504, the largest float16
   f32[0] = v
   const x = u32[0]
   const sign = (x >>> 16) & 0x8000

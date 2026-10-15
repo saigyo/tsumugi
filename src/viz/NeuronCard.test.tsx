@@ -1,6 +1,7 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, expect, test, vi } from 'vitest'
 import * as asset from '../neurons/asset'
+import * as math from '../neurons/math'
 import { buildFixtureTrace } from '../test/fixtures'
 import { fixtureNeuronAsset, fixtureNeuronLayer, NF } from '../test/neuronFixture'
 import type { NeuronData, TraceEvent } from '../trace/types'
@@ -117,4 +118,25 @@ test('the run-start of another trace resets a pick', () => {
   useMlpLayer.getState().select(buildFixtureTrace()[0] as TraceEvent, 2)
   card()
   expect(screen.getByTestId('neuron-title')).toHaveTextContent(`layer ${largestLayer(candidates[0])}`)
+})
+
+test('the vote table is computed once per (run, cycle, layer, candidate), not per render', async () => {
+  const spy = vi.spyOn(math, 'behindTheVote')
+  const { rerender } = card()
+  await waitFor(() => screen.getAllByTestId('neuron-row'))
+  const calls = spy.mock.calls.length
+  rerender(<NeuronCard data={data} candidates={candidates} note="the note" run={run} />)
+  expect(screen.getAllByTestId('neuron-row')).toHaveLength(8)
+  expect(spy.mock.calls.length).toBe(calls)
+})
+
+test('firing most is computed once per layer, not per render', async () => {
+  const spy = vi.spyOn(math, 'firingMost')
+  const { rerender } = card()
+  await waitFor(() => screen.getAllByTestId('neuron-row'))
+  fireEvent.click(screen.getAllByTestId('neuron-mode-toggle')[1])
+  const calls = spy.mock.calls.length
+  expect(calls).toBeGreaterThan(0)
+  rerender(<NeuronCard data={data} candidates={candidates} note="the note" run={run} />)
+  expect(spy.mock.calls.length).toBe(calls)
 })
