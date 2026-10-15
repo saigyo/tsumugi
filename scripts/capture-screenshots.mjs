@@ -219,13 +219,19 @@ try {
   // ---- neurons.png: real mode, Layers stage — Inside one MLP ----------------
   if (want('neurons')) {
     await $('prompt-input').fill('The cat sat on the mat because it was tired')
-    await $('maxtok-input').fill('1')
-    const before = await $('run-chip').count()
-    await $('btn-generate').click()
-    await $('run-chip').nth(before).waitFor({ timeout: 120000 })
-    await $('btn-live').click()
-    await $('stage-card').nth(2).click()                            // Layers
-    await $('neuron-row').first().waitFor({ timeout: 30000 })
+    // three tokens and the last one viewed. The 8-bit model's input rounding
+    // leaves some layers at "≈" (#19), often the default layer 29: regenerate
+    // (sampling varies) until the shown total is exact, up to 4 attempts
+    await $('maxtok-input').fill('3')
+    for (let attempt = 0; attempt < 4; attempt++) {
+      const before = await $('run-chip').count()
+      await $('btn-generate').click()
+      await $('run-chip').nth(before).waitFor({ timeout: 120000 })
+      await $('btn-live').click()
+      await $('stage-card').nth(2).click()                          // Layers
+      await $('neuron-total').waitFor({ timeout: 30000 })
+      if (!(await $('neuron-total').textContent()).includes('≈')) break
+    }
     const unstick = await page.addStyleTag({ content: '.controls { position: static !important; }' })
     await page.waitForTimeout(300)
     await $('neuron-card').screenshot({ path: `${DIR}/neurons.png` })
