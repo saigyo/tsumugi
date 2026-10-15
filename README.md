@@ -261,6 +261,12 @@ total equals the votes card's cell. Click a layer in either card above to
 open it, or step with ◀ ▶. The 8-bit weights it needs download once per
 model version (about 0.9 MB per layer) and stay in the browser's cache.
 
+The card computes the neuron votes from the activations before the 8-bit
+model rounds them. Where that rounding moves the layer's MLP vote by more
+than a small tolerance, the total reads "≈" with a note. This is common at
+the first generated token, when the whole prompt is rounded together (often
+on layer 29, where the card opens); later tokens usually match exactly.
+
 ![The Inside one MLP card](docs/screenshots/neurons.png)
 
 The empty layer-11 column in the MLP heatmap is an artefact of the 8-bit
