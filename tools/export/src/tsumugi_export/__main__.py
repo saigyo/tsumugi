@@ -18,6 +18,9 @@ def main() -> int:
     p_geo = sub.add_parser("geometry", help="build the vocabulary-geometry asset (geometry/)")
     p_geo.add_argument("--model-dir", default="out/model")
 
+    p_neu = sub.add_parser("neurons", help="build the neuron asset (neurons/) for the neuron card")
+    p_neu.add_argument("--model-dir", default="out/model")
+
     p_val = sub.add_parser("validate", help="validate exported artifacts against stock")
     p_val.add_argument("--model-dir", default="out/model")
 
