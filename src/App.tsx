@@ -30,6 +30,9 @@ export default function App() {
   const cursor = usePlayerStore((s) => s.cursor)
   const glossaryRun = useMemo(() => runSummary(events, cursor), [events, cursor])
   const [mode, setMode] = useState<Mode>('sim')
+  // An archived run is shown as recorded: a real run keeps its MLP cards even
+  // while the app itself is in sim mode, and vice versa.
+  const viewMode: Mode = events[0]?.type === 'run-start' ? events[0].mode : mode
   const tokenizerRef = useRef<Tokenizer>(fallbackTokenizer())
   const runRef = useRef<RunHandle | null>(null)
   const [progress, setProgress] = useState<ProgressInfo | null>(null)
@@ -213,7 +216,7 @@ export default function App() {
               usePlayerStore.getState().dispatch({ type: 'pause' })
             }} />
             <Controls />
-            <DetailPanel events={events} cursor={cursor} mode={mode}
+            <DetailPanel events={events} cursor={cursor} mode={viewMode}
               pinnedHeads={pins} onPin={handlePin} pinNote={pinNote} />
           </>
         )

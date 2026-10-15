@@ -1,11 +1,12 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, expect, test, vi } from 'vitest'
 import App from './App'
 import { useTraceStore } from './trace/store'
 import { initialPlayerState } from './player/reducer'
 import { usePlayerStore } from './player/store'
 import { useRunsStore } from './app/runsStore'
-import { _resetArchiveForTests } from './app/runArchive'
+import { _resetArchiveForTests, archiveImport } from './app/runArchive'
+import { buildFixtureTrace } from './test/fixtures'
 import { resetGlossaryStore } from './glossary/store'
 
 vi.mock('./engine/tokenizer', async (importOriginal) => {
@@ -160,4 +161,15 @@ test('the ? button opens the glossary drawer, which closes again', () => {
   expect(screen.getByTestId('gl-heading')).toHaveTextContent('Glossary')
   fireEvent.click(screen.getByTestId('gl-close'))
   expect(screen.queryByTestId('glossary-drawer')).toBeNull()
+})
+
+test('an archived real run shows its MLP cards while the app is in sim mode', async () => {
+  const record = archiveImport({ meta: { prompt: 'The cat', params: { temperature: 0.8, topK: 10, maxNewTokens: 2 },
+    mode: 'real', modelId: 'fixture', endedAt: 1, reason: 'max-tokens' },
+    events: buildFixtureTrace({ mode: 'real', mlp: true }) })
+  render(<App />)
+  fireEvent.click(within(screen.getAllByTestId('run-chip').find((c) => c.textContent?.includes('The cat'))!).getByTestId('run-chip-main'))
+  fireEvent.click((await screen.findAllByTestId('stage-card'))[2])
+  expect((await screen.findAllByTestId('vote-cell', {}, { timeout: 2000 })).length).toBeGreaterThan(0)
+  expect(record.id).toBeTruthy()
 })
