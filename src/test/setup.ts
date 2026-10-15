@@ -1,5 +1,6 @@
 import '@testing-library/jest-dom/vitest'
 import { afterEach, vi } from 'vitest'
+import { resetNeuronCache } from '../neurons/asset'
 import { resetCandidateSelection } from '../viz/candidateSelection'
 
 // Unit tests never touch the network: any un-stubbed fetch rejects immediately.
@@ -7,4 +8,7 @@ import { resetCandidateSelection } from '../viz/candidateSelection'
 vi.stubGlobal('fetch', vi.fn(() => Promise.reject(new Error('network disabled in unit tests'))))
 
 // the candidate pick is a global store; tests start from the top candidate
-afterEach(() => resetCandidateSelection())
+afterEach(() => {
+  resetCandidateSelection()
+  resetNeuronCache()
+})
