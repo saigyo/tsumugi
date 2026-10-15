@@ -11,8 +11,9 @@ export const ATTN_MODEL_ID = 'saigyo-hoshi/smollm2-135m-attn-onnx'
 // caches files by URL and never revalidates, so a new release needs a new
 // tag here to reach browsers that cached the previous one. v3 = readout
 // outputs (last_hidden_state, topk_ids, topk_embeds). v4 = MLP internals
-// (edit_ratios, stream_parts).
-export const ATTN_MODEL_REVISION = 'v4'
+// (edit_ratios, stream_parts). v5 = neuron outputs (mlp_activations,
+// final_norm_inv_rms) and the neurons/ asset.
+export const ATTN_MODEL_REVISION = 'v5'
 
 // Both ids share the same weights, so one geometry asset covers both.
 export const GEOMETRY_MODEL_IDS: readonly string[] = [MODEL_ID, ATTN_MODEL_ID]
@@ -20,6 +21,10 @@ export const geometryUrlFor = (modelId: string, revision: string) =>
   `https://huggingface.co/${modelId}/resolve/${revision}/geometry`
 export const GEOMETRY_BASE_URL: string =
   import.meta.env.VITE_GEOMETRY_BASE_URL ?? geometryUrlFor(ATTN_MODEL_ID, ATTN_MODEL_REVISION)
+export const neuronsUrlFor = (modelId: string, revision: string) =>
+  `https://huggingface.co/${modelId}/resolve/${revision}/neurons`
+export const NEURONS_BASE_URL: string =
+  import.meta.env.VITE_NEURONS_BASE_URL ?? neuronsUrlFor(ATTN_MODEL_ID, ATTN_MODEL_REVISION)
 
 function hashId(text: string): number {
   let h = 0x811c9dc5

@@ -1,5 +1,5 @@
 import { expect, test, vi } from 'vitest'
-import { ATTN_MODEL_ID, ATTN_MODEL_REVISION, GEOMETRY_BASE_URL, fallbackTokenizer, geometryUrlFor, loadTokenizer } from './tokenizer'
+import { ATTN_MODEL_ID, ATTN_MODEL_REVISION, GEOMETRY_BASE_URL, fallbackTokenizer, geometryUrlFor, loadTokenizer, neuronsUrlFor } from './tokenizer'
 
 // hoisted by vitest — must be top-level, affects the whole file
 vi.mock('@huggingface/transformers', () => { throw new Error('offline') })
@@ -24,4 +24,9 @@ test('geometry asset URL is pinned to the model revision', () => {
   expect(ATTN_MODEL_REVISION).toMatch(/^v\d+$/)
   if (!import.meta.env.VITE_GEOMETRY_BASE_URL)
     expect(GEOMETRY_BASE_URL).toBe(geometryUrlFor(ATTN_MODEL_ID, ATTN_MODEL_REVISION))
+})
+
+test('the neuron asset lives next to the model at the pinned tag', () => {
+  expect(ATTN_MODEL_REVISION).toBe('v5')
+  expect(neuronsUrlFor('a/b', 'v5')).toBe('https://huggingface.co/a/b/resolve/v5/neurons')
 })
