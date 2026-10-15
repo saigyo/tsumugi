@@ -26,3 +26,9 @@ export const EDIT_CALLOUTS: CalloutTarget[] = [
   { label: 'quiet middle, loud end', id: 'edit', section: 'quiet-middle' },
   { label: 'attention vs MLP', id: 'edit', section: 'attn-vs-mlp' },
 ]
+
+export const NEURON_CALLOUTS: CalloutTarget[] = [
+  { label: 'why the list rarely names the candidate', id: 'mlp-neuron', section: 'rarely-names' },
+  { label: 'negative activations', id: 'mlp-neuron', section: 'negative' },
+  { label: 'early layers', id: 'mlp-neuron', section: 'early-layers' },
+]

@@ -9,7 +9,7 @@ export const votes: GlossaryEntry = {
   title: 'Per-layer votes',
   summary: 'How much each block added to or took from a candidate’s score, adding up exactly to that score.',
   stage: 'layers',
-  related: ['logit', 'mlp', 'edit'],
+  related: ['logit', 'mlp', 'edit', 'mlp-neuron'],
   body: () => (
     <>
       <p>The Layers step hands one vector to the Logits step. It looks like a single block of 576 numbers, but it
@@ -42,6 +42,8 @@ export const votes: GlossaryEntry = {
         number it divides by).</p>
       <p>The votes card shows these votes per layer and a running total: the embedding first, then each layer’s
         attention and MLP votes in order. It ends exactly on the Logits card’s score.</p>
+      <p>An MLP’s vote is itself a sum: one vote per <Term id="mlp-neuron">neuron</Term>. The card below the
+        votes card lists the neurons behind one layer’s vote.</p>
       <p className="gl-aside">This is related to, but not the same as, the <em>logit lens</em>, which applies the
         final norm again to every partial sum. That shows what the model would predict if it stopped at a layer,
         but its steps do not add up to the final score.</p>

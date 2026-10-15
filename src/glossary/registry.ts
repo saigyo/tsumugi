@@ -5,6 +5,7 @@ import { howToRead } from './entries/how-to-read'
 import { layer } from './entries/layer'
 import { logit } from './entries/logit'
 import { mlp } from './entries/mlp'
+import { mlpNeuron } from './entries/mlp-neuron'
 import { modes } from './entries/modes'
 import { residualStream } from './entries/residual-stream'
 import { sampling } from './entries/sampling'
@@ -14,7 +15,7 @@ import { votes } from './entries/votes'
 import type { GlossaryEntry, GlossaryId, GlossaryStage } from './types'
 
 export const ENTRIES: GlossaryEntry[] = [
-  howToRead, token, embedding, residualStream, edit, layer, attention, mlp, votes, logit, softmax, sampling, modes,
+  howToRead, token, embedding, residualStream, edit, layer, attention, mlp, votes, mlpNeuron, logit, softmax, sampling, modes,
 ]
 
 const BY_ID = new Map<string, GlossaryEntry>(ENTRIES.map((e) => [e.id, e]))

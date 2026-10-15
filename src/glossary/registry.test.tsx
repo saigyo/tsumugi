@@ -1,7 +1,7 @@
 import { cleanup, render } from '@testing-library/react'
 import { afterEach, expect, test } from 'vitest'
 import { sampleRun } from '../test/glossaryFixture'
-import { EDIT_CALLOUTS, EMBEDDING_CALLOUTS, logitsCallouts, SOFTMAX_CALLOUTS } from './callouts'
+import { EDIT_CALLOUTS, EMBEDDING_CALLOUTS, logitsCallouts, NEURON_CALLOUTS, SOFTMAX_CALLOUTS } from './callouts'
 import { ENTRIES, getEntry, indexGroups, STAGE_ORDER } from './registry'
 import { GLOSSARY_IDS } from './types'
 
@@ -77,7 +77,7 @@ test('every related id has an entry', () => {
 })
 
 test('every callout chip points at a section that exists', () => {
-  for (const c of [...EMBEDDING_CALLOUTS, ...logitsCallouts(3, '49 152'), ...SOFTMAX_CALLOUTS, ...EDIT_CALLOUTS])
+  for (const c of [...EMBEDDING_CALLOUTS, ...logitsCallouts(3, '49 152'), ...SOFTMAX_CALLOUTS, ...EDIT_CALLOUTS, ...NEURON_CALLOUTS])
     expect(sectionsOf(c.id), `${c.label} → ${c.id} § ${c.section}`).toContain(c.section)
 })
 
@@ -168,4 +168,12 @@ test('the votes entry builds the idea in steps, with a figure of two edits and t
   expect(container.querySelectorAll('ol.gl-steps > li')).toHaveLength(5)
   expect(container.querySelector('[data-testid="gl-votes-figure"]')).not.toBeNull()
   expect(container.textContent).toMatch(/\(a \+ b\) · E = a · E \+ b · E/)
+})
+
+test('the MLP neuron entry explains the split step by step and links from MLP and votes', () => {
+  const { container } = render(<>{getEntry('mlp-neuron')!.body()}</>)
+  expect(container.querySelectorAll('ol.gl-steps > li')).toHaveLength(4)
+  expect(sectionsOf('mlp-neuron')).toEqual(['rarely-names', 'negative', 'early-layers'])
+  expect(getEntry('mlp')!.related).toContain('mlp-neuron')
+  expect(getEntry('votes')!.related).toContain('mlp-neuron')
 })
