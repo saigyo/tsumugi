@@ -1,5 +1,5 @@
 import type { GenParams, RunEndReason, TraceEvent } from '../trace/types'
-import { validateTrace } from '../trace/validate'
+import { dropBrokenNeurons, validateTrace } from '../trace/validate'
 import type { RunMeta, RunRecord, SealMeta } from './runsStore'
 
 export const RUN_FILE_VERSION = 1
@@ -15,7 +15,7 @@ export function serializeRun(record: RunRecord): { filename: string; json: strin
 }
 
 export type ParsedRunFile =
-  | { ok: true; meta: SealMeta; events: TraceEvent[] }
+  | { ok: true; meta: SealMeta; events: TraceEvent[]; note?: string }
   | { ok: false; error: string }
 
 export function parseRunFile(text: string): ParsedRunFile {
@@ -31,9 +31,10 @@ export function parseRunFile(text: string): ParsedRunFile {
     || typeof m.params !== 'object' || m.params === null)
     return { ok: false, error: 'missing or malformed run metadata' }
   if (!Array.isArray(d.events)) return { ok: false, error: 'missing events' }
-  const events = d.events as TraceEvent[]
+  const { events, dropped } = dropBrokenNeurons(d.events as TraceEvent[])
   const problems = validateTrace(events)
   if (problems.length > 0) return { ok: false, error: `invalid trace: ${problems[0]}` }
+  const note = dropped > 0 ? `Neuron data of ${dropped} cycle${dropped === 1 ? '' : 's'} was damaged and left out.` : undefined
   return {
     ok: true,
     meta: {
@@ -42,5 +43,6 @@ export function parseRunFile(text: string): ParsedRunFile {
       endedAt: m.endedAt, reason: m.reason as RunEndReason,
     },
     events,
+    ...(note ? { note } : {}),
   }
 }

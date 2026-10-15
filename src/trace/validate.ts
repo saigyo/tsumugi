@@ -1,4 +1,5 @@
-import { READOUT_CELLS, type TraceEvent } from './types'
+import { unpackFloat32, unpackHalf } from './neuronPack'
+import { READOUT_CELLS, type NeuronData, type TraceEvent } from './types'
 
 export function validateTrace(events: TraceEvent[]): string[] {
   const errs: string[] = []
@@ -11,6 +12,7 @@ export function validateTrace(events: TraceEvent[]): string[] {
   let layerIdx = 0
   let layerTotal = 0
   let seqLen = 0
+  let dims = 0
   for (const e of events.slice(2, -1)) {
     if (e.type === 'attention-grid') continue  // placement checked below
     if (e.type === 'layer') {
@@ -44,10 +46,13 @@ export function validateTrace(events: TraceEvent[]): string[] {
       e.mlp.forEach((r, i) => { if (!ok(r)) errs.push(`edits cycle ${e.cycle} mlp row ${i} is not ${layerTotal} finite numbers`) })
       if (e.start < 0 || e.start + e.attn.length > seqLen)
         errs.push(`edits cycle ${e.cycle} rows ${e.start}..${e.start + e.attn.length} exceed seqLen ${seqLen}`)
+      if (e.neurons !== undefined)
+        for (const p of neuronProblems(e.neurons, layerTotal, dims)) errs.push(`edits cycle ${e.cycle} ${p}`)
       continue
     }
     if (e.type === 'embed' && phase === 'embed') {
       seqLen = e.seqLen
+      dims = e.dims
       if (e.rows) {
         e.rows.forEach((row, i) => {
           if (!Array.isArray(row) || row.length !== e.dims || row.some((v) => typeof v !== 'number' || !Number.isFinite(v)))
@@ -106,4 +111,43 @@ export function validateTrace(events: TraceEvent[]): string[] {
     }
   }
   return errs
+}
+
+export function neuronProblems(n: unknown, layers: number, dims: number): string[] {
+  if (typeof n !== 'object' || n === null) return ['neurons is not an object']
+  const d = n as Partial<NeuronData>
+  const out: string[] = []
+  const count = d.neurons
+  if (typeof count !== 'number' || !Number.isInteger(count) || count <= 0) out.push('neurons count is not a positive integer')
+  if (typeof d.invRms !== 'number' || !Number.isFinite(d.invRms) || d.invRms <= 0) out.push('invRms is not a positive number')
+  try {
+    const a = unpackHalf(String(d.activations))
+    if (a.length !== layers * (count ?? 0)) out.push(`activations hold ${a.length} values, expected ${layers} × ${count}`)
+    else if (a.some((v) => !Number.isFinite(v))) out.push('activations are not all finite')
+  } catch { out.push('activations are not base64 float16') }
+  if (!Array.isArray(d.candidates) || d.candidates.length === 0) out.push('candidates are missing')
+  else for (const c of d.candidates) {
+    const id = (c as { id?: unknown })?.id
+    try {
+      if (typeof id !== 'number' || unpackFloat32(String(c.row)).length !== dims)
+        out.push(`candidate ${String(id)} row is not ${dims} float32 values`)
+    } catch { out.push(`candidate ${String(id)} row is not base64 float32`) }
+  }
+  return out
+}
+
+// An import keeps its run when only neuron data is damaged: the broken fields
+// are dropped (the neuron card then shows its no-data note) and counted.
+export function dropBrokenNeurons(events: TraceEvent[]): { events: TraceEvent[]; dropped: number } {
+  let layers = 0, dims = 0, dropped = 0
+  const out = events.map((e) => {
+    if (e.type === 'layer') layers = e.total
+    if (e.type === 'embed') dims = e.dims
+    if (e.type !== 'edits' || e.neurons === undefined || neuronProblems(e.neurons, layers, dims).length === 0) return e
+    dropped++
+    const rest = { ...e }
+    delete rest.neurons
+    return rest
+  })
+  return { events: out, dropped }
 }

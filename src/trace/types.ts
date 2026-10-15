@@ -53,14 +53,25 @@ export interface LogitCandidate extends TokenInfo {
   votes?: LayerVotes
 }
 
+// v5 export, real mode: the last token's neuron activations for every layer
+// and what the browser needs to split an MLP vote into neuron votes. Base64
+// keeps it to about 150 KB per cycle (see trace/neuronPack.ts).
+export interface NeuronData {
+  neurons: number                                   // per layer
+  activations: string                               // float16 [layers × neurons], layer-major
+  invRms: number                                    // the final norm's 1/rms at the last position
+  candidates: Array<{ id: number; row: string }>    // each candidate's row of E, float32 [dims]
+}
+
 export type TraceEvent =
   | { type: 'run-start'; prompt: string; mode: Mode; modelId: string; params: GenParams; vocabSize?: number }
   | { type: 'tokenize'; tokens: TokenInfo[]; truncated?: boolean }
   | { type: 'embed'; cycle: number; seqLen: number; dims: number; source: EmbedSource; rows?: number[][] }
   | { type: 'layer'; cycle: number; index: number; total: number; activationNorm?: number }
   | { type: 'attention'; cycle: number; heads: AttentionHead[] }
-  // v4 export: ‖edit‖/‖stream before‖ per fed position (rows start at `start`) and layer
-  | { type: 'edits'; cycle: number; start: number; attn: number[][]; mlp: number[][] }
+  // v4 export: ‖edit‖/‖stream before‖ per fed position (rows start at `start`) and layer;
+  // v5 adds the last token's neuron data
+  | { type: 'edits'; cycle: number; start: number; attn: number[][]; mlp: number[][]; neurons?: NeuronData }
   | { type: 'logits'; cycle: number; topK: LogitCandidate[]; lastHidden?: number[] }
   | { type: 'softmax'; cycle: number; temperature: number; topK: Array<TokenInfo & { prob: number }> }
   | { type: 'sample'; cycle: number; chosen: TokenInfo; method: 'greedy' | 'top-k' }

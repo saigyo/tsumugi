@@ -173,7 +173,7 @@ export default function App() {
   const handleImportFile = (file: File) => {
     void file.text().then((text) => {
       const parsed = parseRunFile(text)
-      if (parsed.ok) { setImportError(null); archiveImport({ meta: parsed.meta, events: parsed.events }) }
+      if (parsed.ok) { setImportError(parsed.note ?? null); archiveImport({ meta: parsed.meta, events: parsed.events }) }
       else setImportError(parsed.error)
     })
   }

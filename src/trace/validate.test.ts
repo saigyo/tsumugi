@@ -1,7 +1,8 @@
 import { expect, test } from 'vitest'
 import { buildFixtureTrace, fixtureReadout, makeFixtureTrace, makeGridEvent } from '../test/fixtures'
-import { validateTrace } from './validate'
-import { READOUT_CELLS, type TraceEvent } from './types'
+import { dropBrokenNeurons, neuronProblems, validateTrace } from './validate'
+import { packFloat32, packHalf } from './neuronPack'
+import { READOUT_CELLS, type NeuronData, type TraceEvent } from './types'
 
 test('fixture trace is valid', () => {
   expect(validateTrace(makeFixtureTrace())).toEqual([])
@@ -164,4 +165,42 @@ test('votes need one value per layer', () => {
   const lg = t.find((e) => e.type === 'logits') as Extract<TraceEvent, { type: 'logits' }>
   lg.topK[0] = { ...lg.topK[0], votes: { ...lg.topK[0].votes!, mlp: [1] } }
   expect(validateTrace(t).join()).toMatch(/candidate \d+ votes are not 3 finite numbers per block/)
+})
+
+const neuronData = (layers: number, dims = 576, neurons = 4): NeuronData => ({
+  neurons, invRms: 0.05,
+  activations: packHalf(Array.from({ length: layers * neurons }, (_, i) => i / 10)),
+  candidates: [{ id: 100, row: packFloat32(new Float32Array(dims)) }],
+})
+
+const withNeurons = (n: unknown) => buildFixtureTrace({ mode: 'real', mlp: true }).map((e) =>
+  e.type === 'edits' ? { ...e, neurons: n as NeuronData } : e)
+
+test('a well-formed neurons field passes', () => {
+  expect(validateTrace(withNeurons(neuronData(3)))).toEqual([])
+})
+
+test('neuronProblems names each defect', () => {
+  expect(neuronProblems(neuronData(3), 3, 576)).toEqual([])
+  expect(neuronProblems(neuronData(2), 3, 576)[0]).toMatch(/activations hold 8 values, expected 3 × 4/)
+  expect(neuronProblems({ ...neuronData(3), activations: '%%' }, 3, 576)[0]).toMatch(/not base64 float16/)
+  expect(neuronProblems({ ...neuronData(3), invRms: -1 }, 3, 576)[0]).toMatch(/invRms/)
+  expect(neuronProblems(neuronData(3, 10), 3, 576)[0]).toMatch(/candidate 100 row is not 576 float32 values/)
+  expect(neuronProblems(null, 3, 576)).toEqual(['neurons is not an object'])
+})
+
+test('validateTrace reports a broken neurons field with its cycle', () => {
+  expect(validateTrace(withNeurons(neuronData(2)))[0]).toMatch(/^edits cycle 0 activations hold/)
+})
+
+test('dropBrokenNeurons removes only the broken fields and counts them', () => {
+  const events = withNeurons(neuronData(3))
+  const firstEdits = events.findIndex((e) => e.type === 'edits')
+  events[firstEdits] = { ...(events[firstEdits] as Extract<TraceEvent, { type: 'edits' }>), neurons: neuronData(2) }
+  const { events: kept, dropped } = dropBrokenNeurons(events)
+  expect(dropped).toBe(1)
+  const edits = kept.filter((e): e is Extract<TraceEvent, { type: 'edits' }> => e.type === 'edits')
+  expect(edits[0].neurons).toBeUndefined()
+  expect(edits[1].neurons).toBeDefined()
+  expect(validateTrace(kept)).toEqual([])
 })
