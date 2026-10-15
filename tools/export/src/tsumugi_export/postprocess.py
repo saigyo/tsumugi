@@ -9,7 +9,8 @@ the lm_head MatMul itself (see find_lm_head): its input as `last_hidden_state`
 position's logits plus a Gather of those candidates' rows from the lm_head's
 own fp32 weight, as `topk_ids` / `topk_embeds`. We also add `edit_ratios` and
 `stream_parts` for the MLP cards, built from each layer's residual Add nodes and
-the final norm's own 1/rms tensor (see expose_mlp_internals). The tensors already in the
+the final norm's own 1/rms tensor (see expose_mlp_internals). We also add `mlp_activations` and `final_norm_inv_rms`
+for the neuron card (see expose_neurons). The tensors already in the
 graph stay; only the output list and a handful of tiny nodes change, so this
 costs nothing measurable at inference time."""
 from pathlib import Path
@@ -241,6 +242,61 @@ def expose_mlp_internals(model: onnx.ModelProto) -> onnx.ModelProto:
     ])
     return model
 
+MLP_ACTIVATIONS_OUTPUT = "mlp_activations"
+INV_RMS_OUTPUT = "final_norm_inv_rms"
+
+
+def find_mlp_inputs(graph: onnx.GraphProto) -> list[str]:
+    """Per layer, the down_proj MatMul's first input: the neuron activations
+    SiLU(gate) ⊙ up that the down projection turns into the MLP's edit."""
+    by_name = {n.name: n for n in graph.node}
+    inputs = []
+    while (node := by_name.get(MLP_MATMUL.format(l=len(inputs)))) is not None:
+        inputs.append(node.input[0])
+    if not inputs:
+        raise ValueError(f"no {MLP_MATMUL.format(l=0)} — is this the SmolLM2 export?")
+    return inputs
+
+
+def _neuron_count(graph: onnx.GraphProto) -> int:
+    """Rows of layer 0's down_proj weight ([neurons, dims] in the MatMul)."""
+    mm = next(n for n in graph.node if n.name == MLP_MATMUL.format(l=0))
+    init = next((t for t in graph.initializer if t.name == mm.input[1]), None)
+    if init is None or len(init.dims) != 2:
+        raise ValueError(f"{MLP_MATMUL.format(l=0)} weight is not a 2-D initializer")
+    return int(init.dims[0])
+
+
+def expose_neurons(model: onnx.ModelProto) -> onnx.ModelProto:
+    """mlp_activations [batch, layers, neurons]: the last position's down_proj
+    inputs per layer. final_norm_inv_rms [batch, 1, 1]: the final norm's 1/rms
+    at the last position. Tapped on the fp32 graph, before quantization, like
+    the other added outputs."""
+    graph = model.graph
+    inputs = find_mlp_inputs(graph)
+    _, inv = find_final_norm(graph)
+    neurons = _neuron_count(graph)
+    graph.initializer.extend([
+        helper.make_tensor("tsumugi_neuron_slice_starts", TensorProto.INT64, [1], [-1]),
+        helper.make_tensor("tsumugi_neuron_slice_ends", TensorProto.INT64, [1], [INT64_MAX]),
+        helper.make_tensor("tsumugi_neuron_slice_axes", TensorProto.INT64, [1], [1]),
+    ])
+    slice_args = ["tsumugi_neuron_slice_starts", "tsumugi_neuron_slice_ends", "tsumugi_neuron_slice_axes"]
+    nodes = [helper.make_node("Slice", [name, *slice_args], [f"tsumugi_neurons{l}"], name=f"tsumugi_neurons{l}")
+             for l, name in enumerate(inputs)]
+    nodes += [
+        helper.make_node("Concat", [f"tsumugi_neurons{l}" for l in range(len(inputs))], [MLP_ACTIVATIONS_OUTPUT],
+                         name="tsumugi_mlp_activations", axis=1),
+        helper.make_node("Slice", [inv, *slice_args], [INV_RMS_OUTPUT], name="tsumugi_final_norm_inv_rms"),
+    ]
+    graph.node.extend(nodes)
+    graph.output.extend([
+        helper.make_tensor_value_info(MLP_ACTIVATIONS_OUTPUT, TensorProto.FLOAT, ["batch_size", len(inputs), neurons]),
+        helper.make_tensor_value_info(INV_RMS_OUTPUT, TensorProto.FLOAT, ["batch_size", 1, 1]),
+    ])
+    return model
+
+
 def expose_inputs_embeds(model: onnx.ModelProto) -> onnx.ModelProto:
     outputs = list(model.graph.output)
     source = next((o for o in outputs if o.name == SOURCE_OUTPUT), None)
@@ -258,10 +314,10 @@ def expose_inputs_embeds(model: onnx.ModelProto) -> onnx.ModelProto:
 
 
 def postprocess_graph(model: onnx.ModelProto, k: int = TOPK) -> onnx.ModelProto:
-    """Readout and MLP internals (both derived from graph structure, independent
-    of the output list), then the inputs_embeds rename, which drops every
-    hidden_states.* output."""
-    return expose_inputs_embeds(expose_mlp_internals(expose_readout(model, k)))
+    """Readout, MLP internals and neuron outputs (all derived from graph
+    structure, independent of the output list), then the inputs_embeds
+    rename, which drops every hidden_states.* output."""
+    return expose_inputs_embeds(expose_neurons(expose_mlp_internals(expose_readout(model, k))))
 
 def postprocess_file(path: Path) -> None:
     """Rewrite `path` in place. onnx.load pulls any external data into the

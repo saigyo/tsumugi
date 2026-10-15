@@ -3,8 +3,8 @@ import onnx
 from onnx import TensorProto, helper
 
 from tsumugi_export.postprocess import (
-    EDIT_RATIOS_OUTPUT, STREAM_PARTS_OUTPUT, expose_mlp_internals, find_blocks, find_final_norm,
-    postprocess_graph,
+    EDIT_RATIOS_OUTPUT, INV_RMS_OUTPUT, MLP_ACTIVATIONS_OUTPUT, STREAM_PARTS_OUTPUT, expose_mlp_internals,
+    expose_neurons, find_blocks, find_final_norm, find_mlp_inputs, postprocess_graph,
 )
 
 DIMS, VOCAB, LAYERS, EPS = 4, 7, 2, 1e-5
@@ -137,7 +137,7 @@ def test_postprocess_graph_adds_the_mlp_outputs_after_the_readout():
     model = postprocess_graph(layered_graph(), k=3)
     onnx.checker.check_model(model)
     names = [o.name for o in model.graph.output]
-    assert names[-3:] == [EDIT_RATIOS_OUTPUT, STREAM_PARTS_OUTPUT, "inputs_embeds"]
+    assert names[-5:] == [EDIT_RATIOS_OUTPUT, STREAM_PARTS_OUTPUT, MLP_ACTIVATIONS_OUTPUT, INV_RMS_OUTPUT, "inputs_embeds"]
 
 
 def test_a_graph_without_layers_is_refused():
@@ -151,3 +151,24 @@ def test_a_graph_without_layers_is_refused():
         assert "o_proj" in str(err)
     else:
         raise AssertionError("expected ValueError")
+
+
+def test_find_mlp_inputs_names_each_layers_down_proj_input():
+    assert find_mlp_inputs(layered_graph().graph) == [
+        f"/model/layers.{l}/post_attention_layernorm/Cast_output_0" for l in range(LAYERS)]
+
+
+def test_neuron_outputs_are_the_last_positions_down_proj_inputs_and_inverse_rms():
+    model = expose_neurons(layered_graph())
+    onnx.checker.check_model(model)
+    ids = np.array([[3, 1, 4]], dtype=np.int64)
+    out = _run(model, ids)
+    _, _, _, _, before_m, _, inv = reference(ids)
+    acts = out[MLP_ACTIVATIONS_OUTPUT]
+    assert acts.shape == (1, LAYERS, DIMS)
+    for l in range(LAYERS):
+        np.testing.assert_allclose(acts[0, l], before_m[l][-1], rtol=1e-5, atol=1e-6)
+    assert out[INV_RMS_OUTPUT].shape == (1, 1, 1)
+    np.testing.assert_allclose(out[INV_RMS_OUTPUT].reshape(-1), inv[-1], rtol=1e-5)
+    declared = next(o for o in model.graph.output if o.name == MLP_ACTIVATIONS_OUTPUT)
+    assert [d.dim_value for d in declared.type.tensor_type.shape.dim][1:] == [LAYERS, DIMS]
