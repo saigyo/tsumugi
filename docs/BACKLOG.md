@@ -75,9 +75,12 @@ they are IDs, not positions.
   Shipped 2026-10-11 (spec
   `docs/superpowers/specs/2026-10-10-opening-the-mlp-design.md`); export
   v4. *(2026-10-10 discussion)*
-- [ ] **#16 Labelled MLP neurons** — top firing neurons per layer, each
+- [x] **#16 Labelled MLP neurons** — top firing neurons per layer, each
   labelled by the tokens its down-projection column promotes most (an
-  offline asset from the export tool). *(#15 follow-up)*
+  offline asset from the export tool). *(#15 follow-up)* Shipped as the
+  "Inside one MLP" card (spec
+  `docs/superpowers/specs/2026-10-14-labelled-mlp-neurons-design.md`);
+  export v5 with the `neurons/` asset. Parked minors: #20.
 - [ ] **#17 SwiGLU anatomy view** — a detail view of one MLP's steps
   (norm, gate, up, SiLU, product, down) with real values for the selected
   token. *(#15 follow-up)*
@@ -127,6 +130,10 @@ they are IDs, not positions.
   onnxruntime-web supports it on WASM and WebGPU) or a re-try of fp16;
   (c) publish as v5. Affects real mode since M1. *(#15 final review,
   2026-10-11)*
+  Also visible in #16's neuron card: at the first generated token about 7
+  of 30 layers show "≈" (neuron votes from unrounded activations vs the
+  rounded model's MLP vote, up to 1.2 at layer 29); later tokens match.
+  A faithful model would make the card exact everywhere.
 
 ## Housekeeping / parked minors
 
@@ -145,6 +152,25 @@ they are IDs, not positions.
   `onblocked` handler comment for future IndexedDB schema bumps; the
   unused-but-tested `pairedDistributions` selector (use it in CompareView
   or mark it API-for-tests). *(M2/M3 reviews)*
+- [ ] **#20 Neuron card parked minors** — from #16's reviews: pin
+  float16 packing with exact-bit tests (ties, exponent carry, subnormal
+  boundary); clamp `params.topK` to the graph's k = 16 in the worker;
+  worker-level test that bad neuron outputs set `neuronsOff` and log once,
+  plus tests for a multi-value 1/rms and a mismatched `topk_embeds`; evict
+  a corrupt cached `manifest.json`/`tokens.json` like layer files; move
+  `resetNeuronCache` out of `asset.ts` so test setup doesn't import the
+  tokenizer; a manifest `fractions` length check (the badge fallback hides
+  a mismatch); a fixture test pinning `votes.mlp` to the packed neuron
+  data; the mode toggle resets when the card remounts; add the model tag
+  to the neurons manifest at v6; byte-fallback tokens show "�" in labels
+  (map to `<0x..>`); array-valued events pass run-file import's object
+  check; the import catch shows a generic message for archive errors; the
+  editor flags `Buffer` in `e2e/` (no node types there). *(#16 reviews,
+  2026-10-15)*
+- [ ] **#21 Import with an empty archive** — the run shelf, and with it
+  the Import button, is hidden until the first run exists, so a first-time
+  visitor cannot load a shared run file. *(#16 Playwright test,
+  2026-10-15)*
 - [ ] **#9 Mobile layout** — the app is desktop-first; a narrow-viewport pass
   is substantial design work for an audience that mostly explores on
   laptops. *(v1 spec, out of scope)*
