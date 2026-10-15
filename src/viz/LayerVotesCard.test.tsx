@@ -1,5 +1,5 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { afterEach, expect, test } from 'vitest'
+import { afterEach, expect, test, vi } from 'vitest'
 import { buildFixtureTrace } from '../test/fixtures'
 import { texOf } from '../test/tex'
 import { LogitsDetail } from './details/LogitsDetail'
@@ -128,4 +128,13 @@ test('the caption explains the vote as each piece’s share of the comparison wi
   expect(card).toHaveTextContent('positive if the edit pushed the vector toward this candidate, negative if away from it')
   expect(texOf(screen.getByTestId('votes-formula'))).toContain('divided by the same number')
   expect(screen.getByTestId('votes-legend')).toHaveTextContent('blue: pushed toward the candidate · red: pushed away')
+})
+
+test('clicking a vote cell reports its layer', () => {
+  const onLayer = vi.fn()
+  const events = buildFixtureTrace({ mode: 'real', mlp: true })
+  const v = cycleVotes(events, events.length - 1)
+  render(<LayerVotesCard candidates={v.status === 'ok' ? v.candidates : undefined} note="" onLayer={onLayer} />)
+  fireEvent.click(screen.getAllByTestId('vote-cell').find((c) => c.dataset.row === '1' && c.dataset.layer === '2')!)
+  expect(onLayer).toHaveBeenCalledWith(2)
 })

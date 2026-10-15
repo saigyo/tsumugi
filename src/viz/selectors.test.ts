@@ -1,7 +1,8 @@
 import { expect, test } from 'vitest'
 import { buildFixtureTrace, fixtureEmbedding, makeFixtureTrace } from '../test/fixtures'
-import { activeStage, cycleTickIndices, cycleVotes, distributionFor, editRows, embeddingRows, eventAt, flowShapes, latestOfType, stageEventIndex, viewedCycle, visibleTokens } from './selectors'
+import { activeStage, cycleNeurons, cycleTickIndices, cycleVotes, distributionFor, editRows, embeddingRows, eventAt, flowShapes, latestOfType, stageEventIndex, viewedCycle, visibleTokens } from './selectors'
 import type { TraceEvent } from '../trace/types'
+import { validateTrace } from '../trace/validate'
 
 const trace = makeFixtureTrace()  // 2 cycles, 3 layers
 
@@ -176,4 +177,24 @@ test('cycleVotes: none when any candidate lacks votes', () => {
 test('viewedCycle follows the cursor', () => {
   expect(viewedCycle(mlpTrace, 4)).toBe(0)
   expect(viewedCycle(mlpTrace, 14)).toBe(1)
+})
+
+test('cycleNeurons: ok with data, none for older runs, pending while the cycle runs', () => {
+  const real = buildFixtureTrace({ mode: 'real', mlp: true, neurons: true })
+  const layerAt = real.findIndex((e) => e.type === 'layer')
+  expect(cycleNeurons(real, layerAt).status).toBe('ok')
+  const old = buildFixtureTrace({ mode: 'real', mlp: true })
+  expect(cycleNeurons(old, old.findIndex((e) => e.type === 'layer')).status).toBe('none')
+  const running = real.slice(0, layerAt + 1)
+  expect(cycleNeurons(running, layerAt).status).toBe('pending')
+})
+
+test('the trace fixture with neurons validates and its votes still add up to the logits', () => {
+  const events = buildFixtureTrace({ mode: 'real', mlp: true, neurons: true })
+  expect(validateTrace(events)).toEqual([])
+  const logits = events.find((e): e is Extract<TraceEvent, { type: 'logits' }> => e.type === 'logits')!
+  for (const c of logits.topK) {
+    const v = c.votes!
+    expect(v.embed + v.attn.reduce((a, b) => a + b, 0) + v.mlp.reduce((a, b) => a + b, 0)).toBeCloseTo(c.logit, 5)
+  }
 })

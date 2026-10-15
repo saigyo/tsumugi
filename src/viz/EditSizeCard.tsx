@@ -22,7 +22,7 @@ const lastRows = (r: EditRows): EditRows => r.tokens.length <= MAX_ROWS ? r : {
 // each block's edit relative to the stream it is added to — one heatmap with
 // an MLP / attention toggle, and bars for the selected token. Pure
 // presentation; the block and the token are local view state.
-export function EditSizeCard({ rows: all, note }: { rows?: EditRows; note: string }) {
+export function EditSizeCard({ rows: all, note, onLayer }: { rows?: EditRows; note: string; onLayer?: (layer: number) => void }) {
   const [block, setBlock] = useState<Block>('mlp')
   const [picked, setPicked] = useState<number | null>(null)
   const rows = all ? lastRows(all) : undefined
@@ -48,12 +48,12 @@ export function EditSizeCard({ rows: all, note }: { rows?: EditRows; note: strin
             </div>
             <div data-testid="edit-legend" className="mlp-legend">0 <span className="mlp-ramp" aria-hidden="true" /> ≥ 1.0</div>
           </div>
-          <EditHeatmap rows={rows} block={block} selected={sel} onSelect={setPicked} />
+          <EditHeatmap rows={rows} block={block} selected={sel} onSelect={setPicked} onLayer={onLayer} />
           {all.tokens.length > rows.tokens.length && (
             <p data-testid="edit-rows-note" className="mlp-scale-note">
               showing the last {rows.tokens.length} of {all.tokens.length} tokens</p>
           )}
-          <EditBars rows={rows} index={sel} />
+          <EditBars rows={rows} index={sel} onLayer={onLayer} />
           <div className="embed-callouts">
             {EDIT_CALLOUTS.map((c) => (
               <Term key={c.label} id={c.id} section={c.section} variant="chip" testId="embed-callout">ⓘ {c.label}</Term>
@@ -65,8 +65,8 @@ export function EditSizeCard({ rows: all, note }: { rows?: EditRows; note: strin
   )
 }
 
-function EditHeatmap({ rows, block, selected, onSelect }: {
-  rows: EditRows; block: Block; selected: number; onSelect: (row: number) => void
+function EditHeatmap({ rows, block, selected, onSelect, onLayer }: {
+  rows: EditRows; block: Block; selected: number; onSelect: (row: number) => void; onLayer?: (layer: number) => void
 }) {
   const layers = rows[block][0]?.length ?? 0
   return (
@@ -78,7 +78,7 @@ function EditHeatmap({ rows, block, selected, onSelect }: {
           <div className="mlp-cells" style={{ gridTemplateColumns: `repeat(${layers}, 1fr)` }}>
             {rows[block][r].map((v, l) => (
               <div key={l} data-testid="edit-cell" data-block={block} data-row={r} data-layer={l}
-                style={{ background: ratioFill(v) }} onClick={() => onSelect(r)}
+                style={{ background: ratioFill(v) }} onClick={() => { onSelect(r); onLayer?.(l) }}
                 title={`“${visibleToken(t.text)}”, layer ${l}, ${BLOCK_NAME[block]}: ${v.toFixed(2)}`} />
             ))}
           </div>
@@ -97,7 +97,7 @@ function EditHeatmap({ rows, block, selected, onSelect }: {
 // The bar chart's frame, in viewBox units (the SVG stretches to the card).
 const W = 900, H = 196, X0 = 40, Y0 = 164, TOP = 30
 
-function EditBars({ rows, index }: { rows: EditRows; index: number }) {
+function EditBars({ rows, index, onLayer }: { rows: EditRows; index: number; onLayer?: (layer: number) => void }) {
   const a = rows.attn[index], m = rows.mlp[index]
   const layers = a.length
   const y = (v: number) => Y0 - (Math.min(v, BAR_CAP) / BAR_CAP) * (Y0 - TOP)
@@ -122,7 +122,8 @@ function EditBars({ rows, index }: { rows: EditRows; index: number }) {
           const capped = v > BAR_CAP
           return (
             <rect key={`${l}-${block}`} data-testid="edit-bar" data-block={block} data-layer={l} data-value={v.toFixed(2)}
-              data-capped={String(capped)} className={`edit-bar edit-bar-${block}${capped ? ' edit-bar-capped' : ''}`}
+              data-capped={String(capped)} className={`edit-bar edit-bar-${block}${capped ? ' edit-bar-capped' : ''}${onLayer ? ' edit-bar-clickable' : ''}`}
+              onClick={() => onLayer?.(l)}
               x={X0 + l * slot + 2 + j * (bw + 1)} y={y(v)} width={bw} height={Y0 - y(v)}>
               <title>{`layer ${l}, ${BLOCK_NAME[block]}: ${v.toFixed(2)}`}</title>
             </rect>

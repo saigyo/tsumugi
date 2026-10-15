@@ -1,5 +1,6 @@
 import { READOUT_CELLS, type AttentionGridCell, type LayerVotes, type LogitCandidate, type Mode, type RunEndReason, type TraceEvent, type TokenInfo } from '../trace/types'
 import type { RunRecord } from '../app/runsStore'
+import { fixtureMlpVotes, fixtureNeuronData } from './neuronFixture'
 
 export interface FixtureTraceOpts {
   cycles?: number
@@ -16,6 +17,8 @@ export interface FixtureTraceOpts {
   readout?: boolean
   // edits events and per-candidate votes (v4 export data)
   mlp?: boolean
+  // neuron data on the edits events (v5 export); needs mlp and 3 layers
+  neurons?: boolean
 }
 
 const DEFAULT_WORDS = [' sat', ' on', ' the', ' mat']
@@ -59,6 +62,7 @@ export const fixtureRatio = (pos: number, layer: number, block: 0 | 1) =>
 export function buildFixtureTrace(opts: FixtureTraceOpts = {}): TraceEvent[] {
   const cycles = opts.cycles ?? 2
   const layers = opts.layers ?? 3
+  if (opts.neurons && layers !== 3) throw new Error('neuron fixture has 3 layers')
   const promptTokens = opts.promptTokens ?? [{ id: 10, text: 'The' }, { id: 11, text: ' cat' }]
   const temperature = opts.temperature ?? 0.8
   const chosenFor = (c: number): TokenInfo =>
@@ -88,18 +92,27 @@ export function buildFixtureTrace(opts: FixtureTraceOpts = {}): TraceEvent[] {
       { layer: 2, head: 1, label: 'previous-token',
         matrix: Array.from({ length: seq }, (_, i) => i === 0 ? [1] : row(i, [[i - 1, 0.8], [i, 0.2]])) },
     ] })
+    const scored: LogitCandidate[] = [
+      { ...chosen, logit: 9.1 }, { id: 200, text: ' ran', logit: 7.2 }, { id: 201, text: ' was', logit: 5.0 },
+    ]
+    const neurons = opts.mlp && opts.neurons
+      ? fixtureNeuronData(c, scored.map((s) => s.id), fixtureEmbedding) : undefined
     if (opts.mlp) {
       const start = c === 0 ? 0 : promptTokens.length + c - 1
       const positions = Array.from({ length: fed.length }, (_, i) => start + i)
       events.push({ type: 'edits', cycle: c, start,
         attn: positions.map((p) => Array.from({ length: layers }, (_, l) => fixtureRatio(p, l, 0))),
-        mlp: positions.map((p) => Array.from({ length: layers }, (_, l) => fixtureRatio(p, l, 1))) })
+        mlp: positions.map((p) => Array.from({ length: layers }, (_, l) => fixtureRatio(p, l, 1))),
+        ...(neurons ? { neurons } : {}) })
     }
-    const scored: LogitCandidate[] = [
-      { ...chosen, logit: 9.1 }, { id: 200, text: ' ran', logit: 7.2 }, { id: 201, text: ' was', logit: 5.0 },
-    ]
-    const withVotes = (s: LogitCandidate): LogitCandidate =>
-      opts.mlp ? { ...s, votes: fixtureVotes(s.id, s.logit, layers) } : s
+    const withVotes = (s: LogitCandidate): LogitCandidate => {
+      if (!opts.mlp) return s
+      const v = fixtureVotes(s.id, s.logit, layers)
+      if (!neurons) return { ...s, votes: v }
+      const mlp = fixtureMlpVotes(neurons, s.id).map(r3)
+      const rest = [...v.attn, ...mlp].reduce((a, b) => a + b, 0)
+      return { ...s, votes: { embed: Math.round((s.logit - rest) * 1e6) / 1e6, attn: v.attn, mlp } }
+    }
     events.push(opts.readout
       ? { type: 'logits', cycle: c, lastHidden: fixtureLastHidden(c),
           topK: scored.map((s) => withVotes({ ...s, ...fixtureReadout(s.id, s.logit) })) }

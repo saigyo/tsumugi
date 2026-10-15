@@ -29,7 +29,9 @@ function cellText(blocks: Blocks, layer: number, token: string, v: number): stri
 // block (final norm frozen at its real scale). The candidate selection is
 // shared with the Logits card; the blocks shown and the hovered cell are
 // local view state.
-export function LayerVotesCard({ candidates, note }: { candidates?: VotedCandidate[]; note: string }) {
+export function LayerVotesCard({ candidates, note, onLayer }: {
+  candidates?: VotedCandidate[]; note: string; onLayer?: (layer: number) => void
+}) {
   const pick = useCandidateSelection((s) => s.pick)
   const select = useCandidateSelection((s) => s.select)
   return (
@@ -38,14 +40,14 @@ export function LayerVotesCard({ candidates, note }: { candidates?: VotedCandida
         <Term id="votes" variant="icon" label="About per-layer votes" testId="votes-info">ⓘ</Term></h4>
       {!candidates || candidates.length === 0 ? <p data-testid="votes-note" className="mlp-note">{note}</p> : (
         <VotesBody candidates={candidates} selected={selectedCandidate(pick, candidates)}
-          onSelect={(i) => select(candidates, i)} />
+          onSelect={(i) => select(candidates, i)} onLayer={onLayer} />
       )}
     </section>
   )
 }
 
-function VotesBody({ candidates, selected, onSelect }: {
-  candidates: VotedCandidate[]; selected: number; onSelect: (i: number) => void
+function VotesBody({ candidates, selected, onSelect, onLayer }: {
+  candidates: VotedCandidate[]; selected: number; onSelect: (i: number) => void; onLayer?: (layer: number) => void
 }) {
   const [blocks, setBlocks] = useState<Blocks>('mlp')
   const [hover, setHover] = useState<string | null>(null)
@@ -85,7 +87,7 @@ function VotesBody({ candidates, selected, onSelect }: {
             <div className="mlp-cells votes-cells" style={columns}>
               {values[r].map((v, l) => (
                 <div key={l} data-testid="vote-cell" data-row={r} data-layer={l} data-value={v.toFixed(2)}
-                  style={{ background: voteFill(v, peak) }} onClick={() => onSelect(r)}
+                  style={{ background: voteFill(v, peak) }} onClick={() => { onSelect(r); onLayer?.(l) }}
                   onMouseEnter={() => setHover(cellText(blocks, l, c.text, v))} />
               ))}
             </div>

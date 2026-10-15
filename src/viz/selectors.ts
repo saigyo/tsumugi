@@ -1,4 +1,4 @@
-import type { EmbedSource, LayerVotes, LogitCandidate, TokenInfo, TraceEvent } from '../trace/types'
+import type { EmbedSource, LayerVotes, LogitCandidate, NeuronData, TokenInfo, TraceEvent } from '../trace/types'
 
 export type StageId = 'tokenizer' | 'embeddings' | 'layers' | 'logits' | 'softmax' | 'sampler' | null
 
@@ -167,4 +167,19 @@ export function cycleVotes(events: TraceEvent[], cursor: number): CycleVotes {
   if (!logits) return events.some((e) => e.type === 'run-end') ? { status: 'none' } : { status: 'pending' }
   if (!logits.topK.every((c) => c.votes)) return { status: 'none' }
   return { status: 'ok', candidates: logits.topK as VotedCandidate[] }
+}
+
+export type CycleNeurons =
+  | { status: 'ok'; data: NeuronData }
+  | { status: 'pending' }   // the viewed cycle's edits event is not in the trace yet, and the run goes on
+  | { status: 'none' }      // the cycle went past without neuron data (older export, simulated run)
+
+// Like cycleVotes, looked up in the whole trace: the edits event follows the
+// layers, so on the Layers stage this is a look ahead.
+export function cycleNeurons(events: TraceEvent[], cursor: number): CycleNeurons {
+  const cycle = viewedCycle(events, cursor)
+  const edits = events.find((e): e is Extract<TraceEvent, { type: 'edits' }> => e.type === 'edits' && e.cycle === cycle)
+  if (edits?.neurons) return { status: 'ok', data: edits.neurons }
+  if (edits || events.some((e) => (e.type === 'logits' && e.cycle === cycle) || e.type === 'run-end')) return { status: 'none' }
+  return { status: 'pending' }
 }

@@ -1,3 +1,6 @@
+import { packFloat32, packHalf, unpackFloat32, unpackHalf } from '../trace/neuronPack'
+import type { NeuronData } from '../trace/types'
+import { behindTheVote, layerActivations } from '../neurons/math'
 import { layerFile, layerLayout, parseNeuronLayer, type NeuronLayer, type NeuronManifest } from '../neurons/format'
 
 // A tiny neuron asset in the real layout: 3 layers × 10 neurons over the real
@@ -52,4 +55,25 @@ export function fixtureNeuronLayer(l: number): NeuronLayer {
 export function fixtureNeuronAsset() {
   const f = encodeNeuronFixture()
   return { manifest: f.manifest, g: Float32Array.from(f.manifest.finalNormWeight), text: (id: number) => f.tokens[id] ?? `#${id}` }
+}
+
+export const FIXTURE_INV_RMS = 0.05
+
+// Deterministic neuron data for a cycle, with each candidate's row from
+// `rowOf` (the trace fixture passes fixtureEmbedding).
+export function fixtureNeuronData(cycle: number, ids: number[], rowOf: (id: number) => number[]): NeuronData {
+  const acts = Array.from({ length: NF.layers * NF.neurons }, (_, k) =>
+    3 * Math.cos(cycle + 0.7 * Math.floor(k / NF.neurons) + 1.1 * (k % NF.neurons)))
+  return { neurons: NF.neurons, invRms: FIXTURE_INV_RMS, activations: packHalf(acts),
+    candidates: ids.map((id) => ({ id, row: packFloat32(rowOf(id)) })) }
+}
+
+// The MLP votes per layer that the neuron data adds up to for candidate `id`
+// (computed from the packed values, exactly as the card does).
+export function fixtureMlpVotes(data: NeuronData, id: number): number[] {
+  const asset = fixtureNeuronAsset()
+  const acts = unpackHalf(data.activations)
+  const row = unpackFloat32(data.candidates.find((c) => c.id === id)!.row)
+  return Array.from({ length: NF.layers }, (_, l) => behindTheVote(asset.manifest, fixtureNeuronLayer(l),
+    layerActivations(acts, l, NF.neurons), row, asset.g, data.invRms, NF.neurons).total)
 }

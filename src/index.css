@@ -521,6 +521,7 @@ math { font-family: 'Latin Modern Math', math, 'STIX Two Math', 'Cambria Math', 
 .mlp-tok[aria-pressed="true"] { color: var(--ai-deep); background: var(--ai-wash-strong); border-color: var(--ai); font-weight: 600; }
 .mlp-cand { background: var(--dye-kihada, #ede3c8); color: var(--ink); }
 .mlp-cand[aria-pressed="true"] { border-color: var(--shu); background: var(--shu-wash); }
+.edit-bar-clickable, .votes-cells > div, .mlp-cells > div[data-testid="edit-cell"] { cursor: pointer; }
 .votes-total-cell { font-family: var(--mono); font-size: .8rem; display: inline-flex; align-items: center; gap: .4rem; font-variant-numeric: tabular-nums; }
 .votes-swatch { display: inline-block; width: 14px; height: 14px; border-radius: 2px; }
 .votes-readout { margin: 0; min-height: 1.5em; font-family: var(--mono); font-size: .8rem; color: var(--ai-deep);

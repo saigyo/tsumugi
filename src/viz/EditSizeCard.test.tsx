@@ -1,6 +1,8 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { afterEach, expect, test } from 'vitest'
+import { afterEach, expect, test, vi } from 'vitest'
 import { EditSizeCard } from './EditSizeCard'
+import { editRows } from './selectors'
+import { buildFixtureTrace } from '../test/fixtures'
 import { texOf } from '../test/tex'
 
 afterEach(cleanup)
@@ -106,4 +108,13 @@ test('three chips open the edit entry’s sections', () => {
   const chips = screen.getAllByTestId('embed-callout')
   expect(chips.map((c) => c.getAttribute('data-section'))).toEqual(['layer-0', 'quiet-middle', 'attn-vs-mlp'])
   expect(chips[0]).toHaveTextContent('why layer 0 is so dark')
+})
+
+test('clicking a heatmap cell or a bar reports its layer', () => {
+  const onLayer = vi.fn()
+  const events = buildFixtureTrace({ mode: 'real', mlp: true })
+  render(<EditSizeCard rows={editRows(events, events.length - 1)!} note="" onLayer={onLayer} />)
+  fireEvent.click(screen.getAllByTestId('edit-cell').find((c) => c.dataset.layer === '2')!)
+  fireEvent.click(screen.getAllByTestId('edit-bar').find((b) => b.dataset.layer === '1')!)
+  expect(onLayer.mock.calls).toEqual([[2], [1]])
 })
