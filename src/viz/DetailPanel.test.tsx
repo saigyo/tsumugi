@@ -248,3 +248,14 @@ test('an ended run without the cycle’s scores shows the older-data note, not a
   render(<DetailPanel events={t} cursor={4} mode="real" />)
   expect(screen.getByTestId('votes-note')).toHaveTextContent('This run was recorded before MLP data was exported.')
 })
+
+test('real mode: the Layers detail shows the neuron card under the two MLP cards; sim mode shows its note', () => {
+  const real = buildFixtureTrace({ mode: 'real', mlp: true, neurons: true })
+  const at = real.findIndex((e) => e.type === 'layer')
+  const { unmount } = render(<DetailPanel events={real} cursor={at} mode="real" />)
+  const cards = screen.getByTestId('mlp-cards').querySelectorAll('section')
+  expect([...cards].map((s) => s.dataset.testid)).toEqual(['edit-size-card', 'votes-card', 'neuron-card'])
+  unmount()
+  render(<DetailPanel events={real} cursor={at} mode="sim" />)
+  expect(screen.getByTestId('neuron-note')).toHaveTextContent('Real model only: simulated runs have no neurons to show.')
+})

@@ -235,7 +235,7 @@ they show what the mechanism computes, not *why* the model produced its
 output (Jain & Wallace, "Attention is not Explanation", 2019). Read them
 as "how information flows", never as "why the model answered X".
 
-## Opening the MLP — edit sizes and per-layer votes
+## Opening the MLP — edit sizes, per-layer votes and neurons
 
 In a real run, the Layers detail has two more cards below the attention
 heatmaps. **How much each layer changes the vector** shows, for every token
@@ -250,6 +250,18 @@ subtracts, on a square-root colour scale), a running total traces
 the score building up through the layers, and a breakdown names the
 largest contributors. Simulated runs show a note instead: there is no MLP
 to measure.
+
+**Inside one MLP** opens one layer: its MLP edit is the sum of 1,536 neuron
+edits, so its vote for a candidate splits into one vote per neuron. The card
+lists the eight neurons behind the vote (or, toggled, the eight that changed
+the vector most), each with its activation, its vote, the tokens its column
+points at when it fires that way, and where the candidate falls in that
+ranking. The rest of the neurons and the total close the table, and the
+total equals the votes card's cell. Click a layer in either card above to
+open it, or step with ◀ ▶. The 8-bit weights it needs download once per
+model version (about 0.9 MB per layer) and stay in the browser's cache.
+
+![The Inside one MLP card](docs/screenshots/neurons.png)
 
 The empty layer-11 column in the MLP heatmap is an artefact of the 8-bit
 model the browser runs: its activation quantization uses one scale per

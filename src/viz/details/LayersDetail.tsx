@@ -6,14 +6,18 @@ import { ResidualStreamDiagram } from '../ResidualStreamDiagram'
 import { Term } from '../../glossary/Term'
 import { EditSizeCard } from '../EditSizeCard'
 import { LayerVotesCard } from '../LayerVotesCard'
-import type { CycleVotes, EditRows } from '../selectors'
+import { NeuronCard } from '../NeuronCard'
+import { useMlpLayer } from '../mlpLayerSelection'
+import type { CycleNeurons, CycleVotes, EditRows } from '../selectors'
 
 const SIM_NOTE = 'Real model only: simulated runs have no MLP to measure.'
 const OLD_NOTE = 'This run was recorded before MLP data was exported.'
 const PENDING_NOTE = 'Votes appear once this cycle’s scores are computed.'
+const NEURON_SIM_NOTE = 'Real model only: simulated runs have no neurons to show.'
+const NEURON_OLD_NOTE = 'This run was recorded before neuron data existed.'
 const EDITS_PENDING_NOTE = 'Edit sizes appear once this cycle’s layers are measured.'
 
-export function LayersDetail({ event, mode, attention, attentionInRun, tokens, streamShape, grid, pinnedHeads, onPin, pinNote, edits, votes }: {
+export function LayersDetail({ event, mode, attention, attentionInRun, tokens, streamShape, grid, pinnedHeads, onPin, pinNote, edits, votes, neurons, run }: {
   event: Extract<TraceEvent, { type: 'layer' }>
   mode: Mode
   attention?: Extract<TraceEvent, { type: 'attention' }>
@@ -26,7 +30,11 @@ export function LayersDetail({ event, mode, attention, attentionInRun, tokens, s
   pinNote?: string | null
   edits?: EditRows
   votes?: CycleVotes
+  neurons?: CycleNeurons
+  run?: TraceEvent
 }) {
+  const selectLayer = useMlpLayer((s) => s.select)
+  const onLayer = run ? (l: number) => selectLayer(run, l) : undefined
   const [explore, setExplore] = useState(false)
   const cycleHeads = attention?.heads ?? []
   // a pinned head that is also this cycle's showcase head under the same
@@ -61,10 +69,17 @@ export function LayersDetail({ event, mode, attention, attentionInRun, tokens, s
       )}
       {grid && explore && <AttentionGridExplorer grid={grid} onPin={onPin ?? (() => {})} />}
       <div data-testid="mlp-cards">
-        <EditSizeCard rows={mode === 'real' ? edits : undefined} note={mode === 'sim' ? SIM_NOTE : votes?.status === 'pending' ? EDITS_PENDING_NOTE : OLD_NOTE} />
+        <EditSizeCard onLayer={onLayer} rows={mode === 'real' ? edits : undefined} note={mode === 'sim' ? SIM_NOTE : votes?.status === 'pending' ? EDITS_PENDING_NOTE : OLD_NOTE} />
         <LayerVotesCard
+          onLayer={onLayer}
           candidates={mode === 'real' && votes?.status === 'ok' ? votes.candidates : undefined}
           note={mode === 'sim' ? SIM_NOTE : votes?.status === 'pending' ? PENDING_NOTE : OLD_NOTE} />
+        <NeuronCard
+          data={mode === 'real' && neurons?.status === 'ok' ? neurons.data : undefined}
+          candidates={mode === 'real' && votes?.status === 'ok' ? votes.candidates : undefined}
+          note={mode === 'sim' ? NEURON_SIM_NOTE
+            : neurons?.status === 'pending' || votes?.status === 'pending' ? PENDING_NOTE : NEURON_OLD_NOTE}
+          run={run} />
       </div>
     </div>
   )

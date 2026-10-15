@@ -3,7 +3,7 @@
 //   npm run screenshots
 //
 // Spawns its own dev server on port 5199 and drives a headed Chromium with a
-// persistent profile (.screenshots-profile/, gitignored) so the ~120 MB real
+// persistent profile (.screenshots-profile/, gitignored) so the ~250 MB real
 // model stays cached across invocations — only the first run downloads it.
 // Real-mode shots need WebGPU, which is why the browser runs headed.
 //
@@ -39,7 +39,7 @@ const context = await chromium.launchPersistentContext(PROFILE, {
   headless: false,
   viewport: { width: 1380, height: 940 },
 })
-// Scenes can be selected: `npm run screenshots -- pipeline glossary attention compare embeddings logits mlp`
+// Scenes can be selected: `npm run screenshots -- pipeline glossary attention compare embeddings logits mlp neurons`
 // (default: all). Skipping a scene preserves its existing images — useful when
 // a previous capture caught a specimen worth keeping (e.g. a great fork).
 const only = process.argv.slice(2)
@@ -80,7 +80,7 @@ try {
   }
 
   // real mode serves the remaining scenes
-  if (want('attention') || want('compare') || want('embeddings') || want('logits') || want('mlp')) {
+  if (want('attention') || want('compare') || want('embeddings') || want('logits') || want('mlp') || want('neurons')) {
     await $('mode-toggle').check()
     await $('model-status-slot').getByText(/attn/).waitFor({ timeout: 300000 })  // first run downloads the model
   }
@@ -214,6 +214,24 @@ try {
     await unstick.evaluate((el) => el.remove())
     await $('maxtok-input').fill('20')
     console.log('mlp.png')
+  }
+
+  // ---- neurons.png: real mode, Layers stage — Inside one MLP ----------------
+  if (want('neurons')) {
+    await $('prompt-input').fill('The cat sat on the mat because it was tired')
+    await $('maxtok-input').fill('1')
+    const before = await $('run-chip').count()
+    await $('btn-generate').click()
+    await $('run-chip').nth(before).waitFor({ timeout: 120000 })
+    await $('btn-live').click()
+    await $('stage-card').nth(2).click()                            // Layers
+    await $('neuron-row').first().waitFor({ timeout: 30000 })
+    const unstick = await page.addStyleTag({ content: '.controls { position: static !important; }' })
+    await page.waitForTimeout(300)
+    await $('neuron-card').screenshot({ path: `${DIR}/neurons.png` })
+    await unstick.evaluate((el) => el.remove())
+    await $('maxtok-input').fill('20')
+    console.log('neurons.png')
   }
 } finally {
   await context.close()

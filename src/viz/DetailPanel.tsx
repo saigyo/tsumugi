@@ -1,5 +1,5 @@
 import type { AttentionHead, Mode, TraceEvent } from '../trace/types'
-import { activeStage, cycleVotes, editRows, eventAt, latestOfType } from './selectors'
+import { activeStage, cycleNeurons, cycleVotes, editRows, eventAt, latestOfType } from './selectors'
 import { EmbeddingsDetail } from './details/EmbeddingsDetail'
 import { LayersDetail } from './details/LayersDetail'
 import { TokenizerDetail } from './details/TokenizerDetail'
@@ -58,7 +58,8 @@ export function DetailPanel({ events, cursor, mode, pinnedHeads, onPin, pinNote 
       return <LayersDetail event={e} mode={mode} attention={inCycle} attentionInRun={attentionInRun}
         tokens={tokens} streamShape={streamShape}
         grid={grid} pinnedHeads={pinnedHeads} onPin={onPin} pinNote={pinNote}
-        edits={editRows(events, cursor)} votes={cycleVotes(events, cursor)} />
+        edits={editRows(events, cursor)} votes={cycleVotes(events, cursor)}
+        neurons={cycleNeurons(events, cursor)} run={events[0]} />
     }
     case 'logits':
       return latestOfType(events, cursor, 'logits') ? <LogitsDetail events={events} cursor={cursor} /> : empty

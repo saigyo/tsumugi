@@ -556,3 +556,21 @@ math { font-family: 'Latin Modern Math', math, 'STIX Two Math', 'Cambria Math', 
 .votes-bar { display: inline-block; height: 8px; vertical-align: middle; border-radius: 1px; }
 .votes-bar-pos { background: hsl(211 45% 45%); }
 .votes-bar-neg { background: hsl(13 55% 55%); }
+.neuron-stepper { display: inline-flex; gap: .25rem; margin-left: .5rem; vertical-align: middle; }
+.neuron-stepper button { font: inherit; font-size: .75rem; padding: 0 .4rem; border: 1px solid var(--line-strong); border-radius: 4px; background: var(--card); color: var(--ink); }
+.neuron-stepper button:disabled { opacity: .4; }
+.neuron-cands { display: flex; flex-wrap: wrap; gap: .25rem; align-items: center; font-size: .8rem; color: var(--ink-soft); }
+.neuron-table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+.neuron-table th { text-align: left; font-weight: 600; color: var(--ink-soft); font-size: .75rem; padding: .3rem .4rem; border-bottom: 1px solid var(--line); }
+.neuron-table td { padding: .3rem .4rem; border-bottom: 1px solid var(--line); vertical-align: middle; }
+.neuron-table .tk { font-family: var(--mono, ui-monospace, Menlo, monospace); font-size: .78rem; white-space: nowrap; }
+.neuron-table .votes-bar { margin-right: .35rem; vertical-align: middle; }
+.neuron-chip { display: inline-block; white-space: pre; padding: 0 .45rem; margin: .1rem .15rem; border-radius: 999px; background: var(--ai-wash); font-size: .78rem; }
+.neuron-away { background: var(--shu-wash); }
+.neuron-badge { font-size: .72rem; padding: .05rem .4rem; border-radius: 4px; white-space: nowrap; background: var(--line); }
+.neuron-badge-strong { background: var(--ai); color: #fff; }
+.neuron-badge-mid { background: var(--ai-wash-strong); }
+.neuron-rest td { color: var(--ink-soft); font-style: italic; }
+.neuron-total td { font-weight: 600; border-bottom: 0; }
+.neuron-size-bar { display: inline-block; height: 10px; background: var(--ink-soft); margin-right: .35rem; vertical-align: middle; }
+@media (max-width: 640px) { .neuron-table { display: block; overflow-x: auto; } }
