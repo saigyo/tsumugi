@@ -40,6 +40,17 @@ and `stream_parts` (`[batch, 61, 576]`, the last position's embedding,
 30 attention edits and 30 MLP edits, each multiplied by the final norm's
 gain and 1/rms, so they add up to `last_hidden_state`'s last row).
 
+For the neuron card it also exposes `mlp_activations` (`[batch, 30, 1536]`,
+the last position's input of every layer's `down_proj`: the neuron
+activations SiLU(gate) ⊙ up) and `final_norm_inv_rms` (`[batch, 1, 1]`, the
+final norm's 1/rms at the last position). `neurons/` holds one file per layer
+with the `down_proj` columns as int8 (one float32 scale per column), the five
+tokens each column points at most for each sign (cosine against the rows of
+the embedding table scaled by the final norm weight) and three cosine
+thresholds (top 0.1 %, 1 % and 10 % of the vocabulary), plus `tokens.json`
+and a manifest with the byte layout, the final norm weight and SHA-256
+checksums.
+
 Releases are tagged — this one is `{tag}` — and the app pins a tag, so
 browsers that cached an older file re-download once. Tags never move: a
 fixed model is published under the next tag.
@@ -48,7 +59,8 @@ Validation (see `validation-report.json`): logits parity with the stock
 export, row-stochastic causal attention rows, cached-vs-full-matrix
 equivalence, embedding-row parity, readout parity (`last_hidden_state · Eᵀ`
 reproduces the logits; `topk_embeds` are the exact rows of the top-16 ids),
-edit-ratio parity with PyTorch hooks, and stream-part / vote sums.
+edit-ratio parity with PyTorch hooks, stream-part / vote sums, activation parity
+with PyTorch hooks, and per-neuron votes adding up to the MLP votes.
 
 **Variants:** `onnx/model_quantized.onnx` (dynamic int8, `dtype: 'q8'`,
 with `/lm_head/MatMul` excluded from quantization) is the sole published

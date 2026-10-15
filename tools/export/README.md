@@ -65,32 +65,33 @@ the actual acceptance checklist for a release.
    rows will not have been checked against the full-matrix ground truth.
 4. **Quantize:** `uv run python -m tsumugi_export quantize --model-dir out/model`
 5. **Build the geometry asset:** `uv run python -m tsumugi_export geometry --model-dir out/model`
-6. **Validate:** `uv run python -m tsumugi_export validate --model-dir out/model`.
+6. **Build the neuron asset:** `uv run python -m tsumugi_export neurons --model-dir out/model`
+7. **Validate:** `uv run python -m tsumugi_export validate --model-dir out/model`.
    Do not skip this — `publish` refuses to run without a passing report,
    but you should also read the printed verdict table yourself (including
    confirming `a-equiv-b` actually ran, not SKIPPED, and that
    `*:inputs-embeds-parity`, `*:last-hidden-parity`, `*:topk-parity`,
    `*:edit-ratios-parity`, `*:stream-parts-sum`, `*:votes-sum`,
-   `*:edit-cache-parity` and
-   `geometry` must PASS) rather than relying solely on the exit code.
+   `*:edit-cache-parity`, `*:activations-parity`, `*:inv-rms-parity`,
+   `*:neuron-votes-sum`, `geometry` and `neurons` must PASS) rather than relying solely on the exit code.
    The quantized variant's edit-ratio checks compare values clipped at
    2.0 with atol 0.25: q8 moves the huge first-token MLP ratios (≈100 at
    layer 11) by ~10%, and the card draws every ratio ≥ 1 alike. The fp32
    checks (atol 1e-3, unclipped) are what prove the outputs are wired right.
-7. **Publish:** `uv run python -m tsumugi_export publish --model-dir out/model --tag v4`
+8. **Publish:** `uv run python -m tsumugi_export publish --model-dir out/model --tag v5`
    Then set `ATTN_MODEL_REVISION` in `src/engine/tokenizer.ts` to the same
    tag and deploy the app. A release is always these two steps: browsers
    cache model files by URL and never re-check, so publishing alone changes
    nothing for the app, and bumping the constant alone points at a tag that
    does not exist. Tags never move and `publish` refuses an existing one: if
-   the in-app check in step 8 fails, fix, re-validate, publish under the
-   **next** tag (`v5`) and bump the constant again.
-8. **In the actual Tsumugi app**, load the exported model in real
+   the in-app check in step 9 fails, fix, re-validate, publish under the
+   **next** tag (`v6`) and bump the constant again.
+9. **In the actual Tsumugi app**, load the exported model in real
    (non-fallback) attention mode and check the items below. Pre-publish
    in-app testing against a not-yet-uploaded artifact is not supported in
    M1 — this step necessarily runs against the model repo `publish` just
    uploaded, so verification happens post-publish; if it fails, fix and
-   publish under a new tag (see step 7).
+   publish under a new tag (see step 8).
    - **One curated prompt** with a known, hand-checked attention pattern
      (e.g. an induction-style repeat like `"one two three one two three
      one"`) — confirm the highlighted source token(s) for the induction
@@ -106,7 +107,7 @@ the actual acceptance checklist for a release.
    - **The Logits card** shows a dot-product bench for the top candidate;
      the sum under the product strip equals the logit on the bar to one
      decimal.
-9. **Stock fallback check.** Simulate the attention repo being unreachable
+10. **Stock fallback check.** Simulate the attention repo being unreachable
    (e.g. block the `saigyo-hoshi/smollm2-135m-attn-onnx` host, or point the
    app at a bad repo id) and confirm the app falls back gracefully to the
    stock model without attention data, rather than erroring out.

@@ -13,8 +13,11 @@
    cached step-by-step rows match the single-shot rows
 10. stream_parts add up to last_hidden_state's last row, and parts · E
     add up to the logits of the top-k ids
+11. mlp_activations and final_norm_inv_rms match PyTorch hooks; per-neuron
+    votes from neurons/ add up to the MLP votes; neurons/ matches its manifest
 Writes validation-report.json with artifact hashes; publish refuses to
 upload without a passing report."""
+import functools
 import hashlib
 import json
 from pathlib import Path
@@ -346,9 +349,7 @@ def torch_edit_ratios(ids: np.ndarray) -> np.ndarray:
     record each decoder layer's input x, its attention output a and its MLP
     output m; ratios are ‖a‖/‖x‖ and ‖m‖/‖x + a‖. Heavy (loads the model)."""
     import torch
-    from transformers import AutoModelForCausalLM
-    model = AutoModelForCausalLM.from_pretrained(
-        STOCK_MODEL_ID, torch_dtype=torch.float32, attn_implementation="eager").eval()
+    model = _stock_torch_model()
     rec: dict = {}
     hooks = []
     for l, layer in enumerate(model.model.layers):
@@ -370,6 +371,118 @@ def torch_edit_ratios(ids: np.ndarray) -> np.ndarray:
         out[:, l, 0] = (a.norm(dim=-1) / x.norm(dim=-1)).numpy()
         out[:, l, 1] = (m.norm(dim=-1) / (x + a).norm(dim=-1)).numpy()
     return out
+
+
+def check_activations_parity(outputs: dict, ref: np.ndarray, abs_tol: float, rel_tol: float) -> dict:
+    """mlp_activations [1, layers, neurons] against a reference [layers, neurons]:
+    per layer max|Δ| ≤ abs_tol + rel_tol · max|ref of that layer|."""
+    if "mlp_activations" not in outputs:
+        return {"passed": False, "detail": "graph has no mlp_activations output"}
+    got = outputs["mlp_activations"]
+    if got.shape != (1, *ref.shape):
+        return {"passed": False, "detail": f"mlp_activations shape {got.shape}, expected (1, {', '.join(map(str, ref.shape))})"}
+    worst, worst_layer = 0.0, 0
+    for l in range(ref.shape[0]):
+        diff = float(np.max(np.abs(got[0, l] - ref[l])))
+        allowed = abs_tol + rel_tol * float(np.max(np.abs(ref[l])))
+        if diff > allowed:
+            return {"passed": False, "detail": f"layer {l}: max|Δ|={diff:.3e} > {allowed:.3e}"}
+        if diff > worst:
+            worst, worst_layer = diff, l
+    return {"passed": True, "detail": f"max|Δ|={worst:.2e} (layer {worst_layer}; atol {abs_tol} + {rel_tol}·max|ref|)"}
+
+
+def check_inv_rms_parity(outputs: dict, ref_inv: float, rtol: float) -> dict:
+    if "final_norm_inv_rms" not in outputs:
+        return {"passed": False, "detail": "graph has no final_norm_inv_rms output"}
+    got = float(outputs["final_norm_inv_rms"].reshape(-1)[0])
+    rel = abs(got - ref_inv) / abs(ref_inv)
+    return {"passed": rel <= rtol, "detail": f"1/rms {got:.6f} vs {ref_inv:.6f} (relative {rel:.2e}, rtol {rtol})"}
+
+
+def check_neuron_votes_sum(outputs: dict, ndir: Path, k: int = 10) -> dict:
+    """The card's identity: per layer and top-k candidate c, Σ_i a_i · (W_i · (g ⊙ E_c)) · 1/rms,
+    with W_i dequantized from neurons/, equals the MLP vote stream_parts[1 + L + l] · E_c
+    within the #15 tolerance 0.05 + 1 %."""
+    for name in ("mlp_activations", "final_norm_inv_rms", "stream_parts", "topk_embeds"):
+        if name not in outputs:
+            return {"passed": False, "detail": f"graph has no {name} output"}
+    m = json.loads((ndir / "manifest.json").read_text())
+    n, d, lay = m["neurons"], m["dims"], m["layout"]
+    g = np.array(m["finalNormWeight"], dtype=np.float32)
+    acts = outputs["mlp_activations"][0]
+    layers = acts.shape[0]
+    inv = float(outputs["final_norm_inv_rms"].reshape(-1)[0])
+    rows = outputs["topk_embeds"][0][:k]
+    parts = outputs["stream_parts"][0]
+    worst = 0.0
+    for l in range(layers):
+        raw = (ndir / f"layer-{l:02d}.bin").read_bytes()
+        scales = np.frombuffer(raw[lay["scales"]:lay["columns"]], dtype="<f4")
+        q = np.frombuffer(raw[lay["columns"]:lay["labelIds"]], dtype=np.int8).reshape(n, d).astype(np.float32)
+        cols = q * scales[:, None]                                         # [neurons, dims]
+        for c, row in enumerate(rows):
+            got = float(np.sum(acts[l] * (cols @ (g * row))) * inv)
+            want = float(parts[1 + layers + l] @ row)
+            gap = abs(got - want)
+            if gap > 0.05 + 0.01 * abs(want):
+                return {"passed": False, "detail": f"layer {l} candidate {c}: neuron votes sum to {got:.3f}, MLP vote is {want:.3f}"}
+            worst = max(worst, gap)
+    return {"passed": True, "detail": f"{layers} layers × {len(rows)} candidates, max gap {worst:.3e} (tol 0.05 + 1 %)"}
+
+
+def check_neuron_files(model_dir: Path, texts: list[str], g: np.ndarray) -> dict:
+    """neurons/ against its manifest (sizes, SHA-256), the layout, the stock
+    final norm weight and the tokenizer's texts."""
+    ndir = model_dir / "neurons"
+    if not (ndir / "manifest.json").exists():
+        return {"passed": False, "detail": "no neurons/ — run neurons first"}
+    m = json.loads((ndir / "manifest.json").read_text())
+    for name, f in m["files"].items():
+        path = ndir / name
+        if not path.exists() or path.stat().st_size != f["bytes"]:
+            return {"passed": False, "detail": f"{name}: size differs from the manifest"}
+        if _sha256(path) != f["sha256"]:
+            return {"passed": False, "detail": f"{name}: SHA-256 differs from the manifest"}
+    expected = {f"layer-{l:02d}.bin" for l in range(m["layers"])} | {"tokens.json"}
+    if set(m["files"]) != expected:
+        return {"passed": False, "detail": f"manifest lists {sorted(m['files'])}, expected {sorted(expected)}"}
+    if any(m["files"][f"layer-{l:02d}.bin"]["bytes"] != m["layout"]["bytes"] for l in range(m["layers"])):
+        return {"passed": False, "detail": "a layer file's size differs from layout.bytes"}
+    if not np.allclose(np.array(m["finalNormWeight"]), g, atol=1e-6):
+        return {"passed": False, "detail": "finalNormWeight differs from the stock final norm weight"}
+    if json.loads((ndir / "tokens.json").read_text()) != texts:
+        return {"passed": False, "detail": "tokens.json differs from the tokenizer's texts"}
+    return {"passed": True, "detail": f"{m['layers']} layer files and tokens.json match the manifest"}
+
+
+@functools.lru_cache(maxsize=1)
+def _stock_torch_model():
+    import torch
+    from transformers import AutoModelForCausalLM
+    return AutoModelForCausalLM.from_pretrained(
+        STOCK_MODEL_ID, torch_dtype=torch.float32, attn_implementation="eager").eval()
+
+
+def torch_neuron_reference(ids: np.ndarray) -> tuple[np.ndarray, float]:
+    """[layers, neurons] down_proj inputs at the last position and the final
+    norm's 1/rms there, from forward pre-hooks on the stock PyTorch model."""
+    import torch
+    model = _stock_torch_model()
+    rec: dict = {}
+    hooks = [layer.mlp.down_proj.register_forward_pre_hook(
+        lambda mod, args, l=l: rec.__setitem__(l, args[0][0, -1].detach()))
+        for l, layer in enumerate(model.model.layers)]
+    hooks.append(model.model.norm.register_forward_pre_hook(
+        lambda mod, args: rec.__setitem__("norm", args[0][0, -1].detach())))
+    with torch.no_grad():
+        model(torch.tensor(ids))
+    for h in hooks:
+        h.remove()
+    acts = np.stack([rec[l].numpy() for l in range(len(model.model.layers))]).astype(np.float32)
+    x = rec["norm"].double()
+    inv = float(1.0 / torch.sqrt((x ** 2).mean() + model.config.rms_norm_eps))
+    return acts, inv
 
 
 def check_geometry_files(model_dir: Path, E: np.ndarray, texts: list[str], sample: int = 32) -> dict:
@@ -441,6 +554,7 @@ def run(args) -> int:
 
     ref_ids = _tokenize(model_dir, PROMPTS[0])
     ref_ratios = torch_edit_ratios(ref_ids)
+    ref_acts, ref_inv = torch_neuron_reference(ref_ids)
 
     for variant in ["model.onnx", "model_quantized.onnx", "model_q4.onnx", "model_fp16.onnx"]:
         path = model_dir / "onnx" / variant
@@ -524,6 +638,11 @@ def run(args) -> int:
         checks[f"{variant}:votes-sum"] = check_votes_sum(ro_out, 1e-3 if fp32 else 1e-2)
         checks[f"{variant}:edit-cache-parity"] = check_edit_cache_parity(
             ro_out, _drive_cached_stepwise(sess, ro_ids), ratio_tol, ratio_clip)
+        act_abs, act_rel, inv_rtol = (1e-3, 1e-3, 1e-4) if fp32 else (0.05, 0.1, 2e-2)
+        checks[f"{variant}:activations-parity"] = check_activations_parity(ro_out, ref_acts, act_abs, act_rel)
+        checks[f"{variant}:inv-rms-parity"] = check_inv_rms_parity(ro_out, ref_inv, inv_rtol)
+        if (model_dir / "neurons" / "manifest.json").exists():
+            checks[f"{variant}:neuron-votes-sum"] = check_neuron_votes_sum(ro_out, model_dir / "neurons")
 
     # A≡B equivalence when the operator exported both variants
     nc = model_dir.parent / "model-nocache" / "onnx" / "model.onnx"
@@ -542,6 +661,8 @@ def run(args) -> int:
         }
 
     checks["geometry"] = check_geometry_files(model_dir, E, texts)
+    from tsumugi_export.stock import stock_final_norm
+    checks["neurons"] = check_neuron_files(model_dir, texts, stock_final_norm())
 
     passed = all(c["passed"] for c in checks.values())
     report = {
@@ -549,7 +670,8 @@ def run(args) -> int:
         "artifacts": {
             str(p.relative_to(model_dir)): _sha256(p)
             for p in [*sorted((model_dir / "onnx").glob("*.onnx")),
-                      *(sorted((model_dir / "geometry").glob("*")) if (model_dir / "geometry").exists() else [])]
+                      *(sorted((model_dir / "geometry").glob("*")) if (model_dir / "geometry").exists() else []),
+                      *(sorted((model_dir / "neurons").glob("*")) if (model_dir / "neurons").exists() else [])]
         },
     }
     (model_dir / "validation-report.json").write_text(json.dumps(report, indent=2))
