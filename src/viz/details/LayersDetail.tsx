@@ -5,6 +5,7 @@ import { AttentionHeatmap } from '../AttentionHeatmap'
 import { ResidualStreamDiagram } from '../ResidualStreamDiagram'
 import { Term } from '../../glossary/Term'
 import { EditSizeCard } from '../EditSizeCard'
+import { LayersNav } from '../LayersNav'
 import { LayerVotesCard } from '../LayerVotesCard'
 import { MlpStepsCard } from '../MlpStepsCard'
 import { NeuronCard } from '../NeuronCard'
@@ -50,6 +51,9 @@ export function LayersDetail({ event, mode, attention, attentionInRun, tokens, s
     <div data-testid="detail-layers" className="detail">
       <h3>Transformer layers <Term id="layer" variant="icon" label="About this stage" testId="stage-info">ⓘ</Term>{' '}
         {mode === 'real' && !attentionInRun && <em>(schematic — real internals not exposed)</em>}</h3>
+      <LayersNav candidates={mode === 'real' && votes?.status === 'ok' ? votes.candidates : undefined} run={run}
+        showStepper={mode === 'real' && votes?.status === 'ok'} />
+      <div id="layers-overview" className="layers-section">
       {streamShape && (
         <ResidualStreamDiagram seqLen={streamShape.seqLen} dims={streamShape.dims} layers={event.total} />
       )}
@@ -62,6 +66,8 @@ export function LayersDetail({ event, mode, attention, attentionInRun, tokens, s
           </div>
         ))}
       </div>
+      </div>
+      <div id="layers-attention" className="layers-section">
       {heads.length > 0 && tokens && <AttentionHeatmap heads={heads} tokens={tokens} focus={focus} />}
       {pinNote && <p data-testid="pin-note" className="attn-note">{pinNote}</p>}
       {grid && (
@@ -71,24 +77,33 @@ export function LayersDetail({ event, mode, attention, attentionInRun, tokens, s
         </button>
       )}
       {grid && explore && <AttentionGridExplorer grid={grid} onPin={onPin ?? (() => {})} />}
+      </div>
       <div data-testid="mlp-cards">
-        <EditSizeCard onLayer={onLayer} rows={mode === 'real' ? edits : undefined} note={mode === 'sim' ? SIM_NOTE : votes?.status === 'pending' ? EDITS_PENDING_NOTE : OLD_NOTE} />
-        <LayerVotesCard
+        <div id="layers-edits" className="layers-section">
+          <EditSizeCard onLayer={onLayer} rows={mode === 'real' ? edits : undefined} note={mode === 'sim' ? SIM_NOTE : votes?.status === 'pending' ? EDITS_PENDING_NOTE : OLD_NOTE} />
+        </div>
+        <div id="layers-votes" className="layers-section">
+          <LayerVotesCard
           onLayer={onLayer}
           candidates={mode === 'real' && votes?.status === 'ok' ? votes.candidates : undefined}
           note={mode === 'sim' ? SIM_NOTE : votes?.status === 'pending' ? PENDING_NOTE : OLD_NOTE} />
-        <NeuronCard
+        </div>
+        <div id="layers-neurons" className="layers-section">
+          <NeuronCard
           data={mode === 'real' && neurons?.status === 'ok' ? neurons.data : undefined}
           candidates={mode === 'real' && votes?.status === 'ok' ? votes.candidates : undefined}
           note={mode === 'sim' ? NEURON_SIM_NOTE
             : neurons?.status === 'pending' || votes?.status === 'pending' ? PENDING_NOTE : NEURON_OLD_NOTE}
           run={run} />
-        <MlpStepsCard
+        </div>
+        <div id="layers-steps" className="layers-section">
+          <MlpStepsCard
           data={mode === 'real' && neurons?.status === 'ok' ? neurons.data : undefined}
           candidates={mode === 'real' && votes?.status === 'ok' ? votes.candidates : undefined}
           note={mode === 'sim' ? STEPS_SIM_NOTE
             : neurons?.status === 'pending' || votes?.status === 'pending' ? PENDING_NOTE : STEPS_OLD_NOTE}
           run={run} />
+        </div>
       </div>
     </div>
   )
