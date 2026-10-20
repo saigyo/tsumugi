@@ -78,8 +78,8 @@ the actual acceptance checklist for a release.
    `*:silu-product`, `geometry` and `neurons` must PASS) rather than relying solely on the exit code.
    Quantized variants are validated with graph optimizations disabled, because onnxruntime-web runs the unfused graph (#19).
    The quantized variant's edit-ratio checks compare values clipped at
-   2.0 with atol 0.25: q8 moves the huge first-token MLP ratios (≈100 at
-   layer 11) by ~10%, and the card draws every ratio ≥ 1 alike. The fp32
+   2.0 with atol 0.25: quantization moves the huge first-token MLP ratios
+   noticeably, and the card draws every ratio ≥ 1 alike. The fp32
    checks (atol 1e-3, unclipped) are what prove the outputs are wired right.
 7b. **Browser check.** `npm run dev` in the repository root, then open `http://localhost:5173/tools/export/browser-check.html` in Chrome. It loads `out/model` through transformers.js on WebGPU and WASM and must end with `VERDICT: PASS`. This is the pre-publish in-app check step 9 used to lack.
 8. **Publish:** `uv run python -m tsumugi_export publish --model-dir out/model --tag v6`

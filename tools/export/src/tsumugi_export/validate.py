@@ -237,7 +237,7 @@ def greedy_verdict(ours: list[int], theirs: list[int],
 def _check_greedy_parity(sess, stock_sess, model_dir: Path, n_steps: int = 8) -> dict:
     """Greedy-decode N tokens from PROMPTS[0] on both `sess` and the stock
     fp32 session and compare the generated token-id sequences. This is the
-    PRIMARY parity verdict for the quantized variants (model_q4/model_fp16):
+    PRIMARY parity verdict for the quantized variant (model_quantized.onnx):
     their per-logit diff against stock is expected to exceed a tight
     tolerance by design, so token identity, not the raw magnitude, gates
     publish.

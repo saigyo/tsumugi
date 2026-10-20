@@ -89,9 +89,10 @@ they are IDs, not positions.
   and labels, and the layer is shared with the neuron card. A sticky
   section bar (Overview, Attention, Edit sizes, Votes, Inside one MLP,
   Step by step, plus the shared layer stepper) sits below the playback
-  controls. Shipped 2026-10-21; stored runs grow by about 340 KB per
-  generated token, and runs recorded before v6 show a "generate again"
-  note. *(#15 follow-up)*
+  controls. Built 2026-10-21; model v6 published on <pending>. Stored
+  runs grow by about 340 KB per generated token, and runs without step
+  data (recorded before v6, or step data damaged on import) say so.
+  *(#15 follow-up)*
 - [ ] **#18 MLP knockout runs** — re-run a prompt with one layer's MLP
   zeroed and open the pair in the Compare view. *(#15 follow-up)*
 
@@ -126,7 +127,8 @@ they are IDs, not positions.
   activation scale per tensor) lost the small activations whenever the
   first token's huge values shared a batch with them (layer 11's MLP
   output was 0 for every later prompt token; next-token argmax differed
-  from fp32 on 3 of 4 validation prompts under browser semantics). Python's
+  from fp32 on 2–3 of 4 validation prompts under browser semantics (3 in
+  Python with graph optimizations off, 2 in onnxruntime-web WASM)). Python's
   validator missed it because ORT's graph optimization fuses the
   quantization ops; onnxruntime-web runs the unfused graph. Shipped as
   model v6: weight-only 8-bit (MatMulNBits, blocks of 32, fp32
@@ -137,7 +139,8 @@ they are IDs, not positions.
   votes (max gap 0.069), so the neuron card's "≈" should no longer appear;
   it stays as a safeguard. The 8-step greedy check accepts a flip on a
   near-tie (stock margin ≤ 0.1; the one flip seen has margin 0.011).
-  Shipped 2026-10-21. *(#15 final review, 2026-10-11)*
+  Built 2026-10-21; model v6 published on <pending>. *(#15 final review,
+  2026-10-11)*
 
 ## Housekeeping / parked minors
 
@@ -174,6 +177,32 @@ they are IDs, not positions.
   the Import button, is hidden until the first run exists, so a first-time
   visitor cannot load a shared run file. *(#16 Playwright test,
   2026-10-15)*
+- [ ] **#22 Step-by-step card parked minors** — from #17's and #19's
+  reviews. Export tool: `_weight_cols` raises StopIteration and no test
+  covers a graph without layers; no test that the readout gather stays
+  fp32; the old q8 bullets in `quantize.py`'s docstring are not marked
+  superseded; `build_neurons` uses `norms[l] if norms else None` and
+  checks no norm length or shape; `check_neuron_files` raises on a norm
+  length mismatch instead of failing the check; `check_argmax_parity` is
+  untested on empty cases; publish prints a raw FileNotFoundError for a
+  missing manifest; the model card's validation sentence omits the new
+  checks; `write_browser_reference` duplicates `_last_logits`; the
+  browser-check page logs only at the end and doesn't dispose sessions on
+  errors; README step 7b doesn't name `browser-ref.json` as a
+  prerequisite; the near-tie test assertions, its boundary case and the
+  prefix glue are untested. App data: `validateTrace`'s step errors and
+  the null-steps drop are untested; the `extractSteps` test checks only
+  two fields; the `steps: false` fixture is untested; `productSummary`'s
+  all-zero case, a negative layer and an unchecked `w` length; no
+  `layerSteps`/`decodeSteps` tests. Card: small hit area for the dots;
+  the DetailPanel test restores mocks in the test body; no keyboard or
+  pending-card tests. Section bar: the scroll test passes through the
+  mount-time update; no cleanup test; the highlight is not recomputed on
+  resize or height changes; prev/next buttons are unstyled; `.controls`
+  is looked up during render; "Jump to" crowds the links at 390 px.
+  End-to-end: tests select `.controls` by class and duplicate setup; row
+  stacking at 390 px is not asserted. Also (pre-existing): old v5 neuron
+  files stay in the Cache Storage. *(#17 final review, 2026-10-21)*
 - [ ] **#9 Mobile layout** — the app is desktop-first; a narrow-viewport pass
   is substantial design work for an audience that mostly explores on
   laptops. *(v1 spec, out of scope)*

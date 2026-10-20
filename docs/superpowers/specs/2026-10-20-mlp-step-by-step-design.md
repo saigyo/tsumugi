@@ -121,8 +121,9 @@ focusable and show the same box.
 
 **States.**
 - Simulated run: "Real model only: simulated runs don't compute an MLP."
-- Run recorded before v6 (no step data): "This run was recorded before the
-  step-by-step data existed. Generate it again to see it."
+- Neuron data but no step data (recorded before v6, or step data dropped
+  as damaged on import): "This run has no step-by-step data (recorded
+  before it existed, or left out because it was damaged)."
 - Pending cycle: the same pending note as the other MLP cards.
 - Layer file still loading or failed (step 1's g and step 5's columns come
   from it): the loading line and the retry button the neuron card uses;
