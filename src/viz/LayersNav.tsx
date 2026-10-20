@@ -1,29 +1,35 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { TraceEvent } from '../trace/types'
+import { LAYER_SECTIONS } from './layersSections'
 import { useMlpLayerControl } from './mlpLayerSelection'
 import type { VotedCandidate } from './selectors'
 
-// oxlint-disable-next-line react/only-export-components
-export const LAYER_SECTIONS = [
-  { id: 'layers-overview', label: 'Overview' },
-  { id: 'layers-attention', label: 'Attention' },
-  { id: 'layers-edits', label: 'Edit sizes' },
-  { id: 'layers-votes', label: 'Votes' },
-  { id: 'layers-neurons', label: 'Inside one MLP' },
-  { id: 'layers-steps', label: 'Step by step' },
-]
-
 // The Layers detail's sticky section bar (#17 spec, section 2): jump links,
 // the section on screen highlighted, and the shared MLP layer stepper.
+// Publishes an element's height as a CSS custom property on <html> (the bar
+// sticks below the playback bar, and section scroll margins clear both bars).
+function usePublishHeight(el: Element | null, name: string) {
+  useEffect(() => {
+    if (!el || typeof ResizeObserver === 'undefined') return
+    const root = document.documentElement
+    const ro = new ResizeObserver(() => root.style.setProperty(name, `${el.getBoundingClientRect().height}px`))
+    ro.observe(el)
+    return () => { ro.disconnect(); root.style.removeProperty(name) }
+  }, [el, name])
+}
+
 export function LayersNav({ candidates, run, showStepper }: { candidates?: VotedCandidate[]; run?: TraceEvent; showStepper: boolean }) {
-  const bar = useRef<HTMLElement>(null)
+  const [barEl, setBarEl] = useState<HTMLElement | null>(null)
   const [current, setCurrent] = useState(LAYER_SECTIONS[0].id)
   const { layer, layers, step } = useMlpLayerControl(showStepper ? candidates : undefined, run)
+  usePublishHeight(barEl, '--nav-h')
+  usePublishHeight(barEl && document.querySelector('.controls'), '--controls-h')
   useEffect(() => {
     let frame = 0
     const update = () => {
       frame = 0
-      const line = (bar.current?.getBoundingClientRect().bottom ?? 0) + 1
+      // a section scrolled to (scroll-margin: bar + 6 px) must count as reached
+      const line = (barEl?.getBoundingClientRect().bottom ?? 0) + 8
       let id = LAYER_SECTIONS[0].id
       for (const s of LAYER_SECTIONS) {
         const el = document.getElementById(s.id)
@@ -35,9 +41,9 @@ export function LayersNav({ candidates, run, showStepper }: { candidates?: Voted
     update()
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => { window.removeEventListener('scroll', onScroll); if (frame) cancelAnimationFrame(frame) }
-  }, [])
+  }, [barEl])
   return (
-    <nav ref={bar} data-testid="layers-nav" className="layers-nav" aria-label="Layers sections">
+    <nav ref={setBarEl} data-testid="layers-nav" className="layers-nav" aria-label="Layers sections">
       <span className="layers-nav-title">Jump to</span>
       <div className="layers-nav-links">
         {LAYER_SECTIONS.map((s) => (

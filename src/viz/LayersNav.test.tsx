@@ -2,7 +2,8 @@ import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, expect, test, vi } from 'vitest'
 import { buildFixtureTrace } from '../test/fixtures'
 import { cycleVotes, type VotedCandidate } from './selectors'
-import { LAYER_SECTIONS, LayersNav } from './LayersNav'
+import { LayersNav } from './LayersNav'
+import { LAYER_SECTIONS } from './layersSections'
 import { useMlpLayer } from './mlpLayerSelection'
 
 const events = buildFixtureTrace({ mode: 'real', mlp: true, neurons: true })

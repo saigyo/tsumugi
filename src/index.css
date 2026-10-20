@@ -606,7 +606,7 @@ math { font-family: 'Latin Modern Math', math, 'STIX Two Math', 'Cambria Math', 
 @media (max-width: 640px) { .neuron-table { display: block; overflow-x: auto; } }
 
 /* Layers detail: sticky section bar (#17) */
-.layers-nav { position: sticky; top: 0; z-index: 5; display: flex; align-items: center; gap: .5rem; flex-wrap: nowrap;
+.layers-nav { position: sticky; top: var(--controls-h, 0px); z-index: 5; display: flex; align-items: center; gap: .5rem; flex-wrap: nowrap;
   margin: .4rem -1.2rem .6rem; padding: .45rem 1.2rem; background: var(--card); border-bottom: 1px solid var(--line);
   box-shadow: 0 2px 4px rgba(43, 43, 49, .05); }
 .layers-nav-title { font-weight: 600; font-size: .8rem; white-space: nowrap; }
@@ -615,4 +615,4 @@ math { font-family: 'Latin Modern Math', math, 'STIX Two Math', 'Cambria Math', 
   color: var(--ink); text-decoration: none; white-space: nowrap; background: var(--washi); }
 .layers-nav-link[aria-current="true"] { background: var(--ai); border-color: var(--ai); color: #fff; }
 .layers-nav-layer { margin-left: auto; font-size: .76rem; white-space: nowrap; display: flex; align-items: center; gap: .2rem; }
-.layers-section { scroll-margin-top: 2.6rem; }
+.layers-section { scroll-margin-top: calc(var(--controls-h, 0px) + var(--nav-h, 2.6rem) + 6px); }
