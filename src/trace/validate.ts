@@ -156,24 +156,24 @@ export function stepProblems(s: unknown, layers: number, neurons: number, dims: 
 }
 
 // An import keeps its run when only neuron data is damaged: the broken fields
-// are dropped (neuron data whole, or only its steps) and counted.
-export function dropBrokenNeurons(events: TraceEvent[]): { events: TraceEvent[]; dropped: number } {
-  let layers = 0, dims = 0, dropped = 0
+// are dropped (neuron data whole, or only its steps) and counted per kind.
+export function dropBrokenNeurons(events: TraceEvent[]): { events: TraceEvent[]; droppedNeurons: number; droppedSteps: number } {
+  let layers = 0, dims = 0, droppedNeurons = 0, droppedSteps = 0
   const out = events.map((e) => {
     if (e.type === 'layer') layers = e.total
     if (e.type === 'embed') dims = e.dims
     if (e.type !== 'edits' || e.neurons === undefined) return e
     if (neuronProblems(e.neurons, layers, dims).length > 0) {
-      dropped++
+      droppedNeurons++
       const rest = { ...e }
       delete rest.neurons
       return rest
     }
     if (e.neurons.steps === undefined || stepProblems(e.neurons.steps, layers, e.neurons.neurons, dims).length === 0) return e
-    dropped++
+    droppedSteps++
     const neurons = { ...e.neurons }
     delete neurons.steps
     return { ...e, neurons }
   })
-  return { events: out, dropped }
+  return { events: out, droppedNeurons, droppedSteps }
 }

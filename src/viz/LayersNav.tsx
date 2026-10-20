@@ -49,7 +49,11 @@ export function LayersNav({ candidates, run, showStepper }: { candidates?: Voted
         {LAYER_SECTIONS.map((s) => (
           <a key={s.id} href={`#${s.id}`} data-testid="nav-link" data-section={s.id} className="layers-nav-link"
             aria-current={s.id === current ? 'true' : undefined}
-            onClick={(e) => { e.preventDefault(); document.getElementById(s.id)?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }}>
+            onClick={(e) => {
+              e.preventDefault()
+              const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+              document.getElementById(s.id)?.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' })
+            }}>
             {s.label}</a>
         ))}
       </div>

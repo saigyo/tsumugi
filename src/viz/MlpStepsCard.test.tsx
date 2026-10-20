@@ -1,10 +1,12 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, expect, test, vi } from 'vitest'
 import * as asset from '../neurons/asset'
+import * as steps from '../neurons/steps'
+import * as stripMath from './stripMath'
 import { decodeSteps, editRatio, layerSteps } from '../neurons/steps'
 import { buildFixtureTrace } from '../test/fixtures'
 import { fixtureNeuronAsset, fixtureNeuronLayer, NF } from '../test/neuronFixture'
-import { unpackHalf } from '../trace/neuronPack'
+import { packHalf, unpackHalf } from '../trace/neuronPack'
 import type { NeuronData } from '../trace/types'
 import { MlpStepsCard } from './MlpStepsCard'
 import { NeuronCard } from './NeuronCard'
@@ -116,4 +118,47 @@ test('a load error offers retry', async () => {
   await waitFor(() => expect(screen.getAllByTestId('steps-error')).toHaveLength(2))
   fireEvent.click(screen.getAllByTestId('steps-retry')[0])
   await waitFor(() => screen.getByTestId('strip-n'))
+})
+
+test('a weights file of another size shows the mismatch note in steps 1 and 5 instead of loading forever', async () => {
+  const a = fixtureNeuronAsset()
+  vi.mocked(asset.loadNeuronAsset).mockResolvedValue({ ...a, manifest: { ...a.manifest, neurons: a.manifest.neurons + 1 } })
+  card()
+  await waitFor(() => expect(screen.getAllByTestId('steps-mismatch')).toHaveLength(2))
+  expect(screen.getAllByTestId('steps-mismatch')[0]).toHaveTextContent('This run’s step data doesn’t match the MLP weights file.')
+  expect(screen.queryByTestId('steps-loading')).toBeNull()
+  expect(screen.getByTestId('steps-scatter')).toBeInTheDocument()
+})
+
+const INCONSISTENT = 'This run’s step data is inconsistent and can’t be shown.'
+
+test('step data whose sizes disagree shows the inconsistent-data note', () => {
+  const d = decodeSteps(data.steps!)
+  card({ data: { ...data, steps: { ...data.steps!, gate: packHalf(d.gate.subarray(1)) } } })
+  expect(screen.getByTestId('steps-note')).toHaveTextContent(INCONSISTENT)
+})
+
+test('step data with a fractional number of dimensions shows the inconsistent-data note', () => {
+  const d = decodeSteps(data.steps!)
+  const longer = (a: Float32Array) => packHalf([...a, 0])
+  card({ data: { ...data, steps: { ...data.steps!, mlpIn: longer(d.mlpIn), mlpOut: longer(d.mlpOut) } } })
+  expect(screen.getByTestId('steps-note')).toHaveTextContent(INCONSISTENT)
+})
+
+test('a hover redraws only the box: no summary is recomputed and no strip re-renders', async () => {
+  card()
+  await waitFor(() => screen.getByTestId('strip-edit'))
+  const spies = [vi.spyOn(steps, 'normalize'), vi.spyOn(steps, 'productSummary'), vi.spyOn(steps, 'gateDomain'),
+    vi.spyOn(steps, 'gateCounts'), vi.spyOn(stripMath, 'cellFill')]
+  const dot = screen.getByTestId('steps-scatter').querySelector('.step-dot-marked')!
+  fireEvent.mouseEnter(dot)
+  expect(screen.getByTestId('steps-box')).toBeInTheDocument()
+  fireEvent.mouseLeave(dot)
+  for (const spy of spies) expect(spy).not.toHaveBeenCalled()
+})
+
+test('the norm note says x and n are clipped and w is scaled to its own peak', async () => {
+  card()
+  await waitFor(() => screen.getByTestId('strip-n'))
+  expect(screen.getByTestId('steps-card')).toHaveTextContent('x and n clipped at 2× their typical size, w scaled to its largest value.')
 })

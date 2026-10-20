@@ -57,3 +57,27 @@ test('an import with a broken neurons field loads without it and says so', () =>
   expect(parsed.note).toBe('Neuron data of 2 cycles was damaged and left out.')
   expect(parsed.events.some((e) => e.type === 'edits' && e.neurons)).toBe(false)
 })
+
+const runText = (events: unknown[]) => JSON.stringify({ formatVersion: 1, meta: { prompt: 'p',
+  params: { temperature: 0.8, topK: 10, maxNewTokens: 2 }, mode: 'real', endedAt: 1, reason: 'max-tokens' }, events })
+
+test('an import with only broken step data keeps the neuron data and names the step data', () => {
+  const events = buildFixtureTrace({ mode: 'real', mlp: true, neurons: true }).map((e) =>
+    e.type === 'edits' && e.neurons ? { ...e, neurons: { ...e.neurons, steps: { ...e.neurons.steps!, gate: 'AAAA' } } } : e)
+  const parsed = parseRunFile(runText(events))
+  expect(parsed.ok).toBe(true)
+  if (!parsed.ok) return
+  expect(parsed.note).toBe('Step-by-step data of 2 cycles was damaged and left out.')
+  expect(parsed.events.filter((e) => e.type === 'edits').every((e) => e.type === 'edits' && e.neurons && !e.neurons.steps)).toBe(true)
+})
+
+test('an import with one broken neuron field and one broken step field names both, singular', () => {
+  let n = 0
+  const events = buildFixtureTrace({ mode: 'real', mlp: true, neurons: true }).map((e) => {
+    if (e.type !== 'edits' || !e.neurons) return e
+    return n++ === 0 ? { ...e, neurons: { ...e.neurons, activations: 'AAAA' } }
+      : { ...e, neurons: { ...e.neurons, steps: { ...e.neurons.steps!, up: 'AAAA' } } }
+  })
+  const parsed = parseRunFile(runText(events))
+  expect(parsed.ok && parsed.note).toBe('Neuron data of 1 cycle was damaged and left out. Step-by-step data of 1 cycle was damaged and left out.')
+})

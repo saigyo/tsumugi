@@ -53,7 +53,7 @@ test('the product chart marks the half and 90 % counts and names what it leaves 
   render(<ProductBars h={many} summary={productSummary(many)} marked={[]} hover={null} onHover={() => {}} box={null} />)
   const svg = screen.getByTestId('steps-product')
   expect(svg.querySelectorAll('[data-neuron]')).toHaveLength(120)
-  expect(svg).toHaveTextContent(/\d+ neurons carry half/)
+  expect(svg).toHaveTextContent('1 neuron carries half')
   expect(svg).toHaveTextContent(/the other 80 are all below 0\.08/)
 })
 
@@ -74,4 +74,21 @@ test('a marked bar is focusable, named, and reports its neuron on focus', () => 
   expect(bar.getAttribute('aria-label')).toBe('N4')
   fireEvent.focus(bar)
   expect(onHover).toHaveBeenCalledWith(expect.objectContaining({ neuron: 4, chart: 'product' }))
+})
+
+test('one neuron carrying half is named in the singular', () => {
+  const one = Float32Array.from([100, 1, 1, 1, 1])
+  render(<ProductBars h={one} summary={productSummary(one)} marked={[]} hover={null} onHover={() => {}} box={null} />)
+  expect(screen.getByTestId('steps-product')).toHaveTextContent('1 neuron carries half')
+  expect(screen.getByTestId('steps-product')).toHaveTextContent('1 neuron carries 90 %')
+})
+
+test('a count beyond the bars shown gets an off-chart note at the right end', () => {
+  const flat = Float32Array.from({ length: 500 }, () => 1)
+  render(<ProductBars h={flat} summary={productSummary(flat)} marked={[]} hover={null} onHover={() => {}} box={null} />)
+  const svg = screen.getByTestId('steps-product')
+  expect(svg.querySelectorAll('.step-cut')).toHaveLength(0)
+  const notes = [...svg.querySelectorAll('text')].filter((t) => /needs/.test(t.textContent!))
+  expect(notes.map((t) => t.textContent)).toEqual(['half needs 250 neurons', '90 % needs 450 neurons'])
+  for (const t of notes) expect(t.getAttribute('text-anchor')).toBe('end')
 })

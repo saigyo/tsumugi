@@ -263,7 +263,7 @@ test('real mode: the Layers detail shows the neuron card under the two MLP cards
   expect(screen.getByTestId('neuron-note')).toHaveTextContent('Real model only: simulated runs have no neurons to show.')
 })
 
-test('the step-by-step card: a simulated run shows its note, a real run recorded before step data shows the older-data note', async () => {
+test('the step-by-step card: a simulated run shows its note, a real run without step data shows the neutral no-steps note', async () => {
   vi.spyOn(asset, 'loadNeuronAsset').mockResolvedValue(fixtureNeuronAsset())
   vi.spyOn(asset, 'loadNeuronLayer').mockImplementation(async (l) => fixtureNeuronLayer(l))
   const sim = buildFixtureTrace({ mode: 'sim' })
@@ -273,6 +273,7 @@ test('the step-by-step card: a simulated run shows its note, a real run recorded
   const old = buildFixtureTrace({ mode: 'real', mlp: true, neurons: true, steps: false })
   render(<DetailPanel events={old} cursor={old.findIndex((e) => e.type === 'layer')} mode="real" />)
   expect(screen.getByTestId('steps-note')).toHaveTextContent(STEPS_OLD_NOTE)
+  expect(STEPS_OLD_NOTE).toBe('This run has no step-by-step data (recorded before it existed, or left out because it was damaged).')
   await waitFor(() => expect(screen.getAllByTestId('neuron-row').length).toBeGreaterThan(0))
   vi.restoreAllMocks()
 })

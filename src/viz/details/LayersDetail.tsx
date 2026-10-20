@@ -18,7 +18,7 @@ const PENDING_NOTE = 'Votes appear once this cycle’s scores are computed.'
 const NEURON_SIM_NOTE = 'Real model only: simulated runs have no neurons to show.'
 const NEURON_OLD_NOTE = 'This run was recorded before neuron data existed.'
 export const STEPS_SIM_NOTE = 'Real model only: simulated runs don’t compute an MLP.'
-export const STEPS_OLD_NOTE = 'This run was recorded before the step-by-step data existed. Generate it again to see it.'
+export const STEPS_OLD_NOTE = 'This run has no step-by-step data (recorded before it existed, or left out because it was damaged).'
 const EDITS_PENDING_NOTE = 'Edit sizes appear once this cycle’s layers are measured.'
 
 export function LayersDetail({ event, mode, attention, attentionInRun, tokens, streamShape, grid, pinnedHeads, onPin, pinNote, edits, votes, neurons, run }: {

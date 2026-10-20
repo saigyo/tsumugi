@@ -204,8 +204,9 @@ test('dropBrokenNeurons removes only the broken fields and counts them', () => {
   const events = withNeurons(neuronData(3))
   const firstEdits = events.findIndex((e) => e.type === 'edits')
   events[firstEdits] = { ...(events[firstEdits] as Extract<TraceEvent, { type: 'edits' }>), neurons: neuronData(2) }
-  const { events: kept, dropped } = dropBrokenNeurons(events)
-  expect(dropped).toBe(1)
+  const { events: kept, droppedNeurons, droppedSteps } = dropBrokenNeurons(events)
+  expect(droppedNeurons).toBe(1)
+  expect(droppedSteps).toBe(0)
   const edits = kept.filter((e): e is Extract<TraceEvent, { type: 'edits' }> => e.type === 'edits')
   expect(edits[0].neurons).toBeUndefined()
   expect(edits[1].neurons).toBeDefined()
@@ -231,9 +232,22 @@ test('steps with a wrong length or non-finite values are reported by field', () 
 
 test('an import drops only broken steps and keeps the neuron data', () => {
   const events = withNeurons({ ...neuronData(3), steps: { ...steps(3), gate: 'not base64!' } })
-  const { events: out, dropped } = dropBrokenNeurons(events)
+  const { events: out, droppedNeurons, droppedSteps } = dropBrokenNeurons(events)
   const edits = out.filter((e) => e.type === 'edits') as Array<Extract<TraceEvent, { type: 'edits' }>>
-  expect(dropped).toBe(edits.length)
+  expect(droppedSteps).toBe(edits.length)
+  expect(droppedNeurons).toBe(0)
   expect(edits.every((e) => e.neurons !== undefined && e.neurons.steps === undefined)).toBe(true)
   expect(validateTrace(out)).toEqual([])
+})
+
+test('whole neuron drops and steps-only drops are counted separately', () => {
+  const events = withNeurons({ ...neuronData(3), steps: steps(3) })
+  const at = events.flatMap((e, i) => (e.type === 'edits' ? [i] : []))
+  expect(at.length).toBeGreaterThanOrEqual(2)
+  const ed = (i: number) => events[i] as Extract<TraceEvent, { type: 'edits' }>
+  events[at[0]] = { ...ed(at[0]), neurons: neuronData(2) }
+  events[at[1]] = { ...ed(at[1]), neurons: { ...ed(at[1]).neurons!, steps: { ...steps(3), up: 'not base64!' } } }
+  const { droppedNeurons, droppedSteps } = dropBrokenNeurons(events)
+  expect(droppedNeurons).toBe(1)
+  expect(droppedSteps).toBe(1)
 })

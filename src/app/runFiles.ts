@@ -33,10 +33,11 @@ export function parseRunFile(text: string): ParsedRunFile {
   if (!Array.isArray(d.events)) return { ok: false, error: 'missing events' }
   const nonObject = d.events.findIndex((e) => typeof e !== 'object' || e === null)
   if (nonObject >= 0) return { ok: false, error: `invalid trace: event ${nonObject} is not an object` }
-  const { events, dropped } = dropBrokenNeurons(d.events as TraceEvent[])
+  const { events, droppedNeurons, droppedSteps } = dropBrokenNeurons(d.events as TraceEvent[])
   const problems = validateTrace(events)
   if (problems.length > 0) return { ok: false, error: `invalid trace: ${problems[0]}` }
-  const note = dropped > 0 ? `Neuron data of ${dropped} cycle${dropped === 1 ? '' : 's'} was damaged and left out.` : undefined
+  const damaged = (what: string, n: number) => n > 0 ? [`${what} of ${n} cycle${n === 1 ? '' : 's'} was damaged and left out.`] : []
+  const note = [...damaged('Neuron data', droppedNeurons), ...damaged('Step-by-step data', droppedSteps)].join(' ') || undefined
   return {
     ok: true,
     meta: {

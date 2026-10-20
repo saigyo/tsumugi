@@ -34,6 +34,16 @@ test('a click scrolls its section into view', () => {
   expect(Element.prototype.scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth', block: 'start' })
 })
 
+test('with reduced motion requested, a click jumps without smooth scrolling', () => {
+  const original = window.matchMedia
+  window.matchMedia = vi.fn((q: string) => ({ matches: q === '(prefers-reduced-motion: reduce)', media: q } as MediaQueryList))
+  try {
+    page([0, 500, 1000, 1500, 2000, 2500])
+    fireEvent.click(screen.getAllByTestId('nav-link')[2])
+    expect(Element.prototype.scrollIntoView).toHaveBeenCalledWith({ behavior: 'auto', block: 'start' })
+  } finally { window.matchMedia = original }
+})
+
 test('the section whose top has passed under the bar is current', () => {
   vi.useFakeTimers()
   page([-1200, -700, -200, -10, 600, 1100])

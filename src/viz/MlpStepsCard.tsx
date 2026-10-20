@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { memo, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { MLP_STEP_CALLOUTS } from '../glossary/callouts'
 import { Term } from '../glossary/Term'
 import type { NeuronAsset } from '../neurons/asset'
@@ -18,6 +18,7 @@ import { visibleToken } from './tokenText'
 
 const LOADING = 'Loading the MLP weights (about 0.9 MB per layer, once per model version)…'
 const MISMATCH = 'This run’s step data doesn’t match the MLP weights file.'
+const INCONSISTENT = 'This run’s step data is inconsistent and can’t be shown.'
 const f2 = (v: number) => `${v < 0 ? '−' : ''}${Math.abs(v).toFixed(2)}`
 
 const acts = new WeakMap<NeuronData, Float32Array>()
@@ -50,20 +51,27 @@ function StepsBody({ data, candidates, selected, layer }: { data: NeuronData; ca
   const mode = useNeuronMode((s) => s.mode)
   const [hover, setHover] = useState<Hover | null>(null)
   const dims = decodeSteps(data.steps!).mlpIn.length / (activationsOf(data).length / data.neurons)
-  const s = useMemo(() => layerSteps(decodeSteps(data.steps!), activationsOf(data), layer, data.neurons, dims), [data, layer, dims])
-  const weights = state.status === 'ready' && state.asset.manifest.neurons === data.neurons && state.asset.manifest.dims === dims ? state : null
+  const s = useMemo(() => Number.isInteger(dims) ? layerSteps(decodeSteps(data.steps!), activationsOf(data), layer, data.neurons, dims) : null,
+    [data, layer, dims])
+  const fits = state.status === 'ready' && state.asset.manifest.neurons === data.neurons && state.asset.manifest.dims === dims
+  // useNeuronLayer returns a new object every render: key the memos on its stable parts
+  const wAsset = fits ? state.asset : null, wLayer = fits ? state.layer : null
+  const weights = useMemo(() => wAsset && wLayer ? { asset: wAsset, layer: wLayer } : null, [wAsset, wLayer])
   const rowB64 = data.candidates.find((c) => c.id === candidates[selected].id)?.row
   const marked = useMemo(() => {
     if (!weights || !s) return []
     const row = mode === 'vote' && rowB64 ? unpackFloat32(rowB64) : null
     return listedNeurons(weights.asset.manifest, weights.layer, layerActivations(activationsOf(data), layer, data.neurons), mode, row, weights.asset.g, data.invRms)
   }, [weights, s, mode, rowB64, data, layer])
-  if (!s) return <p data-testid="steps-note" className="mlp-note">{MISMATCH}</p>
-  const domain = gateDomain(s.gate)
-  const named = [...marked].sort((a, b) => Math.abs(s.h[b]) - Math.abs(s.h[a])).slice(0, 3)
+  // per-layer summaries: computed once per layer, not on every hover
+  const sum = useMemo(() => s && { domain: gateDomain(s.gate), counts: gateCounts(s.gate), product: productSummary(s.h) }, [s])
+  const named = useMemo(() => s ? [...marked].sort((a, b) => Math.abs(s.h[b]) - Math.abs(s.h[a])).slice(0, 3) : [], [s, marked])
+  if (!s || !sum) return <p data-testid="steps-note" className="mlp-note">{INCONSISTENT}</p>
   const box = (chart: Hover['chart']) => hover?.chart === chart
     ? <HoverBox s={s} hover={hover} weights={weights} /> : null
-  const pending = state.status === 'error'
+  const pending = state.status === 'ready'
+    ? <p data-testid="steps-mismatch" className="mlp-note">{MISMATCH}</p>
+    : state.status === 'error'
     ? <p data-testid="steps-error" className="mlp-note">Couldn’t load the MLP weights.{' '}
         <button type="button" data-testid="steps-retry" onClick={state.retry}>Retry</button></p>
     : <p data-testid="steps-loading" className="mlp-note">{LOADING}</p>
@@ -77,15 +85,15 @@ function StepsBody({ data, candidates, selected, layer }: { data: NeuronData; ca
       </Step>
       <Step n={2} name="Gate and up" tex={String.raw`g = W_{\text{gate}} \cdot n \quad u = W_{\text{up}} \cdot n`}
         text="Two different weight matrices turn n into two lists of 1,536 numbers, one pair per neuron. Each dot is one neuron.">
-        <GateUpScatter gate={s.gate} up={s.up} domain={domain} marked={marked} named={named} hover={hover} onHover={setHover} box={box('scatter')} />
+        <GateUpScatter gate={s.gate} up={s.up} domain={sum.domain} marked={marked} named={named} hover={hover} onHover={setHover} box={box('scatter')} />
       </Step>
       <Step n={3} name="SiLU" tex={String.raw`\operatorname{SiLU}(g) = g \cdot \sigma(g)`}
         text="The gate goes through SiLU. Same gate axis as above: each dot slides straight down onto the curve.">
-        <SiluChart gate={s.gate} domain={domain} marked={marked} counts={gateCounts(s.gate)} hover={hover} onHover={setHover} box={box('silu')} />
+        <SiluChart gate={s.gate} domain={sum.domain} marked={marked} counts={sum.counts} hover={hover} onHover={setHover} box={box('silu')} />
       </Step>
       <Step n={4} name="Product" tex={String.raw`h = \operatorname{SiLU}(g) \odot u`}
         text="Each neuron’s up value is scaled by its gate. This is the neuron’s activation, the number “Inside one MLP” shows.">
-        <ProductBars h={s.h} summary={productSummary(s.h)} marked={marked} hover={hover} onHover={setHover} box={box('product')} />
+        <ProductBars h={s.h} summary={sum.product} marked={marked} hover={hover} onHover={setHover} box={box('product')} />
       </Step>
       <Step n={5} name="Down" tex={String.raw`\text{edit} = W_{\text{down}} \cdot h`}
         text={<>Each neuron adds its column of W<sub>down</sub>, scaled by its activation. The sum is what this layer’s MLP adds to the stream.</>}>
@@ -107,32 +115,33 @@ function Step({ n, name, tex, text, children }: { n: number; name: string; tex: 
   )
 }
 
-function NormStrips({ s, w, eps }: { s: LayerSteps; w: Float32Array; eps: number }) {
-  const { n, rms: r } = normalize(s.x, w, eps)
-  const peakW = w.reduce((m, v) => Math.max(m, Math.abs(v)), 0) || 1
+const NormStrips = memo(function NormStrips({ s, w, eps }: { s: LayerSteps; w: Float32Array; eps: number }) {
+  const { n, rms: r } = useMemo(() => normalize(s.x, w, eps), [s.x, w, eps])
+  const peakW = useMemo(() => w.reduce((m, v) => Math.max(m, Math.abs(v)), 0) || 1, [w])
   return (
     <div>
       <StepStrip values={s.x} lim={2 * rms(s.x)} label="x, into the MLP" testId="strip-x" />
       <StepStrip values={w} lim={peakW} label={`÷ rms(x) = ${r.toFixed(1)}, ⊙ w`} testId="strip-w" />
       <StepStrip values={n} lim={2 * rms(n)} label="n, normalized" testId="strip-n" />
-      <p className="mlp-scale-note">{s.x.length} numbers each; blue positive, red negative, colours clipped at 2× the typical size.</p>
+      <p className="mlp-scale-note">{s.x.length} numbers each; blue positive, red negative; x and n clipped at 2× their typical size, w scaled to its largest value.</p>
     </div>
   )
-}
+})
 
-function DownStrips({ s, layer, dims, marked }: { s: LayerSteps; layer: NeuronLayer; dims: number; marked: number[] }) {
-  const top = [...marked].sort((a, b) => Math.abs(s.h[b]) * columnNorm(layer, dims, b) - Math.abs(s.h[a]) * columnNorm(layer, dims, a)).slice(0, 3)
+const DownStrips = memo(function DownStrips({ s, layer, dims, marked }: { s: LayerSteps; layer: NeuronLayer; dims: number; marked: number[] }) {
+  const top = useMemo(() => [...marked].map((i) => ({ i, size: Math.abs(s.h[i]) * columnNorm(layer, dims, i) }))
+    .sort((a, b) => b.size - a.size).slice(0, 3).map(({ i }) => ({ i, values: contribution(layer, dims, i, s.h[i]) })), [marked, s, layer, dims])
   const lim = 2 * rms(s.edit)
   return (
     <div>
-      {top.map((i) => <StepStrip key={i} values={contribution(layer, dims, i, s.h[i])} lim={lim} label={`N${i}: ${f2(s.h[i])} × column`} testId={`strip-c${i}`} labelClass="step-strip-mono" />)}
+      {top.map(({ i, values }) => <StepStrip key={i} values={values} lim={lim} label={`N${i}: ${f2(s.h[i])} × column`} testId={`strip-c${i}`} labelClass="step-strip-mono" />)}
       <div className="step-strip-row"><span className="step-strip-label">+ {s.h.length - top.length} more</span><span className="mlp-note">…</span></div>
       <StepStrip values={s.edit} lim={lim} label="= edit" testId="strip-edit" labelClass="step-strip-sum" />
       <p data-testid="steps-ratio" className="mlp-scale-note">‖edit‖ = {Math.hypot(...s.edit).toFixed(0)},{' '}
         {editRatio(s.edit, s.x).toFixed(2)} of the stream’s length (the edit size card’s cell). Same colour scale on every row.</p>
     </div>
   )
-}
+})
 
 // Placed next to the hovered mark, as in the mockup: to its left in the right half of the chart, to its right otherwise;
 // above it in the lower half, below it otherwise, so it stays inside the chart cell (which clips overflow).
