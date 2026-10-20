@@ -32,6 +32,7 @@ PROMPTS = [
     "The cat sat on the mat because it was tired",
     "one two three one two three one",     # repeats → induction rows exist
 ]
+TIE_MARGIN = 0.1  # max stock top-vs-ours logit gap for a greedy flip to count as a near-tie
 TOL = 2e-2  # fp32-vs-quantized logit tolerance; fp32-vs-fp32 uses 1e-4
 
 
@@ -201,21 +202,65 @@ def _greedy_continue(sess, model_dir: Path, prompt: str, n_steps: int) -> list[i
     return generated
 
 
+def greedy_verdict(ours: list[int], theirs: list[int],
+                   stock_logits_at_split: "np.ndarray | None") -> dict:
+    """Decide greedy parity from the two decoded id lists. When they differ,
+    `stock_logits_at_split` must be the stock model's last-position logits
+    after the shared prefix (prompt + the tokens before the first difference).
+    A flip is accepted only if stock itself scores our token within
+    TIE_MARGIN of its own top token."""
+    n = len(theirs)
+    if ours == theirs:
+        return {"passed": True,
+                "detail": f"{n}-step greedy continuation matches stock: {ours}"}
+    k = next(i for i, (a, b) in enumerate(zip(ours, theirs)) if a != b)
+    if stock_logits_at_split is None:
+        return {"passed": False,
+                "detail": f"{n}-step greedy continuation diverges at step {k + 1}: "
+                          f"ours={ours} stock={theirs}"}
+    a = float(stock_logits_at_split[theirs[k]])
+    b = float(stock_logits_at_split[ours[k]])
+    margin = float(np.max(stock_logits_at_split)) - b
+    if margin <= TIE_MARGIN:
+        return {"passed": True,
+                "detail": f"{n}-step greedy continuation diverges at step {k + 1} on a "
+                          f"near-tie: stock scores {theirs[k]} at {a:.2f} and {ours[k]} "
+                          f"at {b:.2f} (margin {margin:.3f} \u2264 {TIE_MARGIN}); "
+                          f"ours={ours} stock={theirs}"}
+    return {"passed": False,
+            "detail": f"{n}-step greedy continuation diverges at step {k + 1}, not a "
+                      f"near-tie: stock scores {theirs[k]} at {a:.2f} and {ours[k]} at "
+                      f"{b:.2f} (margin {margin:.3f} > {TIE_MARGIN}); "
+                      f"ours={ours} stock={theirs}"}
+
+
 def _check_greedy_parity(sess, stock_sess, model_dir: Path, n_steps: int = 8) -> dict:
     """Greedy-decode N tokens from PROMPTS[0] on both `sess` and the stock
     fp32 session and compare the generated token-id sequences. This is the
     PRIMARY parity verdict for the quantized variants (model_q4/model_fp16):
     their per-logit diff against stock is expected to exceed a tight
-    tolerance by design, so token identity — not the raw magnitude — is
-    what should gate publish."""
+    tolerance by design, so token identity, not the raw magnitude, gates
+    publish.
+
+    A flip is tolerated when it is a near-tie in the STOCK model: quantization
+    moves logits by up to ~1, so a top-2 margin of 0.01 is below that noise
+    and either token is a legitimate argmax. We re-run stock on the shared
+    prefix and require stock's own score for our token to be within
+    TIE_MARGIN of its top. Argmax parity on the four ARGMAX_PROMPTS still
+    gates real divergences."""
     ours = _greedy_continue(sess, model_dir, PROMPTS[0], n_steps)
     theirs = _greedy_continue(stock_sess, model_dir, PROMPTS[0], n_steps)
-    match = ours == theirs
-    return {
-        "passed": match,
-        "detail": (f"{n_steps}-step greedy continuation matches stock: {ours}" if match
-                   else f"{n_steps}-step greedy continuation diverges: ours={ours} stock={theirs}"),
-    }
+    logits = None
+    if ours != theirs:
+        k = next(i for i, (a, b) in enumerate(zip(ours, theirs)) if a != b)
+        prefix = np.concatenate(
+            [_tokenize(model_dir, PROMPTS[0]), np.array([theirs[:k]], dtype=np.int64)],
+            axis=1)
+        if _has_past_inputs(stock_sess):
+            logits = _drive_cached_stepwise(stock_sess, prefix)[-1]["logits"][0, -1]
+        else:
+            logits = stock_sess.run(["logits"], _feeds(stock_sess, prefix))[0][0, -1]
+    return greedy_verdict(ours, theirs, logits)
 
 
 def _check_cache_integrity(sess, model_dir: Path, tol: float, strict: bool = True) -> dict:

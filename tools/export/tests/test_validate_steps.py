@@ -1,6 +1,7 @@
 import numpy as np
 
-from tsumugi_export.validate import check_argmax_parity, check_silu_product, check_steps_parity
+from tsumugi_export.validate import (check_argmax_parity, check_silu_product, check_steps_parity,
+                                     greedy_verdict)
 
 rng = np.random.default_rng(5)
 
@@ -36,3 +37,25 @@ def test_silu_of_the_gate_times_up_reproduces_the_activations():
     acts = gate / (1 + np.exp(-gate)) * up
     assert check_silu_product({"mlp_gate": gate, "mlp_up": up, "mlp_activations": acts})["passed"]
     assert not check_silu_product({"mlp_gate": gate, "mlp_up": up, "mlp_activations": acts + 0.1})["passed"]
+
+
+def _split_logits(top, ours_tok, margin):
+    v = np.zeros(20000, np.float32)
+    v[top] = 17.75
+    v[ours_tok] = 17.75 - margin
+    return v
+
+
+def test_greedy_verdict_passes_identical_sequences():
+    v = greedy_verdict([1, 2, 3], [1, 2, 3], None)
+    assert v["passed"] and "matches stock" in v["detail"]
+
+
+def test_greedy_verdict_accepts_a_flip_on_a_near_tie():
+    v = greedy_verdict([284, 15100, 30], [284, 357, 436], _split_logits(357, 15100, 0.01))
+    assert v["passed"] and "near-tie" in v["detail"] and "step 2" in v["detail"]
+
+
+def test_greedy_verdict_fails_a_flip_with_a_clear_margin_and_names_it():
+    v = greedy_verdict([284, 15100, 30], [284, 357, 436], _split_logits(357, 15100, 2.0))
+    assert not v["passed"] and "2.000" in v["detail"]
