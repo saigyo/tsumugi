@@ -21,7 +21,7 @@ async function check() {
   const lines = []
   let ok = true
   for (const device of ['webgpu', 'wasm']) {
-    if (device === 'webgpu' && !('gpu' in navigator)) { lines.push('webgpu: not available in this browser'); continue }
+    if (device === 'webgpu' && !('gpu' in navigator)) { lines.push('webgpu: not available in this browser — FAIL (use a WebGPU-capable browser)'); ok = false; continue }
     const model = await AutoModelForCausalLM.from_pretrained('model', { dtype: 'q8', device })
     for (const c of ref.cases) {
       const n = c.ids.length

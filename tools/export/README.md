@@ -89,7 +89,7 @@ the actual acceptance checklist for a release.
    nothing for the app, and bumping the constant alone points at a tag that
    does not exist. Tags never move and `publish` refuses an existing one: if
    the in-app check in step 9 fails, fix, re-validate, publish under the
-   **next** tag (`v6`) and bump the constant again.
+   **next** tag (`v7`) and bump the constant again.
 9. **In the actual Tsumugi app**, load the exported model in real
    (non-fallback) attention mode and check the items below. Pre-publish
    in-app testing against a not-yet-uploaded artifact is not supported in
