@@ -1,6 +1,7 @@
 import { poolRow } from '../geometry/math'
 import type { EmbedSource, TokenInfo } from '../trace/types'
 import { thousands } from './selectors'
+import { readableTokenText } from '../engine/tokenBytes'
 import { visibleToken } from './tokenText'
 import { cellFill, peakOf, rowMarkY } from './stripMath'
 import { VectorStrip } from './VectorStrip'
@@ -50,7 +51,7 @@ export function EmbeddingLookup({ tokens, dims, vocabSize, selected, onSelect, v
             <button key={i} type="button" data-testid="embed-token" data-selected={String(i === selected)}
               className={`token-chip embed-chip hue-${i % 6}`} onClick={() => onSelect(i)}
               title={`Show row ${t.id} of E`}>
-              <span className="chip-text">{visibleToken(t.text)}</span>
+              <span className="chip-text">{visibleToken(t)}</span>
               <span className="chip-id">{t.id}</span>
             </button>
           ))}
@@ -69,7 +70,7 @@ export function EmbeddingLookup({ tokens, dims, vocabSize, selected, onSelect, v
         <div className="embed-col-label">row {token?.id ?? '—'}</div>
         {cells.length > 0 ? (
           <VectorStrip cells={cells} cellW={CELL_W} cellH={CELL_H} testId="embed-strip" cellTestId="embed-strip-cell"
-            ariaLabel={`embedding row of token ${token?.text ?? ''}`} />
+            ariaLabel={`embedding row of token ${token ? readableTokenText(token.id, token.text) : ''}`} />
         ) : (
           <div data-testid="embed-strip-missing" className="embed-strip-missing">{missingNote}</div>
         )}

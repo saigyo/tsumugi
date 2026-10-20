@@ -26,12 +26,12 @@ export function runSummary(events: TraceEvent[], cursor: number): RunSummary | n
   const lastRow = ed?.mlp.at(-1)
   const edits = ed && lastRow
     ? (() => { const layer = lastRow.indexOf(Math.max(...lastRow))
-        return { token: ed.tokens.at(-1)!.text, layer, ratio: lastRow[layer] } })()
+        return { token: ed.tokens.at(-1)!, layer, ratio: lastRow[layer] } })()
     : undefined
   const cv = cycleVotes(events, at)
   const votes = cv.status === 'ok'
     ? (() => { const top = cv.candidates[0]; const layer = top.votes.mlp.indexOf(Math.max(...top.votes.mlp))
-        return { candidate: top.text, layer, value: top.votes.mlp[layer] } })()
+        return { candidate: { id: top.id, text: top.text }, layer, value: top.votes.mlp[layer] } })()
     : undefined
   return {
     mode: start.mode,
@@ -43,7 +43,7 @@ export function runSummary(events: TraceEvent[], cursor: number): RunSummary | n
     ...(embed ? { stream: { seqLen: embed.seqLen, dims: embed.dims, layers: layer?.total ?? 0 } } : {}),
     ...(start.vocabSize ? { vocabSize: start.vocabSize } : {}),
     ...(sm ? { softmax: { temperature: sm.temperature,
-      top: sm.topK.map((c) => ({ text: c.text, logit: logitOf.get(c.id), prob: c.prob })) } } : {}),
+      top: sm.topK.map((c) => ({ id: c.id, text: c.text, logit: logitOf.get(c.id), prob: c.prob })) } } : {}),
     ...(edits ? { edits } : {}),
     ...(votes ? { votes } : {}),
   }

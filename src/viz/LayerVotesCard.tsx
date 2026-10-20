@@ -20,7 +20,7 @@ function shown(v: LayerVotes, blocks: Blocks): number[] {
   return v.mlp.map((m, l) => m + v.attn[l])
 }
 
-function cellText(blocks: Blocks, layer: number, token: string, v: number): string {
+function cellText(blocks: Blocks, layer: number, token: { id: number; text: string }, v: number): string {
   const who = blocks === 'both' ? `layer ${layer} (attention + MLP)` : `${BLOCKS_NAME[blocks]} ${layer}`
   return `${who} → “${visibleToken(token)}”: ${signed(v)} to the score`
 }
@@ -83,12 +83,12 @@ function VotesBody({ candidates, selected, onSelect, onLayer }: {
         {candidates.map((c, r) => (
           <div key={c.id} className="votes-grid-row">
             <button type="button" data-testid="vote-row-label" aria-pressed={r === selected}
-              className="mlp-cand" onClick={() => onSelect(r)}>{visibleToken(c.text)}</button>
+              className="mlp-cand" onClick={() => onSelect(r)}>{visibleToken(c)}</button>
             <div className="mlp-cells votes-cells" style={columns}>
               {values[r].map((v, l) => (
                 <div key={l} data-testid="vote-cell" data-row={r} data-layer={l} data-value={v.toFixed(2)}
                   style={{ background: voteFill(v, peak) }} onClick={() => { onSelect(r); onLayer?.(l) }}
-                  onMouseEnter={() => setHover(cellText(blocks, l, c.text, v))} />
+                  onMouseEnter={() => setHover(cellText(blocks, l, c, v))} />
               ))}
             </div>
             <span data-testid="vote-row-total" className="votes-total-cell">
@@ -137,7 +137,7 @@ function RunningScore({ candidates, selected }: { candidates: VotedCandidate[]; 
   const sel = candidates[selected]
   return (
     <figure className="mlp-chart-fig">
-      <figcaption className="mlp-chart-label">running score, “{visibleToken(sel.text)}” against the rest — ends
+      <figcaption className="mlp-chart-label">running score, “{visibleToken(sel)}” against the rest — ends
         at <span data-testid="vote-final">{sel.logit.toFixed(2)}</span></figcaption>
       <svg data-testid="votes-lens" className="mlp-chart" viewBox={`0 0 ${W} ${H}`} role="img"
         aria-label="each candidate's score building up across the layers">
@@ -159,7 +159,7 @@ function RunningScore({ candidates, selected }: { candidates: VotedCandidate[]; 
         <circle cx={x(steps)} cy={y(series[selected].at(-1)!)} r={3.5} className="vote-line-end" />
         {ends.map(({ r, y: ly }) => (
           <text key={candidates[r].id} data-testid="vote-line-label" x={X1 + 6} y={ly + 3}
-            className={r === selected ? 'mlp-tick vote-label-selected' : 'mlp-tick'}>{visibleToken(candidates[r].text)}</text>
+            className={r === selected ? 'mlp-tick vote-label-selected' : 'mlp-tick'}>{visibleToken(candidates[r])}</text>
         ))}
       </svg>
       <p className="mlp-scale-note">Each layer adds its attention and MLP votes; the selected candidate overtakes
@@ -181,7 +181,7 @@ function Breakdown({ candidate, layers }: { candidate: VotedCandidate; layers: n
   const barMax = Math.max(...rows.map((r) => Math.abs(r.value))) || 1
   return (
     <table className="votes-breakdown">
-      <caption>where the score of “{visibleToken(candidate.text)}” comes from</caption>
+      <caption>where the score of “{visibleToken(candidate)}” comes from</caption>
       <tbody>
         {rows.map((r) => (
           <tr key={r.label} data-testid="votes-row" className={r.sub ? 'votes-sub' : undefined}>

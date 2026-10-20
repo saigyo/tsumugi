@@ -41,7 +41,7 @@ export const softmax: GlossaryEntry = {
           ? 'This run uses T = 0: no draw, the top score is taken (greedy).'
           : `At this run’s T = ${T}, 1 point ahead is ${leadRatio(1, T)}× the probability, 2 points ${leadRatio(2, T)}×.`}</p>
         {top.length > 0 && (
-          <p>Current top: {top.map((c) => `${visibleToken(c.text)} ${Math.round(c.prob * 100)}%`).join(', ')}.</p>
+          <p>Current top: {top.map((c) => `${visibleToken(c)} ${Math.round(c.prob * 100)}%`).join(', ')}.</p>
         )}
       </>
     )

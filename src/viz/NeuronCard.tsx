@@ -84,7 +84,7 @@ function NeuronBody({ data, candidates, selected, layer }: {
           <div className="neuron-cands" role="group" aria-label="Candidate">candidate:{' '}
             {candidates.map((c, i) => (
               <button key={c.id} type="button" data-testid="neuron-cand" className="mlp-cand" aria-pressed={i === selected}
-                onClick={() => select(candidates, i)}>{visibleToken(c.text)}</button>
+                onClick={() => select(candidates, i)}>{visibleToken(c)}</button>
             ))}
           </div>
         )}
@@ -138,7 +138,7 @@ function NeuronTable({ data, asset, weights, layer, mode, cand }: {
     )
   }
   if (!table) return <p data-testid="neuron-note" className="mlp-note">{NO_ROW}</p>
-  const name = visibleToken(cand.text)
+  const name = visibleToken(cand)
   const peak = Math.max(...table.rows.map((r) => Math.abs(r.vote))) || 1
   return (
     <>

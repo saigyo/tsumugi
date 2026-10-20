@@ -23,7 +23,7 @@ export function TokenizerDetail({ tokens, truncated }: { tokens: TokenInfo[]; tr
       <div className="token-chip-row">
         {tokens.map((t, i) => (
           <span key={i} className={`token-chip hue-${i % 6}`}>
-            <span className="chip-text">{visibleToken(t.text)}</span>
+            <span className="chip-text">{visibleToken(t)}</span>
             <span className="chip-id">{t.id}</span>
           </span>
         ))}

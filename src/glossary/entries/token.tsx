@@ -26,7 +26,7 @@ export const token: GlossaryEntry = {
   ),
   inRun: (run) => run.tokens.length > 0 ? (
     <p>Your prompt became {run.tokens.length} tokens:{' '}
-      {run.tokens.slice(0, SHOWN).map((t) => visibleToken(t.text)).join(' | ')}
+      {run.tokens.slice(0, SHOWN).map((t) => visibleToken(t)).join(' | ')}
       {run.tokens.length > SHOWN ? ' | …' : ''}.</p>
   ) : null,
 }

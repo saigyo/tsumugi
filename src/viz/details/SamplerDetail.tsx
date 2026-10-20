@@ -23,7 +23,7 @@ export function SamplerDetail({ softmax, sample }: { softmax: SoftmaxEvent; samp
       </svg>
       {sample && (
         <p data-testid="chosen-marker" className="chosen-marker">
-          → chose "{visibleToken(sample.chosen.text)}" (id {sample.chosen.id})
+          → chose "{visibleToken(sample.chosen)}" (id {sample.chosen.id})
         </p>
       )}
     </div>

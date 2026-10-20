@@ -39,7 +39,7 @@ export function SoftmaxDetail({ events, cursor }: { events: TraceEvent[]; cursor
           const logit = logitOf.get(c.id)
           return (
             <div key={c.id} data-testid="softmax-candidate" className="softmax-candidate">
-              <span className={`token-chip hue-${i % 6}`}><span className="chip-text">{visibleToken(c.text)}</span></span>
+              <span className={`token-chip hue-${i % 6}`}><span className="chip-text">{visibleToken(c)}</span></span>
               <svg data-testid="prob-bar" data-token={c.text} width={BAR_W} height="14">
                 {logit !== undefined && <title>{shareDerivation(logit, top, T, c.prob)}</title>}
                 <rect width={BAR_W * c.prob} height="14" className="bar-rect" style={{ transition: 'width .4s' }} />

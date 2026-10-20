@@ -4,6 +4,8 @@ import { buildFixtureTrace, makeFixtureTrace } from '../../test/fixtures'
 import { SoftmaxDetail } from './SoftmaxDetail'
 import { resetGlossaryStore, useGlossaryStore } from '../../glossary/store'
 import { texOf } from '../../test/tex'
+import { setTokenPieces } from '../../engine/tokenBytes'
+import type { TraceEvent } from '../../trace/types'
 
 afterEach(() => { cleanup(); resetGlossaryStore() })
 
@@ -68,4 +70,15 @@ test('callouts open the Softmax entry at exp, temperature and top-k', () => {
 test('renders nothing before the cycle’s softmax event', () => {
   const { container } = render(<SoftmaxDetail events={makeFixtureTrace()} cursor={7} />)
   expect(container).toBeEmptyDOMElement()
+})
+
+test('a candidate that is part of a character shows its bytes, not "�"', () => {
+  const events = makeFixtureTrace().map((e): TraceEvent => (e.type === 'softmax'
+    ? { ...e, topK: e.topK.map((c, i) => (i === 1 ? { ...c, id: 459, text: ' \uFFFD' } : c)) } : e))
+  setTokenPieces((id) => (id === 459 ? 'ĠâĢ' : undefined))
+  try {
+    render(<SoftmaxDetail events={events} cursor={8} />)
+    expect(screen.getByTestId('detail-softmax')).toHaveTextContent('␣<0xE2><0x80>')
+    expect(screen.getByTestId('detail-softmax')).not.toHaveTextContent('\uFFFD')
+  } finally { setTokenPieces(null) }
 })

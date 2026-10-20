@@ -33,16 +33,16 @@ function summaryFor(stage: Exclude<StageId, null>, events: TraceEvent[], cursor:
     }
     case 'logits': {
       const e = latestOfType(events, cursor, 'logits')
-      return e ? `top: ${e.topK[0] ? visibleToken(e.topK[0].text) : '—'}` : null
+      return e ? `top: ${e.topK[0] ? visibleToken(e.topK[0]) : '—'}` : null
     }
     case 'softmax': {
       const e = latestOfType(events, cursor, 'softmax')
       const top = e?.topK[0]
-      return top ? `${visibleToken(top.text)}: ${Math.round(top.prob * 100)}%` : null
+      return top ? `${visibleToken(top)}: ${Math.round(top.prob * 100)}%` : null
     }
     case 'sampler': {
       const e = latestOfType(events, cursor, 'sample')
-      return e ? `chose ${visibleToken(e.chosen.text)}` : null
+      return e ? `chose ${visibleToken(e.chosen)}` : null
     }
   }
 }

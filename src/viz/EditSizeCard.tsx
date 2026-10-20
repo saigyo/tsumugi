@@ -74,12 +74,12 @@ function EditHeatmap({ rows, block, selected, onSelect, onLayer }: {
       {rows.tokens.map((t, r) => (
         <div key={r} className="mlp-heatmap-row">
           <button type="button" data-testid="edit-row-label" aria-pressed={r === selected}
-            className="mlp-tok" onClick={() => onSelect(r)}>{visibleToken(t.text)}</button>
+            className="mlp-tok" onClick={() => onSelect(r)}>{visibleToken(t)}</button>
           <div className="mlp-cells" style={{ gridTemplateColumns: `repeat(${layers}, 1fr)` }}>
             {rows[block][r].map((v, l) => (
               <div key={l} data-testid="edit-cell" data-block={block} data-row={r} data-layer={l}
                 style={{ background: ratioFill(v) }} onClick={() => { onSelect(r); onLayer?.(l) }}
-                title={`“${visibleToken(t.text)}”, layer ${l}, ${BLOCK_NAME[block]}: ${v.toFixed(2)}`} />
+                title={`“${visibleToken(t)}”, layer ${l}, ${BLOCK_NAME[block]}: ${v.toFixed(2)}`} />
             ))}
           </div>
         </div>
@@ -106,7 +106,7 @@ function EditBars({ rows, index, onLayer }: { rows: EditRows; index: number; onL
   return (
     <figure className="mlp-chart-fig">
       <figcaption data-testid="edit-bars-label" className="mlp-chart-label">edit size per layer for
-        “{visibleToken(rows.tokens[index].text)}”, attention vs MLP</figcaption>
+        “{visibleToken(rows.tokens[index])}”, attention vs MLP</figcaption>
       <svg data-testid="edit-bars" className="mlp-chart mlp-chart-wide" viewBox={`0 0 ${W} ${H}`} role="img"
         aria-label="edit size per layer, attention and MLP bars">
         {[0, 0.5, 1, 1.5, 2].map((t) => (

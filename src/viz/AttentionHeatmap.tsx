@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { AttentionHead, AttentionLabel, TokenInfo } from '../trace/types'
+import { readableTokenText } from '../engine/tokenBytes'
 import { visibleToken } from './tokenText'
 
 const HINTS: Record<AttentionLabel, string> = {
@@ -39,7 +40,7 @@ export function AttentionHeatmap({ heads, tokens, focus }: {
   if (!head) return null
   const n = head.matrix.length
   // compact labels: leading spaces dropped, newlines and tabs as glyphs
-  const label = (i: number) => tokens[i] ? visibleToken(tokens[i].text.replace(/^ +/, '')) : `#${i}`
+  const label = (i: number) => tokens[i] ? visibleToken(readableTokenText(tokens[i].id, tokens[i].text).replace(/^ +/, '')) : `#${i}`
 
   return (
     <div data-testid="attention-heatmap" className="attention-heatmap">

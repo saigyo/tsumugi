@@ -3,6 +3,7 @@ import { logitsCallouts } from '../glossary/callouts'
 import { Term } from '../glossary/Term'
 import { READOUT_CELLS, type LogitCandidate } from '../trace/types'
 import { thousands } from './selectors'
+import { readableTokenText } from '../engine/tokenBytes'
 import { visibleToken } from './tokenText'
 import { rowMarkY } from './stripMath'
 import { VectorStrip } from './VectorStrip'
@@ -72,10 +73,10 @@ export function LogitsReadout({ candidates, lastHidden, dims, vocabSize, selecte
             return (
               <button key={c.id} type="button" data-testid="readout-candidate" data-selected={String(i === selected)}
                 className="readout-candidate" onClick={() => onSelect(i)} title="Show this dot product on the bench">
-                <span className={`token-chip hue-${i % 6}`}><span className="chip-text">{visibleToken(c.text)}</span></span>
+                <span className={`token-chip hue-${i % 6}`}><span className="chip-text">{visibleToken(c)}</span></span>
                 {c.dot ? (
                   <VectorStrip cells={c.dot} cellW={DOT_CELL_W} cellH={DOT_CELL_H} gap={0} testId="readout-product"
-                    ariaLabel={`products for ${c.text}`} />
+                    ariaLabel={`products for ${readableTokenText(c.id, c.text)}`} />
                 ) : <span className="readout-nostrip" aria-hidden="true" />}
                 <svg data-testid="logit-bar" data-token={c.text} width={BAR_W} height="14">
                   <rect width={BAR_W * frac} height="14" className="bar-rect" style={{ transition: 'width .4s' }} />
@@ -89,7 +90,7 @@ export function LogitsReadout({ candidates, lastHidden, dims, vocabSize, selecte
 
       {sel && (
         <div data-testid="readout-bench" className="readout-bench">
-          <div className="embed-col-label">x_last ⊙ E[{visibleToken(sel.text)}]</div>
+          <div className="embed-col-label">x_last ⊙ E[{visibleToken(sel)}]</div>
           <div className="readout-bench-rows">
             <span className="readout-bench-label">x_last</span>
             {xCells

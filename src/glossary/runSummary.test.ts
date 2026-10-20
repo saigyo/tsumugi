@@ -20,7 +20,7 @@ test('summarises the run at the viewed cycle', () => {
   expect(r.stream).toEqual({ seqLen: 2, dims: 576, layers: 3 })
   expect(r.vocabSize).toBe(49152)
   expect(r.softmax?.temperature).toBe(0.8)
-  expect(r.softmax?.top[0]).toEqual({ text: ' sat', logit: 9.1, prob: 0.7 })
+  expect(r.softmax?.top[0]).toEqual({ id: 100, text: ' sat', logit: 9.1, prob: 0.7 })
 })
 
 test('follows the cursor into the next cycle', () => {
@@ -41,9 +41,9 @@ test('before the first softmax there is no softmax block', () => {
 test('MLP facts: the last token’s largest MLP edit, and the MLP layer that added most to the top candidate', () => {
   const t = buildFixtureTrace({ mlp: true, mode: 'real' })
   const s = runSummary(t, 4)!
-  expect(s.edits?.token).toBe(' cat')
+  expect(s.edits?.token).toEqual({ id: 11, text: ' cat' })
   expect(s.edits?.ratio).toBeGreaterThan(0)
-  expect(s.votes?.candidate).toBe(' sat')
+  expect(s.votes?.candidate).toEqual({ id: 100, text: ' sat' })
   expect(s.votes?.layer).toBeGreaterThanOrEqual(0)
   expect(runSummary(buildFixtureTrace(), 4)!.edits).toBeUndefined()
 })

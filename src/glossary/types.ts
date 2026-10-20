@@ -23,9 +23,9 @@ export interface RunSummary {
   cycles: number                         // cycles in the trace so far
   stream?: { seqLen: number; dims: number; layers: number }
   vocabSize?: number
-  softmax?: { temperature: number; top: Array<{ text: string; logit?: number; prob: number }> }
-  edits?: { token: string; layer: number; ratio: number }      // largest MLP edit of the last visible token
-  votes?: { candidate: string; layer: number; value: number }  // MLP layer adding most to the top candidate
+  softmax?: { temperature: number; top: Array<{ id: number; text: string; logit?: number; prob: number }> }
+  edits?: { token: TokenInfo; layer: number; ratio: number }      // largest MLP edit of the last visible token
+  votes?: { candidate: TokenInfo; layer: number; value: number }  // MLP layer adding most to the top candidate
 }
 
 export interface GlossaryEntry {

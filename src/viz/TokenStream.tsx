@@ -13,14 +13,14 @@ export function TokenStream({ events, cursor }: { events: TraceEvent[]; cursor: 
     <div className="token-stream" aria-label="Token stream">
       {prompt.map((t, i) => (
         <span key={`p${i}`} data-testid="prompt-token" className="token token-prompt" title={`id ${t.id}`}>
-          {visibleToken(t.text)}
+          {visibleToken(t)}
         </span>
       ))}
       {generated.map((t, i) => (
         <span key={`g${i}`} data-testid="generated-token" className="token token-generated" title={`id ${t.id}`}
           onMouseEnter={() => setHoveredCycle(t.cycle)}
           onMouseLeave={() => setHoveredCycle(null)}>
-          {visibleToken(t.text)}
+          {visibleToken(t)}
           {hoveredCycle === t.cycle && dist && <TokenPopover softmax={dist.softmax} sample={dist.sample} />}
         </span>
       ))}
