@@ -6,6 +6,7 @@ import { initialPlayerState } from './player/reducer'
 import { usePlayerStore } from './player/store'
 import { useRunsStore } from './app/runsStore'
 import { _resetArchiveForTests, archiveImport } from './app/runArchive'
+import { serializeRun } from './app/runFiles'
 import { buildFixtureTrace } from './test/fixtures'
 import { resetGlossaryStore } from './glossary/store'
 
@@ -172,4 +173,17 @@ test('an archived real run shows its MLP cards while the app is in sim mode', as
   fireEvent.click((await screen.findAllByTestId('stage-card'))[2])
   expect((await screen.findAllByTestId('vote-cell', {}, { timeout: 2000 })).length).toBeGreaterThan(0)
   expect(record.id).toBeTruthy()
+})
+
+test('when the archive refuses an imported run, the shelf says why instead of blaming the file', async () => {
+  const record = archiveImport({ meta: { prompt: 'The cat', params: { temperature: 0.8, topK: 10, maxNewTokens: 2 },
+    mode: 'sim', endedAt: 1, reason: 'max-tokens' }, events: buildFixtureTrace() })
+  const original = useRunsStore.getState().importRecord
+  useRunsStore.setState({ importRecord: () => { throw new Error('storage quota exceeded') } })
+  try {
+    render(<App />)
+    const file = new File([serializeRun(record).json], 'run.json', { type: 'application/json' })
+    fireEvent.change(screen.getByTestId('import-input'), { target: { files: [file] } })
+    expect(await screen.findByTestId('import-error')).toHaveTextContent('could not add the run: storage quota exceeded')
+  } finally { useRunsStore.setState({ importRecord: original }) }
 })

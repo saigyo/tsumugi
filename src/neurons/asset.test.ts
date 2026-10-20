@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, expect, test, vi } from 'vitest'
 import { encodeNeuronFixture, NF, neuronFixtureFile } from '../test/neuronFixture'
 import { layerLayout, parseNeuronLayer } from './format'
+import { setTokenPieces } from '../engine/tokenBytes'
 import { loadNeuronAsset, loadNeuronLayer, NEURON_CACHE, resetNeuronCache } from './asset'
 
 const BASE = 'https://hub.test/neurons'
@@ -92,4 +93,37 @@ test('a truncated cached file is evicted, so a retry downloads it again', async 
   await expect(loadNeuronLayer(0, BASE)).rejects.toThrow(/expected \d+ bytes, got 12/)
   expect(cache.delete).toHaveBeenCalledWith(`${BASE}/layer-00.bin`)
   await expect(loadNeuronLayer(0, BASE)).resolves.toBeDefined()
+})
+
+test('a label for part of a character shows its bytes once the tokenizer knows the pieces', async () => {
+  stubCaches()
+  const texts = JSON.parse(new TextDecoder().decode(neuronFixtureFile('tokens.json')!)) as string[]
+  texts[3] = ' \uFFFD'
+  stubFetch((name) => (name === 'tokens.json' ? new Response(JSON.stringify(texts)) : null))
+  const asset = await loadNeuronAsset(BASE)
+  expect(asset.text(3)).toBe(' \uFFFD')
+  setTokenPieces((id) => (id === 3 ? 'ĠâĢ' : undefined))
+  try {
+    expect(asset.text(3)).toBe(' <0xE2><0x80>')
+    expect(asset.text(32)).toBe(' and')
+  } finally { setTokenPieces(null) }
+})
+
+test('a corrupt cached manifest.json is evicted, so a retry downloads it again', async () => {
+  const { store, cache } = stubCaches()
+  stubFetch()
+  store.set(`${BASE}/manifest.json`, new Response('{"layers": 3, "dims"'))
+  await expect(loadNeuronAsset(BASE)).rejects.toThrow()
+  expect(cache.delete).toHaveBeenCalledWith(`${BASE}/manifest.json`)
+  await expect(loadNeuronAsset(BASE)).resolves.toBeDefined()
+})
+
+test('a cached tokens.json of the wrong length is evicted with the manifest, so a retry downloads both', async () => {
+  const { store, cache } = stubCaches()
+  stubFetch()
+  store.set(`${BASE}/tokens.json`, new Response('["a", "b"]'))
+  await expect(loadNeuronAsset(BASE)).rejects.toThrow(/tokens.json: expected \d+ entries, got 2/)
+  expect(cache.delete).toHaveBeenCalledWith(`${BASE}/tokens.json`)
+  expect(cache.delete).toHaveBeenCalledWith(`${BASE}/manifest.json`)
+  await expect(loadNeuronAsset(BASE)).resolves.toBeDefined()
 })

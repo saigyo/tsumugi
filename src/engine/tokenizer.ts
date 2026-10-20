@@ -1,4 +1,5 @@
 import type { TokenInfo } from '../trace/types'
+import { setTokenPieces } from './tokenBytes'
 
 export interface Tokenizer {
   encode(text: string): TokenInfo[]
@@ -50,6 +51,16 @@ export async function loadTokenizer(modelId: string = MODEL_ID): Promise<Tokeniz
     const tok = await AutoTokenizer.from_pretrained(modelId)
     /* eslint-disable @typescript-eslint/no-explicit-any */
     const eos: number = (tok as any).model?.eos_token_id ?? (tok as any).eos_token_id ?? 0
+    // raw vocabulary pieces, so labels of partial-character tokens can show their bytes
+    let pieces: string[] | null = null
+    setTokenPieces((id) => {
+      if (!pieces) {
+        pieces = []
+        const vocab = (tok as any).get_vocab() as Map<string, number> | Record<string, number>
+        for (const [piece, i] of vocab instanceof Map ? vocab : Object.entries(vocab)) pieces[i] = piece
+      }
+      return pieces[id]
+    })
     return {
       eosTokenId: eos,
       encode: (text) => {

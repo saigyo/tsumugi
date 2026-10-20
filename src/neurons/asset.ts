@@ -1,6 +1,7 @@
 // The Hub neuron asset: manifest and texts once, layer files on demand. Files
 // are immutable per tag and the URL carries the tag, so the Cache API copy
 // never needs revalidating (transformers.js caches only its own files).
+import { readableTokenText } from '../engine/tokenBytes'
 import { NEURONS_BASE_URL } from '../engine/tokenizer'
 import { layerFile, parseNeuronLayer, type NeuronLayer, type NeuronManifest } from './format'
 
@@ -51,12 +52,22 @@ export function loadNeuronLayer(l: number, base: string = NEURONS_BASE_URL): Pro
 
 export function resetNeuronCache(): void { assetPending = null; layerPending.clear() }
 
+// A file that doesn't parse or doesn't fit is evicted, like a bad layer file,
+// so a retry downloads it again. A length mismatch can't say which of the two
+// files is stale, so both go.
 async function fetchAsset(base: string): Promise<NeuronAsset> {
-  const manifest = (await (await cachedFetch(`${base}/manifest.json`)).json()) as NeuronManifest
-  const tokens = (await (await cachedFetch(`${base}/tokens.json`)).json()) as string[]
-  if (tokens.length !== manifest.vocabSize)
-    throw new Error(`tokens.json: expected ${manifest.vocabSize} entries, got ${tokens.length}`)
-  if (manifest.finalNormWeight.length !== manifest.dims)
-    throw new Error(`manifest: finalNormWeight has ${manifest.finalNormWeight.length} values, expected ${manifest.dims}`)
-  return { manifest, g: Float32Array.from(manifest.finalNormWeight), text: (id) => tokens[id] ?? `#${id}` }
+  const manifestUrl = `${base}/manifest.json`
+  const tokensUrl = `${base}/tokens.json`
+  try {
+    const manifest = (await (await cachedFetch(manifestUrl)).json()) as NeuronManifest
+    const tokens = (await (await cachedFetch(tokensUrl)).json()) as string[]
+    if (!Array.isArray(tokens) || tokens.length !== manifest.vocabSize)
+      throw new Error(`tokens.json: expected ${manifest.vocabSize} entries, got ${Array.isArray(tokens) ? tokens.length : 'no list'}`)
+    if (manifest.finalNormWeight?.length !== manifest.dims)
+      throw new Error(`manifest: finalNormWeight has ${manifest.finalNormWeight?.length} values, expected ${manifest.dims}`)
+    return { manifest, g: Float32Array.from(manifest.finalNormWeight), text: (id) => (id in tokens ? readableTokenText(id, tokens[id]) : `#${id}`) }
+  } catch (err) {
+    await Promise.all([evict(manifestUrl), evict(tokensUrl)])
+    throw err
+  }
 }

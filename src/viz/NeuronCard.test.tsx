@@ -81,6 +81,17 @@ test('firing most drops the candidate, the badge and the total', async () => {
   expect(screen.queryByTestId('neuron-cand')).toBeNull()
 })
 
+test('the mode survives the card remounting, e.g. after switching runs', async () => {
+  const first = card()
+  await waitFor(() => screen.getAllByTestId('neuron-row'))
+  fireEvent.click(screen.getAllByTestId('neuron-mode-toggle')[1])
+  first.unmount()
+  card()
+  await waitFor(() => screen.getAllByTestId('neuron-row'))
+  expect(screen.getAllByTestId('neuron-mode-toggle')[1]).toHaveAttribute('aria-pressed', 'true')
+  expect(screen.getByTestId('neuron-table')).toHaveTextContent('edit size')
+})
+
 test('picking another candidate changes the vote column', async () => {
   card()
   await waitFor(() => screen.getAllByTestId('neuron-row'))

@@ -176,9 +176,14 @@ export default function App() {
   const handleImportFile = (file: File) => {
     void file.text().then((text) => {
       const parsed = parseRunFile(text)
-      if (parsed.ok) { setImportError(parsed.note ?? null); archiveImport({ meta: parsed.meta, events: parsed.events }) }
-      else setImportError(parsed.error)
-    }).catch(() => setImportError('could not read the file'))
+      if (!parsed.ok) { setImportError(parsed.error); return }
+      try {
+        archiveImport({ meta: parsed.meta, events: parsed.events })
+        setImportError(parsed.note ?? null)
+      } catch (err) {
+        setImportError(`could not add the run: ${err instanceof Error ? err.message : String(err)}`)
+      }
+    }, () => setImportError('could not read the file'))
   }
 
   return (

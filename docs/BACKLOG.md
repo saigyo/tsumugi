@@ -156,17 +156,15 @@ they are IDs, not positions.
   float16 packing with exact-bit tests (ties, exponent carry, subnormal
   boundary); clamp `params.topK` to the graph's k = 16 in the worker;
   worker-level test that bad neuron outputs set `neuronsOff` and log once,
-  plus tests for a multi-value 1/rms and a mismatched `topk_embeds`; evict
-  a corrupt cached `manifest.json`/`tokens.json` like layer files; move
+  plus tests for a multi-value 1/rms and a mismatched `topk_embeds`; move
   `resetNeuronCache` out of `asset.ts` so test setup doesn't import the
   tokenizer; a manifest `fractions` length check (the badge fallback hides
   a mismatch); a fixture test pinning `votes.mlp` to the packed neuron
-  data; the mode toggle resets when the card remounts; add the model tag
-  to the neurons manifest at v6; byte-fallback tokens show "�" in labels
-  (map to `<0x..>`); array-valued events pass run-file import's object
-  check; the import catch shows a generic message for archive errors; the
-  editor flags `Buffer` in `e2e/` (no node types there). *(#16 reviews,
-  2026-10-15)*
+  data; add the model tag to the neurons manifest at v6; array-valued
+  events pass run-file import's object check; the editor flags `Buffer` in
+  `e2e/` (no node types there). *(#16 reviews,
+  2026-10-15; the visible items and the manifest/tokens eviction were fixed
+  2026-10-20)*
 - [ ] **#21 Import with an empty archive** — the run shelf, and with it
   the Import button, is hidden until the first run exists, so a first-time
   visitor cannot load a shared run file. *(#16 Playwright test,

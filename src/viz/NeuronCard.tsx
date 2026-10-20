@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { NEURON_CALLOUTS } from '../glossary/callouts'
 import { Term } from '../glossary/Term'
 import type { NeuronAsset } from '../neurons/asset'
@@ -10,10 +10,10 @@ import type { NeuronData, TraceEvent } from '../trace/types'
 import { selectedCandidate, useCandidateSelection } from './candidateSelection'
 import { selectedLayer, useMlpLayer } from './mlpLayerSelection'
 import { topMlpLayers } from './mlpMath'
+import { useNeuronMode, type NeuronMode as Mode } from './neuronMode'
 import type { VotedCandidate } from './selectors'
 import { visibleToken } from './tokenText'
 
-type Mode = 'vote' | 'size'
 const MODE_NAME: Record<Mode, string> = { vote: 'behind the vote', size: 'firing most' }
 const LOADING = 'Loading the MLP weights (about 0.9 MB per layer, once per model version)…'
 const MISMATCH = 'This run’s neuron data doesn’t match the MLP weights file.'
@@ -34,7 +34,7 @@ const activationsOf = (d: NeuronData) => {
 
 // "Inside one MLP": one layer's MLP vote for the selected candidate split into
 // one vote per neuron (#16). Candidate selection is shared with the Logits and
-// votes cards, the layer with both MLP cards; the mode is local view state.
+// votes cards, the layer with both MLP cards; the mode is kept across remounts (neuronMode.ts).
 export function NeuronCard({ data, candidates, note, run }: {
   data?: NeuronData; candidates?: VotedCandidate[]; note: string; run?: TraceEvent
 }) {
@@ -63,7 +63,8 @@ export function NeuronCard({ data, candidates, note, run }: {
 function NeuronBody({ data, candidates, selected, layer }: {
   data: NeuronData; candidates: VotedCandidate[]; selected: number; layer: number
 }) {
-  const [mode, setMode] = useState<Mode>('vote')
+  const mode = useNeuronMode((s) => s.mode)
+  const setMode = useNeuronMode((s) => s.setMode)
   const select = useCandidateSelection((s) => s.select)
   const state = useNeuronLayer(layer)
   const cand = candidates[selected]
