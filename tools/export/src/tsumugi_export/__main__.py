@@ -12,7 +12,7 @@ def main() -> int:
     p_export.add_argument("--no-cache", action="store_true",
                           help="Approach B: use_cache=False, full matrices per step")
 
-    p_quant = sub.add_parser("quantize", help="produce q4 and fp16 variants")
+    p_quant = sub.add_parser("quantize", help="produce the weight-only 8-bit variant (model_quantized.onnx)")
     p_quant.add_argument("--model-dir", default="out/model")
 
     p_geo = sub.add_parser("geometry", help="build the vocabulary-geometry asset (geometry/)")
