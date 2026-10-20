@@ -1,7 +1,7 @@
 import { cleanup, render } from '@testing-library/react'
 import { afterEach, expect, test } from 'vitest'
 import { sampleRun } from '../test/glossaryFixture'
-import { EDIT_CALLOUTS, EMBEDDING_CALLOUTS, logitsCallouts, NEURON_CALLOUTS, SOFTMAX_CALLOUTS } from './callouts'
+import { EDIT_CALLOUTS, EMBEDDING_CALLOUTS, logitsCallouts, MLP_STEP_CALLOUTS, NEURON_CALLOUTS, SOFTMAX_CALLOUTS } from './callouts'
 import { ENTRIES, getEntry, indexGroups, STAGE_ORDER } from './registry'
 import { GLOSSARY_IDS } from './types'
 
@@ -77,7 +77,7 @@ test('every related id has an entry', () => {
 })
 
 test('every callout chip points at a section that exists', () => {
-  for (const c of [...EMBEDDING_CALLOUTS, ...logitsCallouts(3, '49 152'), ...SOFTMAX_CALLOUTS, ...EDIT_CALLOUTS, ...NEURON_CALLOUTS])
+  for (const c of [...EMBEDDING_CALLOUTS, ...logitsCallouts(3, '49 152'), ...SOFTMAX_CALLOUTS, ...EDIT_CALLOUTS, ...NEURON_CALLOUTS, ...MLP_STEP_CALLOUTS])
     expect(sectionsOf(c.id), `${c.label} → ${c.id} § ${c.section}`).toContain(c.section)
 })
 

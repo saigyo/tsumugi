@@ -536,7 +536,7 @@ math { font-family: 'Latin Modern Math', math, 'STIX Two Math', 'Cambria Math', 
 .mlp-chart-wide { min-width: 620px; }
 .mlp-chart text { font-family: var(--mono); }
 :root { --mark: #d08a1c; }
-.step-row { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 12px; padding: .7rem 0; border-top: 1px solid var(--line); }
+.step-row { display: grid; grid-template-columns: 170px minmax(0, 1fr); gap: 14px; padding: .7rem 0; border-top: 1px solid var(--line); }
 .step-row h5 { margin: 0 0 .25rem; font-size: .85rem; color: var(--ai-deep); }
 .step-row .step-text { margin: .3rem 0 0; font-size: .74rem; color: var(--ink-soft); line-height: 1.35; }
 .step-charts { min-width: 0; overflow-x: auto; }
@@ -548,6 +548,14 @@ math { font-family: 'Latin Modern Math', math, 'STIX Two Math', 'Cambria Math', 
 .step-dot { fill: var(--ink-faint); fill-opacity: .45; }
 .step-dot-marked, .step-bar-marked { fill: var(--mark); stroke: var(--card); stroke-width: 1; }
 .step-dot-marked:focus { outline: none; stroke: var(--ai-deep); stroke-width: 2; }
+.step-bar-marked:focus { outline: none; stroke: var(--ai-deep); stroke-width: 2; }
+.step-mark { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--mark); vertical-align: middle; }
+.step-box { position: absolute; width: max-content; max-width: 22rem; padding: .35rem .55rem; border: 1px solid var(--ai); border-radius: 5px;
+  background: var(--card); font-size: .74rem; line-height: 1.35; box-shadow: 0 1px 4px rgba(0,0,0,.08); pointer-events: none;
+  display: grid; z-index: 1; }
+.step-box-labels { color: var(--ink-soft); }
+.step-strip-mono { font-family: var(--mono); }
+.step-strip-sum { font-weight: 600; color: var(--ink); }
 .step-bar-pos { fill: var(--ai); } .step-bar-neg { fill: var(--shu); }
 .step-squash { fill: var(--dye-2); fill-opacity: .35; }
 .step-zero { stroke: var(--line-strong); stroke-dasharray: 3 3; }

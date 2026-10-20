@@ -17,10 +17,10 @@ const ticks = ([lo, hi]: [number, number]) => {
   return out
 }
 
-export function StepStrip({ values, lim, label, testId }: { values: Float32Array; lim: number; label: string; testId: string }) {
+export function StepStrip({ values, lim, label, testId, labelClass }: { values: Float32Array; lim: number; label: string; testId: string; labelClass?: string }) {
   return (
     <div className="step-strip-row">
-      <span className="step-strip-label">{label}</span>
+      <span className={labelClass ? `step-strip-label ${labelClass}` : 'step-strip-label'}>{label}</span>
       <svg data-testid={testId} className="step-strip" viewBox={`0 0 ${values.length} 1`} preserveAspectRatio="none" role="img" aria-label={label}>
         {Array.from(values, (v, i) => <rect key={i} x={i} y={0} width={1.02} height={1} fill={cellFill(clamp(v, lim), lim)} />)}
       </svg>
@@ -85,6 +85,10 @@ export function SiluChart({ gate, domain, marked, counts, onHover, box }: {
   const y = (v: number) => top + ((yMax - v) / (yMax + 0.6)) * (bottom - top)
   const curve = Array.from({ length: 241 }, (_, k) => domain[0] + (k / 240) * (domain[1] - domain[0]))
     .map((v) => `${x(v).toFixed(1)},${y(silu(v)).toFixed(1)}`).join(' ')
+  // The positive-gates note sits above and left of the curve, where the curve is lower than the text (as in the mockup).
+  const noteX = Math.min(X1 - 4, Math.max(x(0) + 150, x(domain[1] * 0.55)))
+  const noteG = domain[0] + ((noteX - X0) / (X1 - X0)) * (domain[1] - domain[0])
+  const noteY = Math.max(top + 30, y(silu(noteG)) - 24)
   return (
     <Frame testId="steps-silu" h={H} label="SiLU of the gate, one dot per neuron" box={box}>
       <rect x={x(domain[0])} y={top} width={x(0) - x(domain[0])} height={bottom - top} className="step-squash" />
@@ -93,8 +97,11 @@ export function SiluChart({ gate, domain, marked, counts, onHover, box }: {
       <polyline points={curve} className="step-curve" />
       <text x={x(domain[0]) + 6} y={y(0) - 22} className="step-note">{counts.negative} negative gates</text>
       <text x={x(domain[0]) + 6} y={y(0) - 10} className="step-note">→ between −0.28 and 0</text>
-      <text x={X1 - 4} y={top + 12} textAnchor="end" className="step-axis">{counts.positive} positive gates pass almost unchanged</text>
+      <text x={Math.min(x(0) + 6, X1 - 84)} y={top + 12} className="step-axis">SiLU ↑ · g →</text>
+      <text x={noteX} y={noteY} textAnchor="end" className="step-note">{counts.positive} positive gates pass</text>
+      <text x={noteX} y={noteY + 12} textAnchor="end" className="step-note">almost unchanged</text>
       {ticks(domain).map((t) => <text key={t} x={x(t)} y={H - 6} textAnchor="middle" className="step-axis">{t}</text>)}
+      {ticks([0, yMax]).map((t) => <text key={t} x={X0 - 6} y={y(t) + 3} textAnchor="end" className="step-axis">{t}</text>)}
       <Dots xs={Array.from(gate, x)} ys={Array.from(gate, (g) => y(silu(g)))} marked={marked} chart="silu" height={H} onHover={onHover} />
     </Frame>
   )

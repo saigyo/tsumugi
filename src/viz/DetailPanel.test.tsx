@@ -1,8 +1,11 @@
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, expect, test, vi } from 'vitest'
+import * as asset from '../neurons/asset'
+import { fixtureNeuronAsset, fixtureNeuronLayer } from '../test/neuronFixture'
 import { buildFixtureTrace, makeFixtureTrace, makeGridEvent } from '../test/fixtures'
 import type { AttentionHead } from '../trace/types'
 import { DetailPanel } from './DetailPanel'
+import { STEPS_OLD_NOTE, STEPS_SIM_NOTE } from './details/LayersDetail'
 import { texOf } from '../test/tex'
 
 const trace = makeFixtureTrace()  // cursor 1=tokenize, 2=embed, 3..5=layers, 6=attention
@@ -254,8 +257,22 @@ test('real mode: the Layers detail shows the neuron card under the two MLP cards
   const at = real.findIndex((e) => e.type === 'layer')
   const { unmount } = render(<DetailPanel events={real} cursor={at} mode="real" />)
   const cards = screen.getByTestId('mlp-cards').querySelectorAll('section')
-  expect([...cards].map((s) => s.dataset.testid)).toEqual(['edit-size-card', 'votes-card', 'neuron-card'])
+  expect([...cards].map((s) => s.dataset.testid)).toEqual(['edit-size-card', 'votes-card', 'neuron-card', 'steps-card'])
   unmount()
   render(<DetailPanel events={real} cursor={at} mode="sim" />)
   expect(screen.getByTestId('neuron-note')).toHaveTextContent('Real model only: simulated runs have no neurons to show.')
+})
+
+test('the step-by-step card: a simulated run shows its note, a real run recorded before step data shows the older-data note', async () => {
+  vi.spyOn(asset, 'loadNeuronAsset').mockResolvedValue(fixtureNeuronAsset())
+  vi.spyOn(asset, 'loadNeuronLayer').mockImplementation(async (l) => fixtureNeuronLayer(l))
+  const sim = buildFixtureTrace({ mode: 'sim' })
+  const { unmount } = render(<DetailPanel events={sim} cursor={sim.findIndex((e) => e.type === 'layer')} mode="sim" />)
+  expect(screen.getByTestId('steps-note')).toHaveTextContent(STEPS_SIM_NOTE)
+  unmount()
+  const old = buildFixtureTrace({ mode: 'real', mlp: true, neurons: true, steps: false })
+  render(<DetailPanel events={old} cursor={old.findIndex((e) => e.type === 'layer')} mode="real" />)
+  expect(screen.getByTestId('steps-note')).toHaveTextContent(STEPS_OLD_NOTE)
+  await waitFor(() => expect(screen.getAllByTestId('neuron-row').length).toBeGreaterThan(0))
+  vi.restoreAllMocks()
 })

@@ -32,3 +32,9 @@ export const NEURON_CALLOUTS: CalloutTarget[] = [
   { label: 'negative activations', id: 'mlp-neuron', section: 'negative' },
   { label: 'early layers', id: 'mlp-neuron', section: 'early-layers' },
 ]
+
+export const MLP_STEP_CALLOUTS: CalloutTarget[] = [
+  { label: 'why SiLU and not a switch', id: 'mlp', section: 'silu-not-switch' },
+  { label: 'why two projections', id: 'mlp', section: 'two-projections' },
+  { label: 'early layers look different', id: 'mlp', section: 'early-layers' },
+]

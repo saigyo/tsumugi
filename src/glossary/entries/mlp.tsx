@@ -60,10 +60,28 @@ export const mlp: GlossaryEntry = {
         neuron is active.</p>
       <p>The three matrices hold 3 × 576 × 1536 ≈ 2.7 million weights per layer, about 60% of the whole model
         across its 30 layers.</p>
+      <Section id="silu-not-switch" title="Why SiLU and not a switch">
+        <p>A hard switch (ReLU) would pass every positive gate score and set every negative one to exactly zero. SiLU is
+          smooth instead: negative scores give small negative values, down to about −0.28 at a score of −1.28, and large
+          positive scores pass almost unchanged. Because the curve has no flat zero region, training can still adjust
+          neurons whose gate is currently negative, and their small outputs still add a little to the edit.</p>
+      </Section>
+      <Section id="two-projections" title="Why two projections">
+        <p>The gate and up matrices read the same normalized vector but learn different rows, so a neuron’s two values
+          are mostly unrelated. The gate decides how much passes, the up value what passes and with which sign. In the
+          last layers the largest activations come from gates around 10, where SiLU barely changes the value: there the
+          gate sets the size and the up value mostly the sign.</p>
+      </Section>
+      <Section id="early-layers" title="Early layers look different">
+        <p>In early layers most gate scores are negative and the activation is spread over many neurons: on a typical
+          prompt, half of layer 5’s squared activation needs about a hundred neurons, while layer 29 needs about ten.
+          The last layers concentrate on a few neurons with large gates, which is also where the per-layer votes grow.</p>
+      </Section>
       <p>In a real run the Layers detail shows what the MLPs do: <em>How much each layer changes the vector</em>{' '}
         compares each MLP edit with the stream, <em>What each layer voted for</em> shows how much each layer’s
         MLP added to each candidate’s score (see <Term id="votes">per-layer votes</Term>), and{' '}
-        <em>Inside one MLP</em> splits one layer’s vote among its <Term id="mlp-neuron">neurons</Term>.</p>
+        <em>Inside one MLP</em> splits one layer’s vote among its <Term id="mlp-neuron">neurons</Term>, and{' '}
+        <em>The MLP, step by step</em> shows one layer’s five steps with the model’s own numbers.</p>
     </>
   ),
 }

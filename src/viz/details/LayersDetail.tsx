@@ -6,6 +6,7 @@ import { ResidualStreamDiagram } from '../ResidualStreamDiagram'
 import { Term } from '../../glossary/Term'
 import { EditSizeCard } from '../EditSizeCard'
 import { LayerVotesCard } from '../LayerVotesCard'
+import { MlpStepsCard } from '../MlpStepsCard'
 import { NeuronCard } from '../NeuronCard'
 import { useMlpLayer } from '../mlpLayerSelection'
 import type { CycleNeurons, CycleVotes, EditRows } from '../selectors'
@@ -15,6 +16,8 @@ const OLD_NOTE = 'This run was recorded before MLP data was exported.'
 const PENDING_NOTE = 'Votes appear once this cycle’s scores are computed.'
 const NEURON_SIM_NOTE = 'Real model only: simulated runs have no neurons to show.'
 const NEURON_OLD_NOTE = 'This run was recorded before neuron data existed.'
+export const STEPS_SIM_NOTE = 'Real model only: simulated runs don’t compute an MLP.'
+export const STEPS_OLD_NOTE = 'This run was recorded before the step-by-step data existed. Generate it again to see it.'
 const EDITS_PENDING_NOTE = 'Edit sizes appear once this cycle’s layers are measured.'
 
 export function LayersDetail({ event, mode, attention, attentionInRun, tokens, streamShape, grid, pinnedHeads, onPin, pinNote, edits, votes, neurons, run }: {
@@ -79,6 +82,12 @@ export function LayersDetail({ event, mode, attention, attentionInRun, tokens, s
           candidates={mode === 'real' && votes?.status === 'ok' ? votes.candidates : undefined}
           note={mode === 'sim' ? NEURON_SIM_NOTE
             : neurons?.status === 'pending' || votes?.status === 'pending' ? PENDING_NOTE : NEURON_OLD_NOTE}
+          run={run} />
+        <MlpStepsCard
+          data={mode === 'real' && neurons?.status === 'ok' ? neurons.data : undefined}
+          candidates={mode === 'real' && votes?.status === 'ok' ? votes.candidates : undefined}
+          note={mode === 'sim' ? STEPS_SIM_NOTE
+            : neurons?.status === 'pending' || votes?.status === 'pending' ? PENDING_NOTE : STEPS_OLD_NOTE}
           run={run} />
       </div>
     </div>
