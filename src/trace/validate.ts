@@ -1,5 +1,5 @@
 import { unpackFloat32, unpackHalf } from './neuronPack'
-import { READOUT_CELLS, type NeuronData, type TraceEvent } from './types'
+import { READOUT_CELLS, type MlpSteps, type NeuronData, type TraceEvent } from './types'
 
 export function validateTrace(events: TraceEvent[]): string[] {
   const errs: string[] = []
@@ -48,6 +48,8 @@ export function validateTrace(events: TraceEvent[]): string[] {
         errs.push(`edits cycle ${e.cycle} rows ${e.start}..${e.start + e.attn.length} exceed seqLen ${seqLen}`)
       if (e.neurons !== undefined)
         for (const p of neuronProblems(e.neurons, layerTotal, dims)) errs.push(`edits cycle ${e.cycle} ${p}`)
+      if (e.neurons?.steps !== undefined)
+        for (const p of stepProblems(e.neurons.steps, layerTotal, e.neurons.neurons, dims)) errs.push(`edits cycle ${e.cycle} ${p}`)
       continue
     }
     if (e.type === 'embed' && phase === 'embed') {
@@ -137,18 +139,41 @@ export function neuronProblems(n: unknown, layers: number, dims: number): string
   return out
 }
 
+export function stepProblems(s: unknown, layers: number, neurons: number, dims: number): string[] {
+  if (typeof s !== 'object' || s === null) return ['steps is not an object']
+  const d = s as Partial<Record<keyof MlpSteps, unknown>>
+  const out: string[] = []
+  const field = (k: keyof MlpSteps, width: number, label: string) => {
+    try {
+      const v = unpackHalf(String(d[k]))
+      if (v.length !== layers * width) out.push(`steps.${k} holds ${v.length} values, expected ${layers} × ${label}`)
+      else if (v.some((x) => !Number.isFinite(x))) out.push(`steps.${k} values are not all finite`)
+    } catch { out.push(`steps.${k} is not base64 float16`) }
+  }
+  field('gate', neurons, String(neurons)); field('up', neurons, String(neurons))
+  field('mlpIn', dims, String(dims)); field('mlpOut', dims, String(dims))
+  return out
+}
+
 // An import keeps its run when only neuron data is damaged: the broken fields
-// are dropped (the neuron card then shows its no-data note) and counted.
+// are dropped (neuron data whole, or only its steps) and counted.
 export function dropBrokenNeurons(events: TraceEvent[]): { events: TraceEvent[]; dropped: number } {
   let layers = 0, dims = 0, dropped = 0
   const out = events.map((e) => {
     if (e.type === 'layer') layers = e.total
     if (e.type === 'embed') dims = e.dims
-    if (e.type !== 'edits' || e.neurons === undefined || neuronProblems(e.neurons, layers, dims).length === 0) return e
+    if (e.type !== 'edits' || e.neurons === undefined) return e
+    if (neuronProblems(e.neurons, layers, dims).length > 0) {
+      dropped++
+      const rest = { ...e }
+      delete rest.neurons
+      return rest
+    }
+    if (e.neurons.steps === undefined || stepProblems(e.neurons.steps, layers, e.neurons.neurons, dims).length === 0) return e
     dropped++
-    const rest = { ...e }
-    delete rest.neurons
-    return rest
+    const neurons = { ...e.neurons }
+    delete neurons.steps
+    return { ...e, neurons }
   })
   return { events: out, dropped }
 }

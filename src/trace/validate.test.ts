@@ -1,8 +1,8 @@
 import { expect, test } from 'vitest'
 import { buildFixtureTrace, fixtureReadout, makeFixtureTrace, makeGridEvent } from '../test/fixtures'
-import { dropBrokenNeurons, neuronProblems, validateTrace } from './validate'
+import { dropBrokenNeurons, neuronProblems, stepProblems, validateTrace } from './validate'
 import { packFloat32, packHalf } from './neuronPack'
-import { READOUT_CELLS, type NeuronData, type TraceEvent } from './types'
+import { READOUT_CELLS, type MlpSteps, type NeuronData, type TraceEvent } from './types'
 
 test('fixture trace is valid', () => {
   expect(validateTrace(makeFixtureTrace())).toEqual([])
@@ -210,4 +210,30 @@ test('dropBrokenNeurons removes only the broken fields and counts them', () => {
   expect(edits[0].neurons).toBeUndefined()
   expect(edits[1].neurons).toBeDefined()
   expect(validateTrace(kept)).toEqual([])
+})
+
+const steps = (layers: number, neurons = 4, dims = 576): MlpSteps => ({
+  gate: packHalf(Array.from({ length: layers * neurons }, (_, i) => i / 7 - 1)),
+  up: packHalf(Array.from({ length: layers * neurons }, (_, i) => Math.sin(i))),
+  mlpIn: packHalf(Array.from({ length: layers * dims }, (_, i) => Math.cos(i))),
+  mlpOut: packHalf(Array.from({ length: layers * dims }, (_, i) => Math.sin(i) / 3)),
+})
+
+test('well-formed steps pass', () => {
+  expect(stepProblems(steps(3), 3, 4, 576)).toEqual([])
+})
+
+test('steps with a wrong length or non-finite values are reported by field', () => {
+  expect(stepProblems({ ...steps(3), up: packHalf([1, 2, 3]) }, 3, 4, 576)).toEqual(['steps.up holds 3 values, expected 3 × 4'])
+  expect(stepProblems({ ...steps(3), mlpOut: packHalf(Array(3 * 576).fill(NaN)) }, 3, 4, 576)).toEqual(['steps.mlpOut values are not all finite'])
+  expect(stepProblems(null, 3, 4, 576)).toEqual(['steps is not an object'])
+})
+
+test('an import drops only broken steps and keeps the neuron data', () => {
+  const events = withNeurons({ ...neuronData(3), steps: { ...steps(3), gate: 'not base64!' } })
+  const { events: out, dropped } = dropBrokenNeurons(events)
+  const edits = out.filter((e) => e.type === 'edits') as Array<Extract<TraceEvent, { type: 'edits' }>>
+  expect(dropped).toBe(edits.length)
+  expect(edits.every((e) => e.neurons !== undefined && e.neurons.steps === undefined)).toBe(true)
+  expect(validateTrace(out)).toEqual([])
 })
