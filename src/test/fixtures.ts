@@ -19,6 +19,8 @@ export interface FixtureTraceOpts {
   mlp?: boolean
   // neuron data on the edits events (v5 export); needs mlp and 3 layers
   neurons?: boolean
+  // with neurons: include the v6 step data (default true)
+  steps?: boolean
 }
 
 const DEFAULT_WORDS = [' sat', ' on', ' the', ' mat']
@@ -96,7 +98,7 @@ export function buildFixtureTrace(opts: FixtureTraceOpts = {}): TraceEvent[] {
       { ...chosen, logit: 9.1 }, { id: 200, text: ' ran', logit: 7.2 }, { id: 201, text: ' was', logit: 5.0 },
     ]
     const neurons = opts.mlp && opts.neurons
-      ? fixtureNeuronData(c, scored.map((s) => s.id), fixtureEmbedding) : undefined
+      ? fixtureNeuronData(c, scored.map((s) => s.id), fixtureEmbedding, opts.steps ?? true) : undefined
     if (opts.mlp) {
       const start = c === 0 ? 0 : promptTokens.length + c - 1
       const positions = Array.from({ length: fed.length }, (_, i) => start + i)

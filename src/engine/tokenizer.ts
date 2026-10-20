@@ -13,8 +13,10 @@ export const ATTN_MODEL_ID = 'saigyo-hoshi/smollm2-135m-attn-onnx'
 // tag here to reach browsers that cached the previous one. v3 = readout
 // outputs (last_hidden_state, topk_ids, topk_embeds). v4 = MLP internals
 // (edit_ratios, stream_parts). v5 = neuron outputs (mlp_activations,
-// final_norm_inv_rms) and the neurons/ asset.
-export const ATTN_MODEL_REVISION = 'v5'
+// final_norm_inv_rms) and the neurons/ asset. v6 = weight-only 8-bit model
+// (#19) and the step outputs (mlp_gate, mlp_up, mlp_in, mlp_out); the neurons
+// manifest names its revision.
+export const ATTN_MODEL_REVISION = 'v6'
 
 // Both ids share the same weights, so one geometry asset covers both.
 export const GEOMETRY_MODEL_IDS: readonly string[] = [MODEL_ID, ATTN_MODEL_ID]

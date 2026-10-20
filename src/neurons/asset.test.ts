@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, test, vi } from 'vitest'
-import { encodeNeuronFixture, NF, neuronFixtureFile } from '../test/neuronFixture'
+import { encodeNeuronFixture, fixtureNeuronLayer, fixtureNormWeight, NF, neuronFixtureFile } from '../test/neuronFixture'
 import { layerLayout, parseNeuronLayer } from './format'
 import { setTokenPieces } from '../engine/tokenBytes'
 import { loadNeuronAsset, loadNeuronLayer, NEURON_CACHE, resetNeuronCache } from './asset'
@@ -35,7 +35,7 @@ beforeEach(() => resetNeuronCache())
 afterEach(() => vi.unstubAllGlobals())
 
 test('layerLayout matches the Python builder for the real sizes', () => {
-  expect(layerLayout(1536, 576, 5, 3)).toEqual({ scales: 0, columns: 6144, labelIds: 890880, thresholds: 921600, bytes: 958464 })
+  expect(layerLayout(1536, 576, 5, 3)).toEqual({ scales: 0, columns: 6144, labelIds: 890880, thresholds: 921600, normWeight: 958464, bytes: 960768 })
 })
 
 test('parseNeuronLayer reads every block and refuses a wrong size', () => {
@@ -126,4 +126,18 @@ test('a cached tokens.json of the wrong length is evicted with the manifest, so 
   expect(cache.delete).toHaveBeenCalledWith(`${BASE}/tokens.json`)
   expect(cache.delete).toHaveBeenCalledWith(`${BASE}/manifest.json`)
   await expect(loadNeuronAsset(BASE)).resolves.toBeDefined()
+})
+
+test('a manifest built for another revision is refused and evicted', async () => {
+  const { cache } = stubCaches()
+  const f = encodeNeuronFixture()
+  stubFetch((name) => (name === 'manifest.json' ? new Response(JSON.stringify({ ...f.manifest, revision: 'v5' })) : null))
+  await expect(loadNeuronAsset(BASE)).rejects.toThrow('manifest is for v5, the app needs v6')
+  expect(cache.delete).toHaveBeenCalledWith(`${BASE}/manifest.json`)
+})
+
+test('a layer file carries its norm weight', () => {
+  const layer = fixtureNeuronLayer(1)
+  expect(layer.normWeight).toHaveLength(NF.dims)
+  expect(layer.normWeight[7]).toBeCloseTo(fixtureNormWeight(1, 7), 6)
 })

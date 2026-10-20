@@ -11,6 +11,7 @@ const layer: NeuronLayer = {
   columns: Int8Array.from([127, 0, 0, 0, 127, 0, 0, 0, 127, 127, 127, 0]),
   labelIds: Uint16Array.from(Array.from({ length: 16 }, (_, k) => 10 * Math.floor(k / 4) + 5 * (Math.floor(k / 2) % 2) + (k % 2))),
   thresholds: Float32Array.from([0.5, 0.4, 0.2, ...T, ...T, ...T, ...T, ...T, ...T, ...T]),
+  normWeight: Float32Array.from([1, 1, 1]),
 }
 const g = Float32Array.from([1, 1, 1])
 const row = Float32Array.from([1, -1, 0.5])           // u = g ⊙ row

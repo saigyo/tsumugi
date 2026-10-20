@@ -2,7 +2,7 @@
 // are immutable per tag and the URL carries the tag, so the Cache API copy
 // never needs revalidating (transformers.js caches only its own files).
 import { readableTokenText } from '../engine/tokenBytes'
-import { NEURONS_BASE_URL } from '../engine/tokenizer'
+import { ATTN_MODEL_REVISION, NEURONS_BASE_URL } from '../engine/tokenizer'
 import { layerFile, parseNeuronLayer, type NeuronLayer, type NeuronManifest } from './format'
 
 export interface NeuronAsset { manifest: NeuronManifest; g: Float32Array; text(id: number): string }
@@ -65,6 +65,8 @@ async function fetchAsset(base: string): Promise<NeuronAsset> {
       throw new Error(`tokens.json: expected ${manifest.vocabSize} entries, got ${Array.isArray(tokens) ? tokens.length : 'no list'}`)
     if (manifest.finalNormWeight?.length !== manifest.dims)
       throw new Error(`manifest: finalNormWeight has ${manifest.finalNormWeight?.length} values, expected ${manifest.dims}`)
+    if (manifest.revision !== ATTN_MODEL_REVISION)
+      throw new Error(`manifest is for ${manifest.revision ?? 'an unnamed revision'}, the app needs ${ATTN_MODEL_REVISION}`)
     return { manifest, g: Float32Array.from(manifest.finalNormWeight), text: (id) => (id in tokens ? readableTokenText(id, tokens[id]) : `#${id}`) }
   } catch (err) {
     await Promise.all([evict(manifestUrl), evict(tokensUrl)])

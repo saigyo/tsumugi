@@ -1,7 +1,7 @@
 // The neurons/ asset's file format (#16 spec, section 2). No app imports, so
 // the Playwright tests can build fixtures with it.
 
-export interface LayerLayout { scales: number; columns: number; labelIds: number; thresholds: number; bytes: number }
+export interface LayerLayout { scales: number; columns: number; labelIds: number; thresholds: number; normWeight: number; bytes: number }
 
 export interface NeuronManifest {
   modelId: string
@@ -14,6 +14,8 @@ export interface NeuronManifest {
   labelMethod: string
   layout: LayerLayout
   finalNormWeight: number[]    // g, [dims]
+  revision: string             // the model tag the asset was built for (v6 on)
+  rmsNormEps: number           // the RMSNorm epsilon, for n = x / rms(x) ⊙ w
   files: Record<string, { bytes: number; sha256: string }>
 }
 
@@ -22,6 +24,7 @@ export interface NeuronLayer {
   columns: Int8Array           // [neurons × dims]: column i at i·dims, times scales[i]
   labelIds: Uint16Array        // [neurons × 2 × labelsPerSign]: sign 0 = positive activation, 1 = negative
   thresholds: Float32Array     // [neurons × 2 × fractions]: the cosine at each badge level's rank
+  normWeight: Float32Array     // [dims]: this layer's post-attention RMSNorm weight w
 }
 
 // Mirrors tools/export/src/tsumugi_export/neurons.py layer_layout.
@@ -29,7 +32,8 @@ export function layerLayout(neurons: number, dims: number, labels: number, fract
   const columns = neurons * 4
   const labelIds = columns + neurons * dims
   const thresholds = labelIds + neurons * 2 * labels * 2
-  return { scales: 0, columns, labelIds, thresholds, bytes: thresholds + neurons * 2 * fractions * 4 }
+  const normWeight = thresholds + neurons * 2 * fractions * 4
+  return { scales: 0, columns, labelIds, thresholds, normWeight, bytes: normWeight + dims * 4 }
 }
 
 export const layerFile = (l: number) => `layer-${String(l).padStart(2, '0')}.bin`
@@ -44,5 +48,6 @@ export function parseNeuronLayer(m: NeuronManifest, buf: ArrayBuffer): NeuronLay
     columns: new Int8Array(buf, layout.columns, n * dims),
     labelIds: new Uint16Array(buf.slice(layout.labelIds, layout.labelIds + n * 2 * k * 2)),
     thresholds: new Float32Array(buf.slice(layout.thresholds, layout.thresholds + n * 2 * fractions.length * 4)),
+    normWeight: new Float32Array(buf.slice(layout.normWeight, layout.normWeight + dims * 4)),
   }
 }

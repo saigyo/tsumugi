@@ -1,5 +1,5 @@
 import { packFloat32, packHalf, unpackFloat32, unpackHalf } from '../trace/neuronPack'
-import type { NeuronData } from '../trace/types'
+import type { MlpSteps, NeuronData } from '../trace/types'
 import { behindTheVote, layerActivations } from '../neurons/math'
 import { layerFile, layerLayout, parseNeuronLayer, type NeuronLayer, type NeuronManifest } from '../neurons/format'
 
@@ -7,6 +7,7 @@ import { layerFile, layerLayout, parseNeuronLayer, type NeuronLayer, type Neuron
 // 576 dims (the trace fixture's rows are 576 wide), a 256-token vocabulary.
 export const NF = { layers: 3, neurons: 10, dims: 576, vocab: 256, labels: 5, fractions: [0.001, 0.01, 0.1] }
 
+export const fixtureNormWeight = (l: number, d: number) => 1 + 0.25 * Math.sin(d * 0.2 + l)
 export const fixtureG = (d: number) => 1 + 0.5 * Math.cos(d * 0.3)
 const qValue = (l: number, i: number, d: number) => Math.round(100 * Math.sin(0.05 * d + l + 1.3 * i))
 const labelId = (l: number, i: number, s: number, j: number) => (l * 40 + i * 10 + s * 5 + j) % NF.vocab
@@ -18,6 +19,7 @@ export function encodeNeuronFixture(): { manifest: NeuronManifest; layers: Array
   const layers = Array.from({ length: L }, (_, l) => {
     const buf = new ArrayBuffer(layout.bytes)
     const view = new DataView(buf)
+    for (let d = 0; d < dims; d++) view.setFloat32(layout.normWeight + d * 4, fixtureNormWeight(l, d), true)
     for (let i = 0; i < n; i++) {
       view.setFloat32(layout.scales + i * 4, 0.002 * (i + 1), true)
       for (let d = 0; d < dims; d++) view.setInt8(layout.columns + i * dims + d, qValue(l, i, d))
@@ -33,7 +35,7 @@ export function encodeNeuronFixture(): { manifest: NeuronManifest; layers: Array
   files['tokens.json'] = { bytes: 0, sha256: '0'.repeat(64) }
   const manifest: NeuronManifest = {
     modelId: 'fixture', layers: L, neurons: n, dims, vocabSize: NF.vocab, labelsPerSign: k, fractions,
-    labelMethod: 'fixture', layout, finalNormWeight: Array.from({ length: dims }, (_, d) => fixtureG(d)), files,
+    labelMethod: 'fixture', layout, revision: 'v6', rmsNormEps: 1e-5, finalNormWeight: Array.from({ length: dims }, (_, d) => fixtureG(d)), files,
   }
   return { manifest, layers, tokens }
 }
@@ -59,13 +61,27 @@ export function fixtureNeuronAsset() {
 
 export const FIXTURE_INV_RMS = 0.05
 
+const silu = (z: number) => z / (1 + Math.exp(-z))
+const fixtureGate = (cycle: number, k: number) => 4 * Math.cos(cycle + 0.7 * Math.floor(k / NF.neurons) + 1.1 * (k % NF.neurons)) + 0.5
+const fixtureUp = (cycle: number, k: number) => 1.5 * Math.sin(cycle + 0.4 * k + 0.3)
+
+export function fixtureSteps(cycle: number): MlpSteps {
+  const n = NF.layers * NF.neurons, w = NF.layers * NF.dims
+  return {
+    gate: packHalf(Array.from({ length: n }, (_, k) => fixtureGate(cycle, k))),
+    up: packHalf(Array.from({ length: n }, (_, k) => fixtureUp(cycle, k))),
+    mlpIn: packHalf(Array.from({ length: w }, (_, k) => 20 * Math.cos(0.13 * k + cycle))),
+    mlpOut: packHalf(Array.from({ length: w }, (_, k) => 6 * Math.sin(0.07 * k - cycle))),
+  }
+}
+
 // Deterministic neuron data for a cycle, with each candidate's row from
-// `rowOf` (the trace fixture passes fixtureEmbedding).
-export function fixtureNeuronData(cycle: number, ids: number[], rowOf: (id: number) => number[]): NeuronData {
-  const acts = Array.from({ length: NF.layers * NF.neurons }, (_, k) =>
-    3 * Math.cos(cycle + 0.7 * Math.floor(k / NF.neurons) + 1.1 * (k % NF.neurons)))
+// `rowOf` (the trace fixture passes fixtureEmbedding). Activations are
+// SiLU(gate) · up of the step data.
+export function fixtureNeuronData(cycle: number, ids: number[], rowOf: (id: number) => number[], withSteps = true): NeuronData {
+  const acts = Array.from({ length: NF.layers * NF.neurons }, (_, k) => silu(fixtureGate(cycle, k)) * fixtureUp(cycle, k))
   return { neurons: NF.neurons, invRms: FIXTURE_INV_RMS, activations: packHalf(acts),
-    candidates: ids.map((id) => ({ id, row: packFloat32(rowOf(id)) })) }
+    candidates: ids.map((id) => ({ id, row: packFloat32(rowOf(id)) })), ...(withSteps ? { steps: fixtureSteps(cycle) } : {}) }
 }
 
 // The MLP votes per layer that the neuron data adds up to for candidate `id`
