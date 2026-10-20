@@ -1,6 +1,7 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, expect, test, vi } from 'vitest'
-import { CHART_W, GateUpScatter, ProductBars, SiluChart, StepStrip, gateX } from './MlpStepCharts'
+import { GateUpScatter, ProductBars, SiluChart, StepStrip } from './MlpStepCharts'
+import { CHART_W, gateX } from './stepChartMath'
 import { productSummary } from '../neurons/steps'
 
 afterEach(cleanup)
@@ -63,4 +64,14 @@ test('a strip stretches one cell per value across the full width', () => {
   expect(svg.getAttribute('preserveAspectRatio')).toBe('none')
   expect(svg.querySelectorAll('rect')).toHaveLength(3)
   expect(screen.getByText('x, into the MLP')).toBeInTheDocument()
+})
+
+test('a marked bar is focusable, named, and reports its neuron on focus', () => {
+  const onHover = vi.fn()
+  render(<ProductBars h={h} summary={productSummary(h)} marked={[4]} hover={null} onHover={onHover} box={null} />)
+  const bar = screen.getByTestId('steps-product').querySelector('[data-neuron="4"]')!
+  expect(bar.getAttribute('tabindex')).toBe('0')
+  expect(bar.getAttribute('aria-label')).toBe('N4')
+  fireEvent.focus(bar)
+  expect(onHover).toHaveBeenCalledWith(expect.objectContaining({ neuron: 4, chart: 'product' }))
 })

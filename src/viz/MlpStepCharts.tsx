@@ -1,19 +1,14 @@
-// oxlint-disable react/only-export-components -- the card shares CHART_W and gateX with the charts
 import type { ReactNode } from 'react'
 import type { productSummary } from '../neurons/steps'
 import { silu } from '../neurons/steps'
 import { cellFill } from './stripMath'
+import { CHART_W, X0, X1, gateX, type Hover } from './stepChartMath'
 
 // The step-by-step card's charts (#17). Every chart is an SVG on a 720-unit-wide
 // frame drawn at width 100 %, so it fills the card's chart column (the #15
 // sizing rule). The gate axis is shared: a neuron sits at the same x in the
 // scatter and on the SiLU curve.
 
-export const CHART_W = 720
-const X0 = 36, X1 = 710
-export interface Hover { neuron: number; chart: 'scatter' | 'silu' | 'product'; x: number; y: number; height: number }
-
-export const gateX = ([lo, hi]: [number, number]) => (v: number) => X0 + ((v - lo) / (hi - lo)) * (X1 - X0)
 const clamp = (v: number, lim: number) => Math.max(-lim, Math.min(lim, v))
 const ticks = ([lo, hi]: [number, number]) => {
   const step = hi - lo > 12 ? 5 : hi - lo > 5 ? 2 : 1
@@ -39,6 +34,7 @@ function Dots({ xs, ys, marked, chart, height, onHover }: { xs: number[]; ys: nu
   const dot = (i: number) => (
     <circle key={i} data-neuron={i} cx={xs[i]} cy={ys[i]} r={m.has(i) ? 4 : 1.6}
       className={m.has(i) ? 'step-dot-marked' : 'step-dot'} tabIndex={m.has(i) ? 0 : undefined}
+      role={m.has(i) ? 'img' : undefined} aria-label={m.has(i) ? `N${i}` : undefined}
       onMouseEnter={() => show(i)} onMouseLeave={() => onHover(null)}
       onFocus={() => show(i)} onBlur={() => onHover(null)} />
   )
@@ -48,7 +44,7 @@ function Dots({ xs, ys, marked, chart, height, onHover }: { xs: number[]; ys: nu
 function Frame({ testId, h, label, box, children }: { testId: string; h: number; label: string; box: ReactNode; children: ReactNode }) {
   return (
     <div className="step-chart">
-      <svg data-testid={testId} className="mlp-chart" viewBox={`0 0 ${CHART_W} ${h}`} role="img" aria-label={label}>{children}</svg>
+      <svg data-testid={testId} className="mlp-chart" viewBox={`0 0 ${CHART_W} ${h}`} role="group" aria-label={label}>{children}</svg>
       {box}
     </div>
   )
@@ -119,10 +115,12 @@ export function ProductBars({ h, summary, marked, onHover, box }: {
       <line x1={X0} x2={X1} y1={mid} y2={mid} className="step-zero" />
       {order.map((i, k) => {
         const len = (Math.abs(h[i]) / peak) * reach
+        const hv = { neuron: i, chart: 'product' as const, x: at(k) + bw / 2, y: h[i] >= 0 ? mid - len : mid + len, height: H }
         return <rect key={i} data-neuron={i} x={at(k)} width={Math.max(bw - 1, 0.6)} y={h[i] >= 0 ? mid - len : mid} height={len}
           className={m.has(i) ? 'step-bar-marked' : h[i] >= 0 ? 'step-bar-pos' : 'step-bar-neg'}
-          onMouseEnter={() => onHover({ neuron: i, chart: 'product', x: at(k) + bw / 2, y: h[i] >= 0 ? mid - len : mid + len, height: H })}
-          onMouseLeave={() => onHover(null)} />
+          tabIndex={m.has(i) ? 0 : undefined} role={m.has(i) ? 'img' : undefined} aria-label={m.has(i) ? `N${i}` : undefined}
+          onMouseEnter={() => onHover(hv)} onMouseLeave={() => onHover(null)}
+          onFocus={() => onHover(hv)} onBlur={() => onHover(null)} />
       })}
       {[[half, 'half', 16], [ninety, '90%', 30]].map(([k, name, ty]) => Number(k) > 0 && Number(k) <= order.length && (
         <g key={String(name)}>
