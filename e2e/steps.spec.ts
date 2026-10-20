@@ -33,24 +33,29 @@ test('the section bar sticks, jumps and steps the shared layer; the charts fill 
   await expect(page.getByTestId('steps-title')).toBeInViewport()
   await expect(page.getByTestId('nav-link').filter({ hasText: 'Step by step' })).toHaveAttribute('aria-current', 'true')
   // Both bars are stuck: the playback bar at the top, the section bar directly below it.
-  const controls = (await page.locator('.controls').boundingBox())!
-  const navBox = (await nav.boundingBox())!
-  expect(Math.round(controls.y)).toBe(0)
-  expect(Math.abs(navBox.y - (controls.y + controls.height))).toBeLessThanOrEqual(1)
+  // Poll, because the jump scrolls smoothly and the bars settle only when it ends.
+  await expect.poll(async () => {
+    const c = (await page.locator('.controls').boundingBox())!
+    const n = (await nav.boundingBox())!
+    return Math.abs(n.y - (c.y + c.height)) <= 1 && Math.round(c.y) === 0
+  }).toBe(true)
 
   const layerOf = async (id: string) => Number((await page.getByTestId(id).textContent())!.match(/layer (\d+)/)![1])
   const before = await layerOf('steps-title')
+  const expected = before > 0 ? before - 1 : before + 1
   await page.getByTestId(before > 0 ? 'nav-prev' : 'nav-next').click()
-  const after = await layerOf('steps-title')
-  expect(after).toBe(before > 0 ? before - 1 : before + 1)
-  expect(await layerOf('neuron-title')).toBe(after)
+  await expect.poll(() => layerOf('steps-title')).toBe(expected)
+  await expect.poll(() => layerOf('neuron-title')).toBe(expected)
 
   await expect(page.getByTestId('strip-n')).toBeVisible()
-  const scatter = (await page.getByTestId('steps-scatter').boundingBox())!
-  const silu = (await page.getByTestId('steps-silu').boundingBox())!
-  expect(scatter.width).toBeGreaterThanOrEqual(700)
-  expect(Math.abs(scatter.x - silu.x)).toBeLessThan(1)
-  expect(Math.abs(scatter.width - silu.width)).toBeLessThan(1)
+  await expect(page.getByTestId('steps-scatter')).toBeVisible()
+  await expect(page.getByTestId('steps-silu')).toBeVisible()
+  await expect.poll(async () => (await page.getByTestId('steps-scatter').boundingBox())!.width).toBeGreaterThanOrEqual(700)
+  await expect.poll(async () => {
+    const scatter = (await page.getByTestId('steps-scatter').boundingBox())!
+    const silu = (await page.getByTestId('steps-silu').boundingBox())!
+    return Math.abs(scatter.x - silu.x) < 1 && Math.abs(scatter.width - silu.width) < 1
+  }).toBe(true)
 })
 
 test('at phone width the page does not scroll sideways', async ({ page }) => {
