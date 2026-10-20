@@ -51,6 +51,13 @@ thresholds (top 0.1 %, 1 % and 10 % of the vocabulary), plus `tokens.json`
 and a manifest with the byte layout, the final norm weight and SHA-256
 checksums.
 
+For the step-by-step card it also exposes `mlp_gate` and `mlp_up`
+(`[batch, 30, 1536]`, every layer's gate before SiLU and up values at the
+last position) and `mlp_in` and `mlp_out` (`[batch, 30, 576]`, the stream
+going into each MLP and the MLP's edit). Each `neurons/` layer file ends with
+that layer's post-attention norm weight; the manifest names the tag it was
+built for (`revision`) and the norm's epsilon.
+
 Releases are tagged — this one is `{tag}` — and the app pins a tag, so
 browsers that cached an older file re-download once. Tags never move: a
 fixed model is published under the next tag.
@@ -62,13 +69,13 @@ reproduces the logits; `topk_embeds` are the exact rows of the top-16 ids),
 edit-ratio parity with PyTorch hooks, stream-part / vote sums, activation parity
 with PyTorch hooks, and per-neuron votes adding up to the MLP votes.
 
-**Variants:** `onnx/model_quantized.onnx` (dynamic int8, `dtype: 'q8'`,
-with `/lm_head/MatMul` excluded from quantization) is the sole published
-variant: it is greedy-token-identical to the stock fp32 export on the
-validation prompts — better than the official stock q4, which diverges
-at step 4. q4 and fp16 variants were produced and deliberately withheld
-(q4: on par with stock q4 but strictly worse than this q8; fp16:
-computes incorrectly on the WebGPU execution provider despite loading).
+**Variants:** `onnx/model_quantized.onnx` (loaded with `dtype: 'q8'`) is
+weight-only 8-bit: `MatMulNBits` with blocks of 32 weights, activations in
+fp32, the embedding table as uint8, `/lm_head/MatMul` and the readout gather
+in fp32. Under browser semantics (no graph fusion; onnxruntime-web WASM and
+WebGPU) it picks the same next token as the fp32 export on all validation
+prompts. The earlier dynamic-int8 variant (tags up to v5) rounded
+activations with one scale per tensor and lost small values in browsers.
 """
 
 
@@ -98,6 +105,14 @@ def is_blocking(check: dict, allow_skipped_equivalence: bool = False) -> bool:
     if check.get("skipped") and allow_skipped_equivalence:
         return False
     return True
+
+
+def assert_manifest_matches_tag(manifest: dict, tag: str) -> None:
+    """The app refuses a neuron manifest built for another tag, so publishing
+    one would break the neuron and step-by-step cards."""
+    if manifest.get("revision") != tag:
+        raise ValueError(f"neurons/manifest.json was built for {manifest.get('revision')!r}, not {tag} — "
+                         f"rebuild with: neurons --revision {tag}")
 
 
 def tag_name(args) -> str:
@@ -148,6 +163,11 @@ def run(args) -> int:
             return 1
 
     tag = tag_name(args)
+    try:
+        assert_manifest_matches_tag(json.loads((model_dir / "neurons" / "manifest.json").read_text()), tag)
+    except (ValueError, OSError) as err:
+        print(err)
+        return 1
     from transformers import AutoConfig
     n_layers = AutoConfig.from_pretrained(str(model_dir)).num_hidden_layers
     (model_dir / "README.md").write_text(

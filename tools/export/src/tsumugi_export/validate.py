@@ -15,6 +15,8 @@
     add up to the logits of the top-k ids
 11. mlp_activations and final_norm_inv_rms match PyTorch hooks; per-neuron
     votes from neurons/ add up to the MLP votes; neurons/ matches its manifest
+12. argmax parity under browser semantics; mlp_gate/up/in/out match PyTorch
+    hooks and SiLU(gate)·up = mlp_activations
 Writes validation-report.json with artifact hashes; publish refuses to
 upload without a passing report."""
 import functools
@@ -33,9 +35,24 @@ PROMPTS = [
 TOL = 2e-2  # fp32-vs-quantized logit tolerance; fp32-vs-fp32 uses 1e-4
 
 
-def _session(path: Path):
+ARGMAX_PROMPTS = [
+    "The cat sat on the mat because it was tired",
+    "one two three one two three one",
+    "The capital of France is",
+    "Once upon a time, there was a little",
+]
+STEP_OUTPUTS = ("mlp_gate", "mlp_up", "mlp_in", "mlp_out")
+
+
+def _session(path: Path, browser: bool = False):
+    """browser=True disables graph optimizations: onnxruntime-web runs the
+    unfused graph, and full optimization fuses quantized matmuls into kernels
+    that hide rounding the browser does (the #19 lesson)."""
     import onnxruntime as ort
-    return ort.InferenceSession(str(path), providers=["CPUExecutionProvider"])
+    so = ort.SessionOptions()
+    if browser:
+        so.graph_optimization_level = ort.GraphOptimizationLevel.ORT_DISABLE_ALL
+    return ort.InferenceSession(str(path), so, providers=["CPUExecutionProvider"])
 
 
 def _tokenize(model_dir: Path, prompt: str) -> np.ndarray:
@@ -431,7 +448,62 @@ def check_neuron_votes_sum(outputs: dict, ndir: Path, k: int = 10) -> dict:
     return {"passed": True, "detail": f"{layers} layers × {len(rows)} candidates, max gap {worst:.3e} (tol 0.05 + 1 %)"}
 
 
-def check_neuron_files(model_dir: Path, texts: list[str], g: np.ndarray) -> dict:
+def check_argmax_parity(cases: list[tuple[np.ndarray, np.ndarray]], max_delta: float = 1.5) -> dict:
+    """(ours, stock) last-position logits per prompt: same argmax everywhere and max|Δ| ≤ max_delta."""
+    same = sum(int(np.argmax(o) == np.argmax(s)) for o, s in cases)
+    worst = max(float(np.max(np.abs(o - s))) for o, s in cases)
+    return {"passed": same == len(cases) and worst <= max_delta,
+            "detail": f"same argmax {same}/{len(cases)}, max|Δlogit| {worst:.2f} (limit {max_delta})"}
+
+
+def check_steps_parity(outputs: dict, ref: dict, abs_tol: float, rel_tol: float) -> dict:
+    """Each step output [1, layers, n] against the reference [layers, n]:
+    per layer max|Δ| ≤ abs_tol + rel_tol · max|ref of that layer|."""
+    for name in STEP_OUTPUTS:
+        if name not in outputs:
+            return {"passed": False, "detail": f"graph has no {name} output"}
+    worst = (0.0, "", 0)
+    for name in STEP_OUTPUTS:
+        got, want = outputs[name], ref[name]
+        if got.shape != (1, *want.shape):
+            return {"passed": False, "detail": f"{name} shape {got.shape}, expected (1, {', '.join(map(str, want.shape))})"}
+        for l in range(want.shape[0]):
+            diff = float(np.max(np.abs(got[0, l] - want[l])))
+            allowed = abs_tol + rel_tol * float(np.max(np.abs(want[l])))
+            if diff > allowed:
+                return {"passed": False, "detail": f"{name} layer {l}: max|Δ|={diff:.3e} > {allowed:.3e}"}
+            worst = max(worst, (diff, name, l))
+    return {"passed": True, "detail": f"max|Δ|={worst[0]:.2e} ({worst[1]} layer {worst[2]})"}
+
+
+def check_silu_product(outputs: dict, rtol: float = 1e-3, atol: float = 1e-4) -> dict:
+    """SiLU(mlp_gate) · mlp_up reproduces mlp_activations: the card's steps 3 and 4 are the graph's own."""
+    for name in ("mlp_gate", "mlp_up", "mlp_activations"):
+        if name not in outputs:
+            return {"passed": False, "detail": f"graph has no {name} output"}
+    g, u, a = outputs["mlp_gate"], outputs["mlp_up"], outputs["mlp_activations"]
+    h = g / (1 + np.exp(-g)) * u
+    ok = np.allclose(h, a, rtol=rtol, atol=atol)
+    return {"passed": bool(ok), "detail": f"max|SiLU(g)·u − a| = {float(np.max(np.abs(h - a))):.2e}"}
+
+
+def _last_logits(sess, model_dir: Path, prompt: str) -> np.ndarray:
+    ids = _tokenize(model_dir, prompt)
+    return sess.run(["logits"], _feeds(sess, ids))[0][0, -1]
+
+
+def write_browser_reference(path: Path, model_dir: Path, stock_sess) -> None:
+    """Token ids and stock fp32 last-position logits for ARGMAX_PROMPTS, for browser-check.html."""
+    cases = []
+    for prompt in ARGMAX_PROMPTS:
+        ids = _tokenize(model_dir, prompt)
+        logits = stock_sess.run(["logits"], _feeds(stock_sess, ids))[0][0, -1]
+        cases.append({"prompt": prompt, "ids": ids[0].tolist(), "logits": [float(v) for v in logits]})
+    path.write_text(json.dumps({"cases": cases}))
+
+
+def check_neuron_files(model_dir: Path, texts: list[str], g: np.ndarray,
+                       norms: list[np.ndarray], eps: float) -> dict:
     """neurons/ against its manifest (sizes, SHA-256), the layout, the stock
     final norm weight and the tokenizer's texts."""
     ndir = model_dir / "neurons"
@@ -451,6 +523,13 @@ def check_neuron_files(model_dir: Path, texts: list[str], g: np.ndarray) -> dict
         return {"passed": False, "detail": "a layer file's size differs from layout.bytes"}
     if not np.allclose(np.array(m["finalNormWeight"]), g, atol=1e-6):
         return {"passed": False, "detail": "finalNormWeight differs from the stock final norm weight"}
+    if "revision" not in m or m.get("rmsNormEps") != eps:
+        return {"passed": False, "detail": f"manifest revision {m.get('revision')!r} / rmsNormEps {m.get('rmsNormEps')} (expected a revision and {eps})"}
+    lay = m["layout"]
+    for l in range(m["layers"]):
+        raw = (ndir / f"layer-{l:02d}.bin").read_bytes()
+        if not np.allclose(np.frombuffer(raw[lay["normWeight"]:lay["bytes"]], dtype="<f4"), norms[l], atol=1e-6):
+            return {"passed": False, "detail": f"layer-{l:02d}.bin: normWeight differs from the stock post-attention norm"}
     if json.loads((ndir / "tokens.json").read_text()) != texts:
         return {"passed": False, "detail": "tokens.json differs from the tokenizer's texts"}
     return {"passed": True, "detail": f"{m['layers']} layer files and tokens.json match the manifest"}
@@ -483,6 +562,27 @@ def torch_neuron_reference(ids: np.ndarray) -> tuple[np.ndarray, float]:
     x = rec["norm"].double()
     inv = float(1.0 / torch.sqrt((x ** 2).mean() + model.config.rms_norm_eps))
     return acts, inv
+
+
+def torch_step_reference(ids: np.ndarray) -> dict:
+    """Last-position gate, up, MLP input and MLP output per layer, from hooks on the stock PyTorch model."""
+    import torch
+    model = _stock_torch_model()
+    rec: dict = {}
+    hooks = []
+    for l, layer in enumerate(model.model.layers):
+        hooks += [
+            layer.mlp.gate_proj.register_forward_hook(lambda m, a, o, l=l: rec.__setitem__(("mlp_gate", l), o[0, -1].detach())),
+            layer.mlp.up_proj.register_forward_hook(lambda m, a, o, l=l: rec.__setitem__(("mlp_up", l), o[0, -1].detach())),
+            layer.post_attention_layernorm.register_forward_pre_hook(lambda m, a, l=l: rec.__setitem__(("mlp_in", l), a[0][0, -1].detach())),
+            layer.mlp.register_forward_hook(lambda m, a, o, l=l: rec.__setitem__(("mlp_out", l), o[0, -1].detach())),
+        ]
+    with torch.no_grad():
+        model(torch.tensor(ids))
+    for h in hooks:
+        h.remove()
+    n = len(model.model.layers)
+    return {k: np.stack([rec[(k, l)].numpy() for l in range(n)]).astype(np.float32) for k in STEP_OUTPUTS}
 
 
 def check_geometry_files(model_dir: Path, E: np.ndarray, texts: list[str], sample: int = 32) -> dict:
@@ -555,13 +655,16 @@ def run(args) -> int:
     ref_ids = _tokenize(model_dir, PROMPTS[0])
     ref_ratios = torch_edit_ratios(ref_ids)
     ref_acts, ref_inv = torch_neuron_reference(ref_ids)
+    ref_steps = torch_step_reference(ref_ids)
+    write_browser_reference(model_dir.parent / "browser-ref.json", model_dir, stock)
 
     for variant in ["model.onnx", "model_quantized.onnx", "model_q4.onnx", "model_fp16.onnx"]:
         path = model_dir / "onnx" / variant
         if not path.exists():
             continue
+        quantized = variant != "model.onnx"
         try:
-            sess = _session(path)
+            sess = _session(path, browser=quantized)
         except Exception as err:  # a broken artifact is a FAIL row, never a crash
             checks[f"{variant}:loadable"] = {"passed": False, "detail": f"session load failed: {err}"}
             continue
@@ -574,6 +677,8 @@ def run(args) -> int:
         # the per-prompt logits-parity checks below that consult it.
         greedy = _check_greedy_parity(sess, stock, model_dir)
         checks[f"{variant}:greedy-parity"] = greedy
+        checks[f"{variant}:argmax-parity"] = check_argmax_parity(
+            [(_last_logits(sess, model_dir, p), _last_logits(stock, model_dir, p)) for p in ARGMAX_PROMPTS])
 
         for prompt in PROMPTS:
             ids = _tokenize(model_dir, prompt)
@@ -638,19 +743,18 @@ def run(args) -> int:
         checks[f"{variant}:votes-sum"] = check_votes_sum(ro_out, 1e-3 if fp32 else 1e-2)
         checks[f"{variant}:edit-cache-parity"] = check_edit_cache_parity(
             ro_out, _drive_cached_stepwise(sess, ro_ids), ratio_tol, ratio_clip)
-        # fp32 proves the wiring tightly; q8 computes on quantized activations
-        # and weights (measured 2026-10-15: activations off by up to ~5.9 at layer 29,
-        # 1/rms by ~3 %), so its gate only catches a wrong tensor
+        # fp32 proves the wiring tightly; q8 is weight-only 8-bit (measured worst
+        # layer ≈ 9 % of the layer's peak in the spike), so its gate only catches a wrong tensor
         act_abs, act_rel, inv_rtol = (1e-3, 1e-3, 1e-4) if fp32 else (0.5, 0.25, 0.1)
         checks[f"{variant}:activations-parity"] = check_activations_parity(ro_out, ref_acts, act_abs, act_rel)
         checks[f"{variant}:inv-rms-parity"] = check_inv_rms_parity(ro_out, ref_inv, inv_rtol)
+        step_abs, step_rel = (1e-3, 1e-3) if fp32 else (0.5, 0.25)
+        checks[f"{variant}:steps-parity"] = check_steps_parity(ro_out, ref_steps, step_abs, step_rel)
+        checks[f"{variant}:silu-product"] = check_silu_product(ro_out)
         if (model_dir / "neurons" / "manifest.json").exists():
-            votes = check_neuron_votes_sum(ro_out, model_dir / "neurons")
-            # q8's down_proj rounds its input and weights, so neuron votes computed
-            # from the unrounded activations miss its MLP votes by up to ~0.3:
-            # informational, like logits-parity; the card shows "≈" there (#19)
-            checks[f"{variant}:neuron-votes-sum"] = votes if fp32 else {
-                "passed": True, "detail": f"informational for quantized variants: {votes['detail']}"}
+            # v6 computes on fp32 activations (weight-only 8-bit), so neuron votes from the
+            # int8 asset must add up to the MLP votes here too (#19)
+            checks[f"{variant}:neuron-votes-sum"] = check_neuron_votes_sum(ro_out, model_dir / "neurons")
 
     # A≡B equivalence when the operator exported both variants
     nc = model_dir.parent / "model-nocache" / "onnx" / "model.onnx"
@@ -669,8 +773,11 @@ def run(args) -> int:
         }
 
     checks["geometry"] = check_geometry_files(model_dir, E, texts)
-    from tsumugi_export.stock import stock_final_norm
-    checks["neurons"] = check_neuron_files(model_dir, texts, stock_final_norm())
+    from transformers import AutoConfig
+    from tsumugi_export.stock import stock_final_norm, stock_mlp_norms
+    checks["neurons"] = check_neuron_files(
+        model_dir, texts, stock_final_norm(), stock_mlp_norms(),
+        AutoConfig.from_pretrained(STOCK_MODEL_ID).rms_norm_eps)
 
     passed = all(c["passed"] for c in checks.values())
     report = {

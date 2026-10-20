@@ -11,6 +11,12 @@ E = rng.normal(size=(V, D)).astype(np.float32)
 G = rng.uniform(0.5, 1.5, D).astype(np.float32)
 W = [rng.normal(size=(D, N)).astype(np.float32) for _ in range(L)]
 TEXTS = [f"t{i}" for i in range(V)]
+NORMS = [np.ones(D, np.float32) * (l + 1) for l in range(L)]
+EPS = 1e-5
+
+
+def built():
+    return build_neurons(W, G, E, TEXTS, norms=NORMS, revision="v6", eps=EPS)
 
 
 def outputs() -> dict:
@@ -47,7 +53,7 @@ def test_inv_rms_parity():
 
 
 def test_neuron_votes_from_the_int8_asset_add_up_to_the_mlp_votes(tmp_path):
-    write_neurons(tmp_path, build_neurons(W, G, E, TEXTS))
+    write_neurons(tmp_path, built())
     out = outputs()
     assert check_neuron_votes_sum(out, tmp_path, k=K)["passed"]
     out["stream_parts"][0, 1 + L] *= 3
@@ -57,18 +63,25 @@ def test_neuron_votes_from_the_int8_asset_add_up_to_the_mlp_votes(tmp_path):
 
 def test_neuron_files_match_the_manifest(tmp_path):
     ndir = tmp_path / "neurons"
-    write_neurons(ndir, build_neurons(W, G, E, TEXTS))
-    assert check_neuron_files(tmp_path, TEXTS, G)["passed"]
+    write_neurons(ndir, built())
+    assert check_neuron_files(tmp_path, TEXTS, G, NORMS, EPS)["passed"]
     (ndir / "layer-01.bin").write_bytes(b"\0" * 10)
-    assert "layer-01.bin" in check_neuron_files(tmp_path, TEXTS, G)["detail"]
+    assert "layer-01.bin" in check_neuron_files(tmp_path, TEXTS, G, NORMS, EPS)["detail"]
 
 
 def test_neuron_files_check_the_norm_weight_and_texts(tmp_path):
-    write_neurons(tmp_path / "neurons", build_neurons(W, G, E, TEXTS))
-    assert "finalNormWeight" in check_neuron_files(tmp_path, TEXTS, G * 2)["detail"]
-    assert "tokens.json" in check_neuron_files(tmp_path, ["x"] * V, G)["detail"]
+    write_neurons(tmp_path / "neurons", built())
+    assert "finalNormWeight" in check_neuron_files(tmp_path, TEXTS, G * 2, NORMS, EPS)["detail"]
+    assert "tokens.json" in check_neuron_files(tmp_path, ["x"] * V, G, NORMS, EPS)["detail"]
 
 
 def test_a_missing_asset_fails():
     from pathlib import Path
-    assert "no neurons/" in check_neuron_files(Path("/nonexistent"), TEXTS, G)["detail"]
+    assert "no neurons/" in check_neuron_files(Path("/nonexistent"), TEXTS, G, NORMS, EPS)["detail"]
+
+
+def test_neuron_files_check_the_revision_eps_and_post_attention_norm(tmp_path):
+    write_neurons(tmp_path / "neurons", built())
+    assert check_neuron_files(tmp_path, TEXTS, G, NORMS, EPS)["passed"]
+    assert "rmsNormEps" in check_neuron_files(tmp_path, TEXTS, G, NORMS, 1e-6)["detail"]
+    assert "normWeight" in check_neuron_files(tmp_path, TEXTS, G, [NORMS[0], NORMS[1] * 2], EPS)["detail"]
