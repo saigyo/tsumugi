@@ -1,0 +1,51 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Tsumugi model browser check</title>
+<pre id="log">running…</pre>
+<!-- Served by the app's Vite dev server (npm run dev), opened at
+     http://localhost:5173/tools/export/browser-check.html after `validate`
+     wrote out/browser-ref.json. Loads out/model through transformers.js, as
+     the app does, on WebGPU and WASM, and compares the last-position logits
+     with the stock fp32 export's. -->
+<script type="module">
+import { AutoModelForCausalLM, Tensor, env } from '@huggingface/transformers'
+
+env.allowRemoteModels = false
+env.allowLocalModels = true
+env.localModelPath = '/tools/export/out/'
+
+const log = (s) => { document.getElementById('log').textContent += '\n' + s }
+
+async function check() {
+  const ref = await (await fetch('/tools/export/out/browser-ref.json')).json()
+  const lines = []
+  let ok = true
+  for (const device of ['webgpu', 'wasm']) {
+    if (device === 'webgpu' && !('gpu' in navigator)) { lines.push('webgpu: not available in this browser'); continue }
+    const model = await AutoModelForCausalLM.from_pretrained('model', { dtype: 'q8', device })
+    for (const c of ref.cases) {
+      const n = c.ids.length
+      const out = await model({
+        input_ids: new Tensor('int64', BigInt64Array.from(c.ids.map(BigInt)), [1, n]),
+        attention_mask: new Tensor('int64', new BigInt64Array(n).fill(1n), [1, n]),
+      })
+      const V = c.logits.length
+      const last = out.logits.data.subarray((n - 1) * V, n * V)
+      let am = 0, bm = 0, worst = 0
+      for (let k = 0; k < V; k++) {
+        if (last[k] > last[am]) am = k
+        if (c.logits[k] > c.logits[bm]) bm = k
+        worst = Math.max(worst, Math.abs(last[k] - c.logits[k]))
+      }
+      const pass = am === bm && worst <= 1.5
+      ok &&= pass
+      lines.push(`${device}  ${c.prompt.padEnd(46)}  argmax ${am === bm ? 'same' : 'DIFF'}  max|Δlogit| ${worst.toFixed(2)}  ${pass ? 'PASS' : 'FAIL'}`)
+    }
+    await model.dispose()
+  }
+  lines.push(ok ? 'VERDICT: PASS' : 'VERDICT: FAIL')
+  lines.forEach(log)
+  return lines
+}
+window.checkResult = check().catch((e) => { log('ERROR ' + e); return ['ERROR ' + e] })
+</script>

@@ -65,7 +65,8 @@ the actual acceptance checklist for a release.
    rows will not have been checked against the full-matrix ground truth.
 4. **Quantize:** `uv run python -m tsumugi_export quantize --model-dir out/model`
 5. **Build the geometry asset:** `uv run python -m tsumugi_export geometry --model-dir out/model`
-6. **Build the neuron asset:** `uv run python -m tsumugi_export neurons --model-dir out/model`
+6. **Build the neuron asset:** `uv run python -m tsumugi_export neurons --model-dir out/model --revision v6`
+   `--revision` is the tag you will publish under; `publish` refuses a manifest built for another tag, and the app refuses one that does not match `ATTN_MODEL_REVISION`.
 7. **Validate:** `uv run python -m tsumugi_export validate --model-dir out/model`.
    Do not skip this — `publish` refuses to run without a passing report,
    but you should also read the printed verdict table yourself (including
@@ -73,12 +74,15 @@ the actual acceptance checklist for a release.
    `*:inputs-embeds-parity`, `*:last-hidden-parity`, `*:topk-parity`,
    `*:edit-ratios-parity`, `*:stream-parts-sum`, `*:votes-sum`,
    `*:edit-cache-parity`, `*:activations-parity`, `*:inv-rms-parity`,
-   `*:neuron-votes-sum`, `geometry` and `neurons` must PASS) rather than relying solely on the exit code.
+   `*:neuron-votes-sum`, `*:argmax-parity`, `*:steps-parity`,
+   `*:silu-product`, `geometry` and `neurons` must PASS) rather than relying solely on the exit code.
+   Quantized variants are validated with graph optimizations disabled, because onnxruntime-web runs the unfused graph (#19).
    The quantized variant's edit-ratio checks compare values clipped at
    2.0 with atol 0.25: q8 moves the huge first-token MLP ratios (≈100 at
    layer 11) by ~10%, and the card draws every ratio ≥ 1 alike. The fp32
    checks (atol 1e-3, unclipped) are what prove the outputs are wired right.
-8. **Publish:** `uv run python -m tsumugi_export publish --model-dir out/model --tag v5`
+7b. **Browser check.** `npm run dev` in the repository root, then open `http://localhost:5173/tools/export/browser-check.html` in Chrome. It loads `out/model` through transformers.js on WebGPU and WASM and must end with `VERDICT: PASS`. This is the pre-publish in-app check step 9 used to lack.
+8. **Publish:** `uv run python -m tsumugi_export publish --model-dir out/model --tag v6`
    Then set `ATTN_MODEL_REVISION` in `src/engine/tokenizer.ts` to the same
    tag and deploy the app. A release is always these two steps: browsers
    cache model files by URL and never re-check, so publishing alone changes
