@@ -85,8 +85,11 @@ and selected candidate), drawn in the accent orange in every chart. Others
 are grey dots or signed bars.
 
 **Each step** is a row: a label column (step name, formula, one sentence;
-fixed width, about 170 px) and a chart that takes the rest of the card's
-width. Texts as in the mockup.
+fixed width, 150 px) and a chart that takes the rest of the card's width.
+Texts as in the mockup, with the glossary's notation: n = norm(x) with the
+learned scale w, g = W_gate · n, u = W_up · n, h = SiLU(g) ⊙ u,
+edit = W_down · h (the mockup's "g" for the norm weight and "a" for the
+product would clash with the glossary's MLP formula).
 
 1. **Norm.** Three heat strips, 576 cells each, full chart width: x (the
    vector into the MLP), the norm's learned weights g with "÷ rms(x) = …"
@@ -138,8 +141,9 @@ heading. Right-aligned: "MLP layer N ◀ ▶", the shared layer stepper.
 **Behaviour.**
 - A click scrolls smoothly to the section, leaving the heading just below
   the bar (scroll margin = bar height).
-- The link of the section on screen is highlighted (IntersectionObserver;
-  the topmost section whose heading has passed under the bar wins).
+- The link of the section on screen is highlighted: on scroll (one update
+  per animation frame), the last section whose top has passed under the bar
+  wins.
 - In simulated runs, and in runs without MLP data, the layer stepper is
   hidden; the links stay (those sections show their notes).
 - Narrow windows: the links scroll sideways in one row; the stepper stays
@@ -159,12 +163,12 @@ spike results next to the 2026-08-28 campaign.
 **New outputs**, last position only, all layers:
 - `mlp_gate` [batch, layers, neurons]: the gate projection before SiLU.
 - `mlp_up` [batch, layers, neurons]: the up projection.
+- `mlp_in` [batch, layers, dims]: the stream going into the MLP (x).
+- `mlp_out` [batch, layers, dims]: the MLP's edit.
 
-Everything else the card needs is already exported: the products are
-`mlp_activations`; `stream_parts` holds the embedding, then the 30
-attention edits, then the 30 MLP edits at the last position, so x for layer
-l is the embedding plus every attention and MLP edit of layers before l plus
-layer l's attention edit, and the MLP edit is layer l's MLP part.
+The products are already exported as `mlp_activations`. (`stream_parts`
+cannot stand in for x and the edit: its parts are scaled by the final norm's
+weights and 1/rms, and undoing that divides by those weights.)
 
 **Neuron asset.**
 - Each layer file gains that layer's post-attention norm weight (576
@@ -202,7 +206,10 @@ as the export README describes.
 layer-major, like `activations`):
 - `gate` [layers × neurons], `up` [layers × neurons];
 - `mlpIn` [layers × dims] (x per layer) and `mlpOut` [layers × dims] (the
-  MLP edit per layer), computed in the worker from `stream_parts`.
+  MLP edit per layer), from `mlp_in` and `mlp_out`.
+
+They sit together in one optional `steps` object on the neuron data, so a
+broken or missing `steps` never affects the neuron card.
 
 Cost: about 250 KB of float16 per generated token, about 340 KB as base64
 in a stored run, on top of about 150 KB today. Runs without these fields show the "recorded
@@ -215,10 +222,13 @@ only the step-by-step fields (logged once), the neuron card still works.
 the sorted products with the half / 90% counts; the three contributions
 from the int8 columns; the hover values. Charts get plain arrays.
 
-**Chart sizing.** A shared `useWidth` hook (ResizeObserver on the chart's
-container) feeds each chart its width; the norm strips' cell width, the
-scatter and SiLU plots' x scale, the product bars and the down strips all
-derive from it. Heights are fixed per chart, as in the mockup.
+**Chart sizing.** As in the #15 cards after their sizing rework: each
+chart is an SVG with a viewBox whose width matches the chart column at the
+app's full width (720 units), drawn at `width: 100%`, so it always fills the
+column. The strips stretch their cells (`preserveAspectRatio="none"`). Below
+700 px window width the step rows stack (label above chart), so the charts
+keep the card's full width; a minimum width with sideways scrolling covers
+very narrow screens, like `mlp-chart-wide`.
 
 ## 5. Docs
 
@@ -238,12 +248,12 @@ the new variant passes) is the operator-run `validate` step, as today.
 **App (vitest):**
 - Math module on a hand-built layer: n, SiLU, sorted products and counts,
   contributions, the 120 cut-off and its footnote value.
-- Worker extraction: shapes, `mlpIn`/`mlpOut` from a small `stream_parts`,
+- Worker extraction: shapes of the four step outputs,
   bad shapes drop only the new fields.
 - The shared layer helper: pick, default, run change.
 - Card: every state; the marked neurons follow the neuron card's mode and
-  candidate; the stepper; hover box contents; charts take the width the
-  `useWidth` hook reports (mocked).
+  candidate; the stepper; hover box contents; each chart is a full-width SVG with the
+  specified viewBox.
 - Navigation bar: links, highlight from a mocked IntersectionObserver,
   stepper shown only with MLP data, `aria-current`.
 - Manifest revision mismatch → error state, files evicted.
