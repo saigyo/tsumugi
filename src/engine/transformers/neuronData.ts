@@ -1,5 +1,5 @@
 import { packFloat32, packHalf } from '../../trace/neuronPack'
-import type { NeuronData } from '../../trace/types'
+import type { MlpSteps, NeuronData } from '../../trace/types'
 import { sameDims, type Tensorish } from './readout'
 
 // The v5 export's neuron outputs turned into the edits event's `neurons`
@@ -42,4 +42,22 @@ export function extractNeurons(out: NeuronOutputs, layers: number, dims: number,
     candidates.push({ id, row: packFloat32(row) })
   }
   return { status: 'ok', data: { neurons, invRms, activations: packHalf(act.data as ArrayLike<number>), candidates } }
+}
+
+// The v6 export's step outputs for the step-by-step card, all last position:
+//   mlp_gate, mlp_up [1, layers, neurons]; mlp_in, mlp_out [1, layers, dims]
+export interface StepOutputs { mlp_gate?: Tensorish; mlp_up?: Tensorish; mlp_in?: Tensorish; mlp_out?: Tensorish }
+export type StepsResult = { status: 'absent' } | { status: 'bad-shape'; detail: string } | { status: 'ok'; steps: MlpSteps }
+
+export function extractSteps(out: StepOutputs, layers: number, neurons: number, dims: number): StepsResult {
+  const { mlp_gate: g, mlp_up: u, mlp_in: x, mlp_out: e } = out
+  if (!g && !u && !x && !e) return { status: 'absent' }
+  if (!g || !u || !x || !e)
+    return { status: 'bad-shape', detail: `step outputs incomplete: mlp_gate ${!!g}, mlp_up ${!!u}, mlp_in ${!!x}, mlp_out ${!!e}` }
+  const want: Array<[string, Tensorish, number]> = [['mlp_gate', g, neurons], ['mlp_up', u, neurons], ['mlp_in', x, dims], ['mlp_out', e, dims]]
+  for (const [name, t, w] of want)
+    if (!sameDims(t, [1, layers, w]) || t.data.length !== layers * w)
+      return { status: 'bad-shape', detail: `${name} has shape [${t.dims.join(', ')}], expected [1, ${layers}, ${w}]` }
+  const half = (t: Tensorish) => packHalf(t.data as ArrayLike<number>)
+  return { status: 'ok', steps: { gate: half(g), up: half(u), mlpIn: half(x), mlpOut: half(e) } }
 }

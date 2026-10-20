@@ -6,7 +6,7 @@ import { addAttentionOutput, createAccumulator, type AttnAccumulator } from './a
 import { extractEmbedRows } from './embedRows'
 import { extractReadout, type ReadoutResult } from './readout'
 import { computeVotes, extractEdits } from './mlpData'
-import { extractNeurons } from './neuronData'
+import { extractNeurons, extractSteps } from './neuronData'
 import type { WorkerRequest, WorkerResponse } from './protocol'
 import { headStats, resolveHeadLabel, selectShowcaseHeads, type HeadStats, type ShowcasePrev } from './attentionStats'
 import { buildGridCells } from './attentionThumbs'
@@ -58,9 +58,9 @@ async function prepare(modelId: string) {
 
   let device: 'webgpu' | 'wasm'
   try {
-    // q8 is the attn repo's sole published variant: greedy-token-identical to
-    // fp32 (lm_head excluded from quantization). q4/fp16 were disqualified
-    // during validation — see tools/export/src/tsumugi_export/quantize.py.
+    // model_quantized.onnx (dtype 'q8') is the attn repo's sole published variant: from v6
+    // weight-only 8-bit with fp32 activations, the same next token as fp32 in browsers (#19);
+    // see tools/export/src/tsumugi_export/quantize.py.
     ;({ m: model, device } = await loadOn(ATTN_MODEL_ID, 'q8', ATTN_MODEL_REVISION))
     loadedModelId = ATTN_MODEL_ID
     hasAttentions = true
@@ -145,6 +145,8 @@ async function run(runId: number, prompt: string, params: GenParams) {
   let votesOff = false
   // neuron card (v5 export): flipped by a bad shape — never-fail
   let neuronsOff = false
+  // step-by-step card (v6 export): flipped by a bad shape — never-fail, the neuron card keeps working
+  let stepsOff = false
   let stats: HeadStats[] | null = null
   let prevSel: ShowcasePrev = {}
 
@@ -220,8 +222,17 @@ async function run(runId: number, prompt: string, params: GenParams) {
           let neurons: NeuronData | undefined
           if (!neuronsOff) {
             const n = extractNeurons(out, numLayers, dims, top.map((c) => c.id))
-            if (n.status === 'ok') neurons = n.data
-            else if (n.status === 'bad-shape') {
+            if (n.status === 'ok') {
+              neurons = n.data
+              if (!stepsOff) {
+                const s = extractSteps(out, numLayers, n.data.neurons, dims)
+                if (s.status === 'ok') neurons = { ...n.data, steps: s.steps }
+                else if (s.status === 'bad-shape') {
+                  stepsOff = true
+                  console.warn(`step outputs unusable (${s.detail}) — the step-by-step card shows its note`)
+                }
+              }
+            } else if (n.status === 'bad-shape') {
               neuronsOff = true
               console.warn(`neuron outputs unusable (${n.detail}) — the neuron card shows its note`)
             }
