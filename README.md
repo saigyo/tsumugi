@@ -36,7 +36,8 @@ and underlined words and ⓘ chips in the cards open the matching entry.
   Web Worker. It first tries a custom export of SmolLM2-135M-Instruct with
   **real per-layer attention outputs**
   ([`saigyo-hoshi/smollm2-135m-attn-onnx`](https://huggingface.co/saigyo-hoshi/smollm2-135m-attn-onnx),
-  ~240 MB, downloaded once and cached): the Layers stage then shows measured
+  262.8 MB, downloaded once and cached; weight-only 8-bit, so in the
+  browser it picks the same next token as the full-precision model): the Layers stage then shows measured
   attention heatmaps, with head roles (previous-token, attention-sink,
   induction, coreference) detected statistically from the weights on your prompt and
   labeled with their evidence scores. If that download fails it falls back
@@ -237,7 +238,7 @@ as "how information flows", never as "why the model answered X".
 
 ## Opening the MLP — edit sizes, per-layer votes and neurons
 
-In a real run, the Layers detail has two more cards below the attention
+In a real run, the Layers detail has more cards below the attention
 heatmaps. **How much each layer changes the vector** shows, for every token
 and layer, how big each block's edit is compared with the stream it is
 added to (‖Δx‖ / ‖x‖), as a heatmap with an MLP / attention toggle and a
@@ -258,22 +259,29 @@ the vector most), each with its activation, its vote, the tokens its column
 points at when it fires that way, and where the candidate falls in that
 ranking. The rest of the neurons and the total close the table, and the
 total equals the votes card's cell. Click a layer in either card above to
-open it, or step with ◀ ▶. The 8-bit weights it needs download once per
+open it, or step with ◀ ▶. Its weights download once per
 model version (about 0.9 MB per layer) and stay in the browser's cache.
 
-The card computes the neuron votes from the activations before the 8-bit
-model rounds them. Where that rounding moves the layer's MLP vote by more
-than a small tolerance, the total reads "≈" with a note. This is common at
-the first generated token, when the whole prompt is rounded together (often
-on layer 29, where the card opens); later tokens usually match exactly.
+The card computes the neuron votes from the activations before the model
+rounds them. With the current model (v6) they add up to the votes card's
+cell within the tolerance, so the "≈" that marks a larger gap should no
+longer appear; it stays as a safeguard if the browser's model ever drifts.
 
 ![The Inside one MLP card](docs/screenshots/neurons.png)
 
-The empty layer-11 column in the MLP heatmap is an artefact of the 8-bit
-model the browser runs: its activation quantization uses one scale per
-batch, and the first token's huge layer-11 values round every other prompt
-token's MLP input to zero. The full-precision model has no such gap
-(backlog #19).
+**The MLP, step by step** is the fourth card. It walks one layer's MLP for
+the last token in five steps with the model's own numbers: the norm, the gate
+and up projections, SiLU, the product, and the down projection. The neurons
+from "Inside one MLP" are marked in every chart, and hovering (or focusing
+with the keyboard) a neuron shows its gate, SiLU, up, product and labels.
+The card shares its layer with the neuron card. Runs recorded before v6 do
+not store the step data and show a "generate again" note here. Stored runs
+grow by about 340 KB per generated token.
+
+A sticky section bar at the top of the Layers detail, just below the
+playback controls, links to Overview, Attention, Edit sizes, Votes, Inside
+one MLP and Step by step, highlights the section on screen, and holds the
+shared "MLP layer N" stepper.
 
 ![The edit-size and per-layer votes cards](docs/screenshots/mlp.png)
 

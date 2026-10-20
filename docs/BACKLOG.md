@@ -81,9 +81,17 @@ they are IDs, not positions.
   "Inside one MLP" card (spec
   `docs/superpowers/specs/2026-10-14-labelled-mlp-neurons-design.md`);
   export v5 with the `neurons/` asset. Parked minors: #20.
-- [ ] **#17 SwiGLU anatomy view** — a detail view of one MLP's steps
-  (norm, gate, up, SiLU, product, down) with real values for the selected
-  token. *(#15 follow-up)*
+- [x] **#17 SwiGLU anatomy view** — shipped as "The MLP, step by step",
+  the fourth card in the Layers detail: one layer's MLP for the last token
+  in five steps (norm, gate and up, SiLU, product, down) with the model's
+  own numbers. The neurons from "Inside one MLP" are marked in every
+  chart, hover or keyboard focus shows a neuron's gate, SiLU, up, product
+  and labels, and the layer is shared with the neuron card. A sticky
+  section bar (Overview, Attention, Edit sizes, Votes, Inside one MLP,
+  Step by step, plus the shared layer stepper) sits below the playback
+  controls. Shipped 2026-10-21; stored runs grow by about 340 KB per
+  generated token, and runs recorded before v6 show a "generate again"
+  note. *(#15 follow-up)*
 - [ ] **#18 MLP knockout runs** — re-run a prompt with one layer's MLP
   zeroed and open the pair in the Compare view. *(#15 follow-up)*
 
@@ -114,26 +122,22 @@ they are IDs, not positions.
   improve real-mode output quality and is honest about how instruct models
   are invoked. Touches the tokenize stage's story. *(v1 spec, out of scope)*
 
-- [ ] **#19 Faithful browser model** — the published q8 model
-  (dynamic int8, one activation scale per tensor) loses the small
-  activations whenever the first token's huge values share a batch with
-  them: layer 11's MLP outputs exactly 0 for every prompt token after the
-  first, and under browser semantics the next-token argmax differs from
-  fp32 on 4/4 validation prompts (max |Δlogit| 8–15). Python's validator
-  missed it because ORT's full graph optimization fuses
-  DynamicQuantizeLinear + MatMulInteger into a kernel that keeps them;
-  onnxruntime-web (WASM and WebGPU) runs the unfused graph, as does Python
-  with `ORT_DISABLE_ALL`. Keeping the down-projections in fp32 is not
-  enough (still 2/4 argmax mismatches). Next: (a) the validator runs
-  quantized variants with optimizations disabled, so the gate matches the
-  browser; (b) try weight-only quantization (MatMulNBits, 8- or 4-bit, if
-  onnxruntime-web supports it on WASM and WebGPU) or a re-try of fp16;
-  (c) publish as v5. Affects real mode since M1. *(#15 final review,
-  2026-10-11)*
-  Also visible in #16's neuron card: at the first generated token about 7
-  of 30 layers show "≈" (neuron votes from unrounded activations vs the
-  rounded model's MLP vote, up to 1.2 at layer 29); later tokens match.
-  A faithful model would make the card exact everywhere.
+- [x] **#19 Faithful browser model** — the q8 model (dynamic int8, one
+  activation scale per tensor) lost the small activations whenever the
+  first token's huge values shared a batch with them (layer 11's MLP
+  output was 0 for every later prompt token; next-token argmax differed
+  from fp32 on 3 of 4 validation prompts under browser semantics). Python's
+  validator missed it because ORT's graph optimization fuses the
+  quantization ops; onnxruntime-web runs the unfused graph. Shipped as
+  model v6: weight-only 8-bit (MatMulNBits, blocks of 32, fp32
+  activations, uint8 embedding), 262.8 MB. Under browser semantics it
+  picks the same next token as fp32 on 4 of 4 validation prompts (max
+  |Δlogit| 1.04), checked on WebGPU and WASM with
+  `tools/export/browser-check.html`. Neuron votes now add up to the MLP
+  votes (max gap 0.069), so the neuron card's "≈" should no longer appear;
+  it stays as a safeguard. The 8-step greedy check accepts a flip on a
+  near-tie (stock margin ≤ 0.1; the one flip seen has margin 0.011).
+  Shipped 2026-10-21. *(#15 final review, 2026-10-11)*
 
 ## Housekeeping / parked minors
 
@@ -160,11 +164,12 @@ they are IDs, not positions.
   `resetNeuronCache` out of `asset.ts` so test setup doesn't import the
   tokenizer; a manifest `fractions` length check (the badge fallback hides
   a mismatch); a fixture test pinning `votes.mlp` to the packed neuron
-  data; add the model tag to the neurons manifest at v6; array-valued
+  data; array-valued
   events pass run-file import's object check; the editor flags `Buffer` in
   `e2e/` (no node types there). *(#16 reviews,
   2026-10-15; the visible items and the manifest/tokens eviction were fixed
-  2026-10-20)*
+  2026-10-20; the manifest now names its revision (v6) and the app refuses
+  another tag)*
 - [ ] **#21 Import with an empty archive** — the run shelf, and with it
   the Import button, is hidden until the first run exists, so a first-time
   visitor cannot load a shared run file. *(#16 Playwright test,
@@ -178,6 +183,7 @@ they are IDs, not positions.
 
 ## Done (for the record)
 
+- [x] MLP step by step card, sticky section bar, faithful 8-bit model v6 *(#17, #19, 2026-10-21)*
 - [x] Opening the MLP: edit sizes, per-layer votes; export v4 *(#15, 2026-10-11)*
 - [x] In-app glossary: 12 entries, term links, drawer, "?" index, first-visit hint *(#14, 2026-10-10)*
 - [x] Logits readout: final vector, candidate rows, visible dot product; export v3 *(#13, 2026-10-09)*
