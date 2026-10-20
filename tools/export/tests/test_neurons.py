@@ -11,13 +11,16 @@ def decode(raw: bytes, neurons: int, dims: int, labels: int = 5, fractions: int 
     scales = np.frombuffer(raw[lay["scales"]:lay["columns"]], dtype="<f4")
     q = np.frombuffer(raw[lay["columns"]:lay["labelIds"]], dtype=np.int8).reshape(neurons, dims)
     ids = np.frombuffer(raw[lay["labelIds"]:lay["thresholds"]], dtype="<u2").reshape(neurons, 2, labels)
-    thr = np.frombuffer(raw[lay["thresholds"]:lay["bytes"]], dtype="<f4").reshape(neurons, 2, fractions)
-    return scales, q, ids, thr
+    thr = np.frombuffer(raw[lay["thresholds"]:lay["normWeight"]], dtype="<f4").reshape(neurons, 2, fractions)
+    norm = np.frombuffer(raw[lay["normWeight"]:lay["bytes"]], dtype="<f4")
+    return scales, q, ids, thr, norm
 
 
 def test_layout_offsets_follow_each_other_and_stay_aligned():
     lay = layer_layout(1536, 576)
-    assert lay == {"scales": 0, "columns": 6144, "labelIds": 890880, "thresholds": 921600, "bytes": 958464}
+    assert lay == {"scales": 0, "columns": 6144, "labelIds": 890880, "thresholds": 921600,
+                   "normWeight": 958464, "bytes": 960768}
+    assert lay["labelIds"] % 2 == 0 and lay["thresholds"] % 4 == 0 and lay["normWeight"] % 4 == 0
     assert lay["labelIds"] % 2 == 0 and lay["thresholds"] % 4 == 0
 
 
@@ -25,7 +28,7 @@ def test_columns_survive_the_int8_round_trip_within_half_a_step():
     rng = np.random.default_rng(0)
     W = rng.normal(size=(8, 6)).astype(np.float32)          # [dims, neurons]
     E = rng.normal(size=(40, 8)).astype(np.float32)
-    scales, q, _, _ = decode(build_layer(W, np.ones(8, np.float32), E), 6, 8)
+    scales, q, _, _, _ = decode(build_layer(W, np.ones(8, np.float32), E), 6, 8)
     np.testing.assert_allclose(q * scales[:, None], W.T, atol=float(scales.max()) / 2 + 1e-7)
 
 
@@ -37,7 +40,7 @@ def test_labels_are_the_closest_rows_for_each_sign_and_thresholds_rank_cosines()
     W = np.zeros((4, 2), np.float32)
     W[:, 0] = [0.5, 0, 0, 0]
     W[:, 1] = rng.normal(size=4)
-    _, _, ids, thr = decode(build_layer(W, np.ones(4, np.float32), E), 2, 4)
+    _, _, ids, thr, _ = decode(build_layer(W, np.ones(4, np.float32), E), 2, 4)
     assert ids[0, 0, 0] == 3 and ids[0, 1, 0] == 5
     assert thr[0, 0, 0] == np.float32(1.0)                   # rank ⌈0.001·40⌉ = 1: the best cosine
     R = E / np.linalg.norm(E, axis=1, keepdims=True)
@@ -49,9 +52,9 @@ def test_labels_are_the_closest_rows_for_each_sign_and_thresholds_rank_cosines()
 def test_labels_compare_with_the_rows_scaled_by_the_final_norm_weight():
     E = np.array([[1, 1, 0, 0], [1, -1, 0, 0]] + [[0, 0, 1, 0]] * 3, dtype=np.float32)
     W = np.array([[1], [0.2], [0], [0]], dtype=np.float32)
-    _, _, ids, _ = decode(build_layer(W, np.ones(4, np.float32), E), 1, 4)
+    _, _, ids, _, _ = decode(build_layer(W, np.ones(4, np.float32), E), 1, 4)
     assert ids[0, 0, 0] == 0
-    _, _, ids, _ = decode(build_layer(W, np.array([1, -1, 1, 1], np.float32), E), 1, 4)
+    _, _, ids, _, _ = decode(build_layer(W, np.array([1, -1, 1, 1], np.float32), E), 1, 4)
     assert ids[0, 0, 0] == 1
 
 
@@ -71,3 +74,21 @@ def test_manifest_lists_every_file_with_its_size_and_checksum(tmp_path):
         assert len(data) == f["bytes"] and hashlib.sha256(data).hexdigest() == f["sha256"]
     assert m["files"]["layer-00.bin"]["bytes"] == m["layout"]["bytes"]
     assert json.loads((tmp_path / "tokens.json").read_text()) == [f"t{i}" for i in range(30)]
+
+
+def test_each_layer_file_ends_with_that_layers_norm_weight():
+    rng = np.random.default_rng(3)
+    W = rng.normal(size=(8, 6)).astype(np.float32)
+    E = rng.normal(size=(40, 8)).astype(np.float32)
+    norm = rng.uniform(0.5, 2, 8).astype(np.float32)
+    *_, got = decode(build_layer(W, np.ones(8, np.float32), E, norm), 6, 8)
+    np.testing.assert_array_equal(got, norm)
+
+
+def test_manifest_names_the_revision_and_the_norm_eps(tmp_path):
+    rng = np.random.default_rng(4)
+    W = [rng.normal(size=(4, 3)).astype(np.float32) for _ in range(2)]
+    E = rng.normal(size=(30, 4)).astype(np.float32)
+    built = build_neurons(W, np.ones(4, np.float32), E, [f"t{i}" for i in range(30)],
+                          norms=[np.full(4, 2.0, np.float32)] * 2, revision="v6", eps=1e-5)
+    assert built["manifest"]["revision"] == "v6" and built["manifest"]["rmsNormEps"] == 1e-5

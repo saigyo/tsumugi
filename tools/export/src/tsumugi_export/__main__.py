@@ -20,6 +20,8 @@ def main() -> int:
 
     p_neu = sub.add_parser("neurons", help="build the neuron asset (neurons/) for the neuron card")
     p_neu.add_argument("--model-dir", default="out/model")
+    p_neu.add_argument("--revision", required=True,
+                       help="the Hub tag this asset ships under (e.g. v6); the app refuses a manifest for another tag")
 
     p_val = sub.add_parser("validate", help="validate exported artifacts against stock")
     p_val.add_argument("--model-dir", default="out/model")

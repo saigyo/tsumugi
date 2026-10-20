@@ -36,6 +36,16 @@ def stock_mlp_down() -> list[np.ndarray]:
     return out
 
 
+def stock_mlp_norms() -> list[np.ndarray]:
+    """Every layer's post-attention RMSNorm weight, fp32 [dims], in layer order."""
+    state = _stock_state()
+    out, l = [], 0
+    while (key := f"model.layers.{l}.post_attention_layernorm.weight") in state:
+        out.append(state[key].float().numpy())
+        l += 1
+    return out
+
+
 def stock_final_norm() -> np.ndarray:
     """The final RMSNorm's weight g, fp32 [dims]."""
     return _stock_state()["model.norm.weight"].float().numpy()
