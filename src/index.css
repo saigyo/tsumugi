@@ -535,6 +535,28 @@ math { font-family: 'Latin Modern Math', math, 'STIX Two Math', 'Cambria Math', 
 .mlp-chart-fig:has(.mlp-chart-wide) { overflow-x: auto; }
 .mlp-chart-wide { min-width: 620px; }
 .mlp-chart text { font-family: var(--mono); }
+:root { --mark: #d08a1c; }
+.step-row { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 12px; padding: .7rem 0; border-top: 1px solid var(--line); }
+.step-row h5 { margin: 0 0 .25rem; font-size: .85rem; color: var(--ai-deep); }
+.step-row .step-text { margin: .3rem 0 0; font-size: .74rem; color: var(--ink-soft); line-height: 1.35; }
+.step-charts { min-width: 0; overflow-x: auto; }
+.step-charts > * { min-width: 520px; }
+.step-chart { position: relative; }
+.step-strip-row { display: grid; grid-template-columns: 150px minmax(0, 1fr); align-items: center; gap: 8px; margin: 3px 0; }
+.step-strip-label { font-size: .72rem; color: var(--ink-soft); white-space: nowrap; }
+.step-strip { display: block; width: 100%; height: 14px; border: 1px solid var(--line); }
+.step-dot { fill: var(--ink-faint); fill-opacity: .45; }
+.step-dot-marked, .step-bar-marked { fill: var(--mark); stroke: var(--card); stroke-width: 1; }
+.step-dot-marked:focus { outline: none; stroke: var(--ai-deep); stroke-width: 2; }
+.step-bar-pos { fill: var(--ai); } .step-bar-neg { fill: var(--shu); }
+.step-squash { fill: var(--dye-2); fill-opacity: .35; }
+.step-zero { stroke: var(--line-strong); stroke-dasharray: 3 3; }
+.step-cut { stroke: var(--ink); stroke-dasharray: 2 2; }
+.step-curve { fill: none; stroke: var(--ink); stroke-width: 1.5; }
+.step-axis { font-size: 10px; fill: var(--ink-soft); }
+.step-note { font-size: 10px; fill: #8a7a5a; }
+.step-name { font-size: 10px; fill: var(--ink); }
+@media (max-width: 700px) { .step-row { grid-template-columns: minmax(0, 1fr); } }
 .mlp-tick { font-size: 10px; fill: var(--ink-faint); }
 .mlp-grid-line { stroke: var(--line); stroke-width: .6; }
 .mlp-ref-line { stroke: var(--line-strong); stroke-width: 1.2; stroke-dasharray: 4 3; }
