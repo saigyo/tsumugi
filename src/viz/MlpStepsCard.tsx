@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react'
+import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { MLP_STEP_CALLOUTS } from '../glossary/callouts'
 import { Term } from '../glossary/Term'
 import type { NeuronAsset } from '../neurons/asset'
@@ -134,15 +134,28 @@ function DownStrips({ s, layer, dims, marked }: { s: LayerSteps; layer: NeuronLa
   )
 }
 
-// Placed next to the hovered mark, as in the mockup: to its left in the right half of the chart, to its right otherwise.
+// Placed next to the hovered mark, as in the mockup: to its left in the right half of the chart, to its right otherwise;
+// above it in the lower half, below it otherwise, so it stays inside the chart cell (which clips overflow).
 function HoverBox({ s, hover, weights }: { s: LayerSteps; hover: Hover; weights: { asset: NeuronAsset; layer: NeuronLayer } | null }) {
   const i = hover.neuron
   const left = hover.x > CHART_W / 2
+  const up = hover.y > hover.height / 2
   const style = { left: `${(hover.x / CHART_W) * 100}%`, top: `${(hover.y / hover.height) * 100}%`,
-    transform: left ? 'translate(calc(-100% - 10px), 8px)' : 'translate(10px, 8px)' }
+    transform: `translate(${left ? 'calc(-100% - 10px)' : '10px'}, ${up ? 'calc(-100% - 8px)' : '8px'})` }
   const labels = weights ? neuronLabels(weights.asset.manifest, weights.layer, i, s.h[i] >= 0 ? 0 : 1).slice(0, 3).map((id) => visibleToken(weights.asset.text(id))) : []
+  // A mark near the middle (a short bar in step 4) can leave too little room either way: nudge the box
+  // back inside the chart frame. Uses the separate `translate` property so the transform above stays as is.
+  const ref = useRef<HTMLDivElement>(null)
+  useLayoutEffect(() => {
+    const el = ref.current, frame = el?.parentElement
+    if (!el || !frame) return
+    el.style.translate = ''
+    const b = el.getBoundingClientRect(), f = frame.getBoundingClientRect()
+    const dy = b.top < f.top ? f.top - b.top : b.bottom > f.bottom ? Math.max(f.bottom - b.bottom, f.top - b.top) : 0
+    if (dy) el.style.translate = `0 ${dy}px`
+  }, [hover, labels.length])
   return (
-    <div data-testid="steps-box" className="step-box" role="status" style={style}>
+    <div ref={ref} data-testid="steps-box" className="step-box" role="status" style={style}>
       <b>N{i}</b>
       <span>g {f2(s.gate[i])} → SiLU {f2(silu(s.gate[i]))}</span>
       <span>× u {f2(s.up[i])} = h {f2(s.h[i])}</span>

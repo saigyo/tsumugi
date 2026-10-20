@@ -81,6 +81,21 @@ test('hovering a neuron shows its gate, SiLU, up, product and labels', async () 
   expect(box).toHaveTextContent(/pushes toward/)
 })
 
+test('the hover box opens upward for a mark in the lower half of a chart, downward otherwise', async () => {
+  card()
+  await waitFor(() => screen.getByTestId('strip-n'))
+  const silu = screen.getByTestId('steps-silu')
+  const dots = [...silu.querySelectorAll('.step-dot-marked')]
+  const cy = (e: Element) => Number(e.getAttribute('cy'))
+  const low = dots.find((e) => cy(e) > 75)!
+  fireEvent.mouseEnter(low)
+  expect(screen.getByTestId('steps-box').style.transform).toMatch(/, calc\(-100% - 8px\)\)$/)
+  fireEvent.mouseLeave(low)
+  const high = dots.find((e) => cy(e) <= 75)!
+  fireEvent.mouseEnter(high)
+  expect(screen.getByTestId('steps-box').style.transform).toMatch(/, 8px\)$/)
+})
+
 test('stepping while a layer file loads never mixes layers', async () => {
   let release!: () => void
   vi.mocked(asset.loadNeuronLayer).mockImplementation((l) => l === 0
@@ -90,8 +105,7 @@ test('stepping while a layer file loads never mixes layers', async () => {
   fireEvent.click(screen.getByTestId('steps-next'))
   await waitFor(() => screen.getByTestId('strip-w'))
   const w1 = screen.getByTestId('strip-w').innerHTML
-  act(() => release())
-  await Promise.resolve()
+  await act(async () => { release(); await new Promise((r) => setTimeout(r, 0)) })
   expect(screen.getByTestId('steps-title')).toHaveTextContent('layer 1')
   expect(screen.getByTestId('strip-w').innerHTML).toBe(w1)
 })
