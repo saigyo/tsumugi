@@ -297,6 +297,71 @@ def expose_neurons(model: onnx.ModelProto) -> onnx.ModelProto:
     return model
 
 
+MLP_GATE_OUTPUT = "mlp_gate"
+MLP_UP_OUTPUT = "mlp_up"
+MLP_IN_OUTPUT = "mlp_in"
+MLP_OUT_OUTPUT = "mlp_out"
+GATE_MATMUL = "/model/layers.{l}/mlp/gate_proj/MatMul"
+UP_MATMUL = "/model/layers.{l}/mlp/up_proj/MatMul"
+
+
+def find_mlp_projections(graph: onnx.GraphProto) -> list[tuple[str, str]]:
+    """Per layer, the outputs of the gate_proj and up_proj MatMuls: the gate
+    before SiLU and the up values it scales."""
+    by_name = {n.name: n for n in graph.node}
+    out: list[tuple[str, str]] = []
+    while (gate := by_name.get(GATE_MATMUL.format(l=len(out)))) is not None:
+        up = by_name.get(UP_MATMUL.format(l=len(out)))
+        if up is None:
+            raise ValueError(f"no {UP_MATMUL.format(l=len(out))} next to its gate_proj")
+        out.append((gate.output[0], up.output[0]))
+    if not out:
+        raise ValueError(f"no {GATE_MATMUL.format(l=0)} — is this the SmolLM2 export?")
+    return out
+
+
+def _weight_cols(graph: onnx.GraphProto, matmul_name: str) -> int:
+    mm = next(n for n in graph.node if n.name == matmul_name)
+    init = next((t for t in graph.initializer if t.name == mm.input[1]), None)
+    if init is None or len(init.dims) != 2:
+        raise ValueError(f"{matmul_name} weight is not a 2-D initializer")
+    return int(init.dims[1])
+
+
+def expose_mlp_steps(model: onnx.ModelProto) -> onnx.ModelProto:
+    """For the step-by-step card (#17), last position only: mlp_gate and mlp_up
+    [batch, layers, neurons] (the gate before SiLU and the up values), mlp_in and
+    mlp_out [batch, layers, dims] (the stream going into each MLP and its edit).
+    Tapped on the fp32 graph before quantization; the quantizer keeps tensor names."""
+    graph = model.graph
+    proj = find_mlp_projections(graph)
+    blocks = find_blocks(graph)
+    if len(blocks) != len(proj):
+        raise ValueError(f"{len(proj)} gate/up pairs for {len(blocks)} layers")
+    _, _, dims = find_lm_head(graph)
+    neurons = _weight_cols(graph, GATE_MATMUL.format(l=0))
+    graph.initializer.extend([
+        helper.make_tensor("tsumugi_step_slice_starts", TensorProto.INT64, [1], [-1]),
+        helper.make_tensor("tsumugi_step_slice_ends", TensorProto.INT64, [1], [INT64_MAX]),
+        helper.make_tensor("tsumugi_step_slice_axes", TensorProto.INT64, [1], [1]),
+    ])
+    slice_args = ["tsumugi_step_slice_starts", "tsumugi_step_slice_ends", "tsumugi_step_slice_axes"]
+    sources = {
+        MLP_GATE_OUTPUT: [g for g, _ in proj], MLP_UP_OUTPUT: [u for _, u in proj],
+        MLP_IN_OUTPUT: [b[3] for b in blocks], MLP_OUT_OUTPUT: [b[2] for b in blocks],
+    }
+    nodes: list[onnx.NodeProto] = []
+    for out_name, names in sources.items():
+        parts = [f"tsumugi_{out_name}{l}" for l in range(len(names))]
+        nodes += [helper.make_node("Slice", [name, *slice_args], [part], name=part) for name, part in zip(names, parts)]
+        nodes.append(helper.make_node("Concat", parts, [out_name], name=f"tsumugi_{out_name}", axis=1))
+    graph.node.extend(nodes)
+    width = {MLP_GATE_OUTPUT: neurons, MLP_UP_OUTPUT: neurons, MLP_IN_OUTPUT: dims, MLP_OUT_OUTPUT: dims}
+    graph.output.extend([helper.make_tensor_value_info(name, TensorProto.FLOAT, ["batch_size", len(proj), width[name]])
+                         for name in sources])
+    return model
+
+
 def expose_inputs_embeds(model: onnx.ModelProto) -> onnx.ModelProto:
     outputs = list(model.graph.output)
     source = next((o for o in outputs if o.name == SOURCE_OUTPUT), None)
@@ -314,10 +379,10 @@ def expose_inputs_embeds(model: onnx.ModelProto) -> onnx.ModelProto:
 
 
 def postprocess_graph(model: onnx.ModelProto, k: int = TOPK) -> onnx.ModelProto:
-    """Readout, MLP internals and neuron outputs (all derived from graph
-    structure, independent of the output list), then the inputs_embeds
+    """Readout, MLP internals, neuron outputs and step outputs (all derived from
+    graph structure, independent of the output list), then the inputs_embeds
     rename, which drops every hidden_states.* output."""
-    return expose_inputs_embeds(expose_neurons(expose_mlp_internals(expose_readout(model, k))))
+    return expose_inputs_embeds(expose_mlp_steps(expose_neurons(expose_mlp_internals(expose_readout(model, k)))))
 
 def postprocess_file(path: Path) -> None:
     """Rewrite `path` in place. onnx.load pulls any external data into the

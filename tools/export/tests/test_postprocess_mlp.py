@@ -3,8 +3,9 @@ import onnx
 from onnx import TensorProto, helper
 
 from tsumugi_export.postprocess import (
-    EDIT_RATIOS_OUTPUT, INV_RMS_OUTPUT, MLP_ACTIVATIONS_OUTPUT, STREAM_PARTS_OUTPUT, expose_mlp_internals,
-    expose_neurons, find_blocks, find_final_norm, find_mlp_inputs, postprocess_graph,
+    EDIT_RATIOS_OUTPUT, INV_RMS_OUTPUT, MLP_ACTIVATIONS_OUTPUT, MLP_GATE_OUTPUT, MLP_IN_OUTPUT, MLP_OUT_OUTPUT,
+    MLP_UP_OUTPUT, STREAM_PARTS_OUTPUT, expose_mlp_internals, expose_mlp_steps, expose_neurons, find_blocks,
+    find_final_norm, find_mlp_inputs, find_mlp_projections, postprocess_graph,
 )
 
 DIMS, VOCAB, LAYERS, EPS = 4, 7, 2, 1e-5
@@ -13,6 +14,9 @@ TABLE = rng.normal(size=(VOCAB, DIMS)).astype(np.float32)
 WA = [rng.normal(scale=0.5, size=(DIMS, DIMS)).astype(np.float32) for _ in range(LAYERS)]
 WM = [rng.normal(scale=0.5, size=(DIMS, DIMS)).astype(np.float32) for _ in range(LAYERS)]
 GAIN = rng.uniform(0.5, 1.5, size=DIMS).astype(np.float32)
+NEUR = 6
+WG = [rng.normal(scale=0.5, size=(DIMS, NEUR)).astype(np.float32) for _ in range(LAYERS)]
+WU = [rng.normal(scale=0.5, size=(DIMS, NEUR)).astype(np.float32) for _ in range(LAYERS)]
 
 
 def layered_graph() -> onnx.ModelProto:
@@ -38,7 +42,9 @@ def layered_graph() -> onnx.ModelProto:
     for l in range(LAYERS):
         p = f"/model/layers.{l}"
         inits += [helper.make_tensor(f"wa{l}", f, [DIMS, DIMS], WA[l].flatten().tolist()),
-                  helper.make_tensor(f"wm{l}", f, [DIMS, DIMS], WM[l].flatten().tolist())]
+                  helper.make_tensor(f"wm{l}", f, [DIMS, DIMS], WM[l].flatten().tolist()),
+                  helper.make_tensor(f"wg{l}", f, [DIMS, NEUR], WG[l].flatten().tolist()),
+                  helper.make_tensor(f"wu{l}", f, [DIMS, NEUR], WU[l].flatten().tolist())]
         nodes += [
             helper.make_node("Cast", [stream], [f"{p}/input_layernorm/Cast_output_0"], name=f"{p}/input_layernorm/Cast", to=1),
             helper.make_node("MatMul", [f"{p}/input_layernorm/Cast_output_0", f"wa{l}"],
@@ -47,6 +53,10 @@ def layered_graph() -> onnx.ModelProto:
                              [f"{p}/Add_output_0"], name=f"{p}/Add"),
             helper.make_node("Cast", [f"{p}/Add_output_0"], [f"{p}/post_attention_layernorm/Cast_output_0"],
                              name=f"{p}/post_attention_layernorm/Cast", to=1),
+            helper.make_node("MatMul", [f"{p}/post_attention_layernorm/Cast_output_0", f"wg{l}"],
+                             [f"{p}/mlp/gate_proj/MatMul_output_0"], name=f"{p}/mlp/gate_proj/MatMul"),
+            helper.make_node("MatMul", [f"{p}/post_attention_layernorm/Cast_output_0", f"wu{l}"],
+                             [f"{p}/mlp/up_proj/MatMul_output_0"], name=f"{p}/mlp/up_proj/MatMul"),
             helper.make_node("MatMul", [f"{p}/post_attention_layernorm/Cast_output_0", f"wm{l}"],
                              [f"{p}/mlp/down_proj/MatMul_output_0"], name=f"{p}/mlp/down_proj/MatMul"),
             helper.make_node("Add", [f"{p}/post_attention_layernorm/Cast_output_0", f"{p}/mlp/down_proj/MatMul_output_0"],
@@ -137,7 +147,8 @@ def test_postprocess_graph_adds_the_mlp_outputs_after_the_readout():
     model = postprocess_graph(layered_graph(), k=3)
     onnx.checker.check_model(model)
     names = [o.name for o in model.graph.output]
-    assert names[-5:] == [EDIT_RATIOS_OUTPUT, STREAM_PARTS_OUTPUT, MLP_ACTIVATIONS_OUTPUT, INV_RMS_OUTPUT, "inputs_embeds"]
+    assert names[-9:] == [EDIT_RATIOS_OUTPUT, STREAM_PARTS_OUTPUT, MLP_ACTIVATIONS_OUTPUT, INV_RMS_OUTPUT,
+                          MLP_GATE_OUTPUT, MLP_UP_OUTPUT, MLP_IN_OUTPUT, MLP_OUT_OUTPUT, "inputs_embeds"]
 
 
 def test_a_graph_without_layers_is_refused():
@@ -172,3 +183,40 @@ def test_neuron_outputs_are_the_last_positions_down_proj_inputs_and_inverse_rms(
     np.testing.assert_allclose(out[INV_RMS_OUTPUT].reshape(-1), inv[-1], rtol=1e-5)
     declared = next(o for o in model.graph.output if o.name == MLP_ACTIVATIONS_OUTPUT)
     assert [d.dim_value for d in declared.type.tensor_type.shape.dim][1:] == [LAYERS, DIMS]
+
+
+def test_find_mlp_projections_names_each_layers_gate_and_up_outputs():
+    assert find_mlp_projections(layered_graph().graph) == [
+        (f"/model/layers.{l}/mlp/gate_proj/MatMul_output_0", f"/model/layers.{l}/mlp/up_proj/MatMul_output_0")
+        for l in range(LAYERS)]
+
+
+def test_step_outputs_are_the_last_positions_gate_up_input_and_edit():
+    model = expose_mlp_steps(layered_graph())
+    onnx.checker.check_model(model)
+    ids = np.array([[3, 1, 4, 1]], dtype=np.int64)
+    out = _run(model, ids)
+    _, _, mlp, _, before_m, _, _ = reference(ids)
+    assert out[MLP_GATE_OUTPUT].shape == (1, LAYERS, NEUR)
+    assert out[MLP_IN_OUTPUT].shape == (1, LAYERS, DIMS)
+    for l in range(LAYERS):
+        x = before_m[l][-1]
+        np.testing.assert_allclose(out[MLP_GATE_OUTPUT][0, l], x @ WG[l], rtol=1e-5, atol=1e-6)
+        np.testing.assert_allclose(out[MLP_UP_OUTPUT][0, l], x @ WU[l], rtol=1e-5, atol=1e-6)
+        np.testing.assert_allclose(out[MLP_IN_OUTPUT][0, l], x, rtol=1e-5, atol=1e-6)
+        np.testing.assert_allclose(out[MLP_OUT_OUTPUT][0, l], mlp[l][-1], rtol=1e-5, atol=1e-6)
+    declared = {o.name: [d.dim_value for d in o.type.tensor_type.shape.dim][1:] for o in model.graph.output}
+    assert declared[MLP_UP_OUTPUT] == [LAYERS, NEUR] and declared[MLP_OUT_OUTPUT] == [LAYERS, DIMS]
+
+
+def test_a_layer_without_up_proj_is_refused():
+    model = layered_graph()
+    for node in model.graph.node:
+        if node.name == "/model/layers.1/mlp/up_proj/MatMul":
+            node.name = "/model/layers.1/mlp/renamed/MatMul"
+    try:
+        expose_mlp_steps(model)
+    except ValueError as err:
+        assert "up_proj" in str(err)
+    else:
+        raise AssertionError("expected ValueError")

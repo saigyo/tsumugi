@@ -108,7 +108,8 @@ def test_postprocess_graph_combines_readout_and_inputs_embeds():
     model = postprocess_graph(layered_graph(), k=3)
     names = [o.name for o in model.graph.output]
     assert names == ["logits", LAST_HIDDEN_OUTPUT, TOPK_IDS_OUTPUT, TOPK_EMBEDS_OUTPUT,
-                     "edit_ratios", "stream_parts", "mlp_activations", "final_norm_inv_rms", "inputs_embeds"]
+                     "edit_ratios", "stream_parts", "mlp_activations", "final_norm_inv_rms",
+                     "mlp_gate", "mlp_up", "mlp_in", "mlp_out", "inputs_embeds"]
     out = _run(model, np.array([[0, 6]], dtype=np.int64))
     np.testing.assert_allclose(out["inputs_embeds"][0], LAYERED_TABLE[[0, 6]], atol=1e-6)
 
