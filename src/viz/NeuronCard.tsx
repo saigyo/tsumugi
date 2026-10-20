@@ -7,9 +7,8 @@ import { behindTheVote, firingMost, layerActivations, reconcile, type VoteRow } 
 import { useNeuronLayer } from '../neurons/useNeuronLayer'
 import { unpackFloat32, unpackHalf } from '../trace/neuronPack'
 import type { NeuronData, TraceEvent } from '../trace/types'
-import { selectedCandidate, useCandidateSelection } from './candidateSelection'
-import { selectedLayer, useMlpLayer } from './mlpLayerSelection'
-import { topMlpLayers } from './mlpMath'
+import { useCandidateSelection } from './candidateSelection'
+import { useMlpLayerControl } from './mlpLayerSelection'
 import { useNeuronMode, type NeuronMode as Mode } from './neuronMode'
 import type { VotedCandidate } from './selectors'
 import { visibleToken } from './tokenText'
@@ -38,14 +37,8 @@ const activationsOf = (d: NeuronData) => {
 export function NeuronCard({ data, candidates, note, run }: {
   data?: NeuronData; candidates?: VotedCandidate[]; note: string; run?: TraceEvent
 }) {
-  const pick = useCandidateSelection((s) => s.pick)
-  const layerPick = useMlpLayer((s) => s.pick)
-  const selectLayer = useMlpLayer((s) => s.select)
   const ready = data && candidates && candidates.length > 0
-  const sel = ready ? selectedCandidate(pick, candidates) : 0
-  const layers = ready ? candidates[0].votes.mlp.length : 0
-  const layer = ready ? selectedLayer(layerPick, run) ?? topMlpLayers(candidates[sel].votes, 1)[0].layer : null
-  const step = (d: number) => { if (run && layer !== null) selectLayer(run, Math.min(layers - 1, Math.max(0, layer + d))) }
+  const { layer, layers, selected: sel, step } = useMlpLayerControl(ready ? candidates : undefined, run)
   return (
     <section data-testid="neuron-card" className="mlp-card">
       <h4 data-testid="neuron-title">Inside one MLP{layer !== null ? `: layer ${layer}` : ''}{layer !== null && (

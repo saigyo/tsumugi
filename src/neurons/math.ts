@@ -21,14 +21,14 @@ function columnDot(layer: NeuronLayer, dims: number, i: number, u: Float32Array)
   return s * layer.scales[i]
 }
 
-function columnNorm(layer: NeuronLayer, dims: number, i: number): number {
+export function columnNorm(layer: NeuronLayer, dims: number, i: number): number {
   let s = 0
   for (let d = 0; d < dims; d++) s += layer.columns[i * dims + d] ** 2
   return Math.sqrt(s) * layer.scales[i]
 }
 
 // sign 0 = the list for a positive activation (the column itself), 1 = for a negative one
-function labels(m: NeuronManifest, layer: NeuronLayer, i: number, sign: number): number[] {
+export function neuronLabels(m: NeuronManifest, layer: NeuronLayer, i: number, sign: number): number[] {
   const k = m.labelsPerSign, start = (i * 2 + sign) * k
   return Array.from(layer.labelIds.subarray(start, start + k))
 }
@@ -58,7 +58,7 @@ export function behindTheVote(m: NeuronManifest, layer: NeuronLayer, acts: Float
     const sign = away ? 1 - fired : fired
     const norm = columnNorm(layer, dims, i) || 1
     const cos = ((sign === 0 ? 1 : -1) * dots[i]) / (norm * uNorm)
-    return { neuron: i, activation: acts[i], vote: votes[i], labels: labels(m, layer, i, sign), away, badge: badge(m, layer, i, sign, cos) }
+    return { neuron: i, activation: acts[i], vote: votes[i], labels: neuronLabels(m, layer, i, sign), away, badge: badge(m, layer, i, sign, cos) }
   })
   const shown = rows.reduce((a, r) => a + r.vote, 0)
   return { rows, rest: total - shown, total }
@@ -67,7 +67,7 @@ export function behindTheVote(m: NeuronManifest, layer: NeuronLayer, acts: Float
 export function firingMost(m: NeuronManifest, layer: NeuronLayer, acts: Float32Array, n = 8): SizeRow[] {
   const sizes = Array.from({ length: m.neurons }, (_, i) => Math.abs(acts[i]) * columnNorm(layer, m.dims, i))
   return topBy([...sizes.keys()], (i) => sizes[i], n).map((i) => ({
-    neuron: i, activation: acts[i], size: sizes[i], labels: labels(m, layer, i, acts[i] >= 0 ? 0 : 1),
+    neuron: i, activation: acts[i], size: sizes[i], labels: neuronLabels(m, layer, i, acts[i] >= 0 ? 0 : 1),
   }))
 }
 
@@ -79,4 +79,11 @@ export function reconcile(table: VoteTable, cardValue: number): VoteTable & { ex
   if (!Number.isFinite(table.total) || Math.abs(table.total - cardValue) > voteTolerance(cardValue)) return { ...table, exact: false }
   const shown = table.rows.reduce((a, r) => a + r.vote, 0)
   return { ...table, total: cardValue, rest: cardValue - shown, exact: true }
+}
+
+// The neurons "Inside one MLP" lists for this mode — the step-by-step card marks the same ones.
+export function listedNeurons(m: NeuronManifest, layer: NeuronLayer, acts: Float32Array, mode: 'vote' | 'size',
+  row: Float32Array | null, g: Float32Array, invRms: number): number[] {
+  if (mode === 'size') return firingMost(m, layer, acts).map((r) => r.neuron)
+  return row ? behindTheVote(m, layer, acts, row, g, invRms).rows.map((r) => r.neuron) : []
 }

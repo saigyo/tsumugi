@@ -1,6 +1,7 @@
 import { expect, test } from 'vitest'
 import type { NeuronLayer, NeuronManifest } from './format'
-import { behindTheVote, firingMost, layerActivations, reconcile } from './math'
+import { fixtureNeuronAsset, fixtureNeuronLayer, NF } from '../test/neuronFixture'
+import { behindTheVote, firingMost, layerActivations, listedNeurons, reconcile } from './math'
 
 // 4 neurons over 3 dims. Dequantized columns:
 //   W0 = [2.54, 0, 0]   W1 = [0, 2.54, 0]   W2 = [0, 0, 3.81]   W3 = [1.27, 1.27, 0]
@@ -78,4 +79,15 @@ test('reconcile never calls a non-finite total exact', () => {
 
 test('layerActivations slices one layer out of the layer-major array', () => {
   expect([...layerActivations(Float32Array.from([1, 2, 3, 4, 5, 6]), 1, 3)]).toEqual([4, 5, 6])
+})
+
+test('listedNeurons returns the neurons the card lists in each mode', () => {
+  const asset = fixtureNeuronAsset(), layer = fixtureNeuronLayer(0)
+  const acts = Float32Array.from({ length: NF.neurons }, (_, i) => (i - 4) / 2)
+  const row = Float32Array.from({ length: NF.dims }, (_, d) => Math.sin(d))
+  expect(listedNeurons(asset.manifest, layer, acts, 'vote', row, asset.g, 0.05))
+    .toEqual(behindTheVote(asset.manifest, layer, acts, row, asset.g, 0.05).rows.map((r) => r.neuron))
+  expect(listedNeurons(asset.manifest, layer, acts, 'size', null, asset.g, 0.05))
+    .toEqual(firingMost(asset.manifest, layer, acts).map((r) => r.neuron))
+  expect(listedNeurons(asset.manifest, layer, acts, 'vote', null, asset.g, 0.05)).toEqual([])
 })
