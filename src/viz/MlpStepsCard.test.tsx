@@ -176,3 +176,10 @@ test('each ⓘ chip hovers the sentence of the section it opens', async () => {
   expect(tips[1]).toContain('The gate decides how much passes')
   expect(tips[2]).toContain('about a hundred neurons')
 })
+
+test('a note under the scatter says which dots carry numbers and how to see the others', async () => {
+  card()
+  await waitFor(() => screen.getByTestId('steps-scatter'))
+  expect(screen.getByTestId('steps-scatter-note')).toHaveTextContent(
+    'Numbers: the three marked neurons with the largest activations. Hover or focus any dot for its number.')
+})

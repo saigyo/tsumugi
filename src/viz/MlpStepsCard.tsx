@@ -86,6 +86,7 @@ function StepsBody({ data, candidates, selected, layer }: { data: NeuronData; ca
       <Step n={2} name="Gate and up" tex={String.raw`g = W_{\text{gate}} \cdot n \quad u = W_{\text{up}} \cdot n`}
         text="Two different weight matrices turn n into two lists of 1,536 numbers, one pair per neuron. Each dot is one neuron.">
         <GateUpScatter gate={s.gate} up={s.up} domain={sum.domain} marked={marked} named={named} hover={hover} onHover={setHover} box={box('scatter')} />
+        {named.length > 0 && <p data-testid="steps-scatter-note" className="mlp-scale-note">{namedNote(named.length)}</p>}
       </Step>
       <Step n={3} name="SiLU" tex={String.raw`\operatorname{SiLU}(g) = g \cdot \sigma(g)`}
         text="The gate goes through SiLU. Same gate axis as above: each dot slides straight down onto the curve.">
@@ -171,4 +172,11 @@ function HoverBox({ s, hover, weights }: { s: LayerSteps; hover: Hover; weights:
       {labels.length > 0 && <span className="step-box-labels">pushes toward {labels.join(', ')}…</span>}
     </div>
   )
+}
+
+// Only the largest marked neurons carry numbers in the scatter: the rest cluster where labels would overlap.
+function namedNote(n: number): string {
+  const which = n === 1 ? 'the marked neuron with the largest activation'
+    : `the ${['', '', 'two', 'three'][n] ?? n} marked neurons with the largest activations`
+  return `Numbers: ${which}. Hover or focus any dot for its number.`
 }
