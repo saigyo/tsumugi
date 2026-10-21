@@ -2,6 +2,15 @@ export interface TokenInfo { id: number; text: string }
 export interface GenParams { temperature: number; topK: number; maxNewTokens: number }
 export type Mode = 'sim' | 'real'
 
+// How a real run's prompt reached the model: as plain text to continue, or
+// wrapped in the model's chat template. system null = no system turn at all.
+export type PromptFormat = { kind: 'text' } | { kind: 'chat'; system: string | null }
+
+// Chat runs: half-open position ranges into the tokenize event's tokens. The
+// system turn runs from "system" to the "\n" after its <|im_end|>; the user
+// span is the user's own words.
+export interface ChatSpans { system?: [number, number]; user: [number, number] }
+
 export type AttentionLabel = 'previous-token' | 'attention-sink' | 'induction' | 'coreference' | 'distinctive' | 'pinned'
 
 export interface AttentionHead {
