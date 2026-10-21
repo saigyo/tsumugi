@@ -19,7 +19,8 @@ shows the template's tokens instead of hiding them.
 
 ## Findings
 
-From the fp32 model with greedy decoding (throwaway scripts):
+From the fp32 model (throwaway scripts). Greedy decoding unless noted;
+"sampled" means the app's defaults (temperature 0.8, top-k 10), 200 runs:
 
 - **The template** (from the tokenizer's `chat_template`): each message is
   `<|im_start|>{role}\n{content}<|im_end|>\n`; the generation prompt adds
@@ -31,11 +32,18 @@ From the fp32 model with greedy decoding (throwaway scripts):
   from `system` to the `\n` after its `<|im_end|>`, is the system prompt's own
   tokens plus 4 (20 for the default's 16). `<|im_start|>` and `<|im_end|>`
   are single special tokens; `assistant` splits into `ass` + `istant`.
-- **Answers:** in Chat mode the model answers "The capital of France is
-  Paris." and then writes `<|im_end|>`. As plain text, the same question gets
-  `<|im_end|>` as its first token and the run ends with nothing else. The
-  same happens for "What color is the sky?" and "Give me three words that
-  rhyme with cat.".
+- **Answers, greedy:** in Chat mode the model answers "The capital of
+  France is Paris." and then writes `<|im_end|>`. As plain text, the same
+  question gets `<|im_end|>` as its first token and the run ends with nothing
+  else. The same happens for "What color is the sky?" and "Give me three
+  words that rhyme with cat.".
+- **Answers, sampled:** the plain-text question ends at once in 87% of runs
+  (first-token probability of `<|im_end|>` 87%). In Chat mode 98.5% of runs
+  contain "Paris", but the model often keeps going after the sentence: after
+  "The capital of France is Paris." it writes `<|im_end|>` with 45%, "␣It"
+  with 32% and "␣Paris" with 19%. Runs that end their turn themselves: 37%
+  within 20 new tokens, 89% within 100. The texts below are worded to these
+  numbers.
 - **System prompts are followed weakly.** Of five tried, only "You always
   answer in French." clearly changed answers ("What color is the sky?" → "La
   lumière est un color."). "Answer with one word only.", "You are a poet.
@@ -85,10 +93,13 @@ From the fp32 model with greedy decoding (throwaway scripts):
   new example:
   - id `chat-question`, label "Chat: a question", prompt "What is the capital
     of France?", format chat, default system prompt (the field is reset).
-  - hint: "The same question as Continue text ends at once: the model's
-    first token is <|im_end|>. In Chat mode the template's tokens tell it a
-    user asked and the assistant should reply, so it answers and stops by
-    itself."
+  - hint: "As Continue text this question usually ends at once: the
+    model's first token is <|im_end|> in about 9 of 10 runs. In Chat mode the
+    template's tokens tell it a user asked and the assistant should reply.
+    It answers, and often ends its turn itself with <|im_end|>; with T = 0 it
+    always does."
+  - The chip runs with the current sampling settings, like the other
+    examples; it does not change them.
   - The chip is drawn like the mockup: a small "Chat" tag in front of its
     label.
   - With the real model off, the chip turns it on (the same path as ticking
@@ -221,7 +232,8 @@ New entry `chat-template` ("Chat template"), sections:
   does, and how weakly a 135M model follows it (the French example).
 - **special-tokens** — `<|im_start|>` and `<|im_end|>` are single vocabulary
   entries that typed text never produces.
-- **continue-text** — why a question as plain text ends at once.
+- **continue-text** — why a question as plain text usually ends at once
+  (about 9 of 10 runs at the default settings, every time with T = 0).
 - **sink** — why the first `<|im_start|>` takes the attention sink role.
 
 Linked from the format switch's ⓘ, the fold chip's title, and
@@ -252,9 +264,11 @@ Unit (vitest):
   hovering does not re-render cells; toggle shows the full matrix.
 - `EditSizeCard`: folded row, open/close, cap after folding.
 
-Browser (Playwright, real model): the chat example produces a strip with
-the fold chip and a generated `<|im_end|>`, the answer contains "Paris", and
-the attention matrix fits the card width. Before calling it done, compare
+Browser (Playwright, real model): with T set to 0 (greedy, so the run is
+deterministic), the chat example produces a strip with the fold chip, an
+answer containing "Paris" and a final generated `<|im_end|>`, and the
+attention matrix fits the card width. This also confirms the greedy findings
+on the browser's 8-bit model, not only on fp32. Before calling it done, compare
 screenshots of the strip, prompt bar and matrix with the mockups.
 
 ## Out of scope
