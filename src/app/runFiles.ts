@@ -1,5 +1,5 @@
 import type { GenParams, PromptFormat, RunEndReason, TraceEvent } from '../trace/types'
-import { dropBrokenNeurons, validateTrace } from '../trace/validate'
+import { dropBrokenChat, dropBrokenNeurons, validateTrace } from '../trace/validate'
 import type { RunMeta, RunRecord, SealMeta } from './runsStore'
 
 export const RUN_FILE_VERSION = 1
@@ -41,11 +41,12 @@ export function parseRunFile(text: string): ParsedRunFile {
   if (!Array.isArray(d.events)) return { ok: false, error: 'missing events' }
   const nonObject = d.events.findIndex((e) => typeof e !== 'object' || e === null)
   if (nonObject >= 0) return { ok: false, error: `invalid trace: event ${nonObject} is not an object` }
-  const { events, droppedNeurons, droppedSteps } = dropBrokenNeurons(d.events as TraceEvent[])
+  const { events: neuronChecked, droppedNeurons, droppedSteps } = dropBrokenNeurons(d.events as TraceEvent[])
+  const { events, droppedChats } = dropBrokenChat(neuronChecked)
   const problems = validateTrace(events)
   if (problems.length > 0) return { ok: false, error: `invalid trace: ${problems[0]}` }
   const damaged = (what: string, n: number) => n > 0 ? [`${what} of ${n} cycle${n === 1 ? '' : 's'} was damaged and left out.`] : []
-  const note = [...damaged('Neuron data', droppedNeurons), ...damaged('Step-by-step data', droppedSteps)].join(' ') || undefined
+  const note = [...damaged('Neuron data', droppedNeurons), ...damaged('Step-by-step data', droppedSteps), ...damaged('Chat template data', droppedChats)].join(' ') || undefined
   return {
     ok: true,
     meta: {

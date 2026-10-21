@@ -177,3 +177,30 @@ export function dropBrokenNeurons(events: TraceEvent[]): { events: TraceEvent[];
   })
   return { events: out, droppedNeurons, droppedSteps }
 }
+
+const isInt = (x: unknown): x is number => Number.isInteger(x)
+const isPair = (x: unknown): x is [number, number] => Array.isArray(x) && x.length === 2 && isInt(x[0]) && isInt(x[1])
+
+// A tokenize event's chat spans are trusted only when they fit its tokens:
+// user 0 <= u0 <= u1 <= tokens, and a system turn 1 <= s0 < s1 <= u0.
+function chatSpansOk(chat: unknown, tokens: number): boolean {
+  if (typeof chat !== 'object' || chat === null) return false
+  const { user, system } = chat as { user?: unknown; system?: unknown }
+  if (!isPair(user) || user[0] < 0 || user[0] > user[1] || user[1] > tokens) return false
+  return system === undefined || (isPair(system) && system[0] >= 1 && system[0] < system[1] && system[1] <= user[0])
+}
+
+// An import keeps its run when only the chat spans are damaged: the spans are
+// dropped (the run shows unfolded) and counted.
+export function dropBrokenChat(events: TraceEvent[]): { events: TraceEvent[]; droppedChats: number } {
+  let droppedChats = 0
+  const out = events.map((e) => {
+    if (e.type !== 'tokenize' || !('chat' in e)) return e
+    if (Array.isArray(e.tokens) && e.chat !== undefined && chatSpansOk(e.chat, e.tokens.length)) return e
+    droppedChats++
+    const rest = { ...e }
+    delete rest.chat
+    return rest
+  })
+  return { events: out, droppedChats }
+}

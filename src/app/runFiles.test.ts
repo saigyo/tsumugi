@@ -93,3 +93,31 @@ test('a chat run file keeps its format; a malformed format is dropped and the ru
   const old = parseRunFile(JSON.stringify({ formatVersion: 1, events, meta }))
   expect(old.ok && old.meta.format).toBeUndefined()
 })
+
+test('a tokenize event with a damaged chat span loads without chat and says so; a valid one is kept', () => {
+  const meta = { prompt: 'What is the capital of France?', params: { temperature: 0, topK: 1, maxNewTokens: 8 },
+    mode: 'real', endedAt: 1, reason: 'eos' }
+  const load = (chat: unknown) => {
+    const events = buildFixtureTrace({ chat: true, mode: 'real' }).map((e) => e.type === 'tokenize' ? { ...e, chat } : e)
+    return parseRunFile(JSON.stringify({ formatVersion: 1, events, meta }))
+  }
+  const n = buildFixtureTrace({ chat: true, mode: 'real' }).find((e) => e.type === 'tokenize')!
+  const len = n.type === 'tokenize' ? n.tokens.length : 0
+  const orig = n.type === 'tokenize' ? n.chat : undefined
+  const kept = load(orig)
+  expect(kept.ok && kept.events.find((e) => e.type === 'tokenize' && e.chat)).toBeTruthy()
+  expect(kept.ok && kept.note).toBeFalsy()
+  const bad: unknown[] = [
+    { system: [1, 3] }, 'x', null, { user: [3, 3, 3] }, { user: [4, 2] }, { user: [0, len + 1] },
+    { user: [1.5, 2] }, { user: [3, 4], system: [3, 3] }, { user: [3, 4], system: [0, 2] }, { user: [3, 4], system: [1, 9] },
+  ]
+  for (const chat of bad) {
+    const r = load(chat)
+    expect(r.ok).toBe(true)
+    if (r.ok) {
+      const t = r.events.find((e) => e.type === 'tokenize')
+      expect(t && 'chat' in t).toBe(false)
+      expect(r.note).toContain('Chat template data of 1 cycle was damaged')
+    }
+  }
+})

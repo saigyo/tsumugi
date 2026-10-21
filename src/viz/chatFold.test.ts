@@ -30,3 +30,8 @@ test('fold label', () => {
   expect(foldLabel(20, false)).toBe('system prompt · 20 tokens ▸')
   expect(foldLabel(20, true)).toBe('system prompt · 20 tokens ▾')
 })
+
+test('an empty or reversed system span is not folded', () => {
+  expect(foldItems(5, [3, 3], false)).toHaveLength(5)
+  expect(foldItems(5, [4, 2], false)).toHaveLength(5)
+})

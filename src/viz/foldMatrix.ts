@@ -9,7 +9,7 @@ export interface FoldedMatrix {
 
 export function foldMatrix(matrix: number[][], system: [number, number] | undefined): FoldedMatrix {
   const n = matrix.length
-  const fold = system && system[1] <= n ? system : undefined
+  const fold = system && system[0] < system[1] && system[1] <= n ? system : undefined
   const rows = Array.from({ length: n }, (_, i) => i).filter((i) => !fold || i < fold[0] || i >= fold[1])
   const cols: Array<{ from: number; to: number }> = []
   for (let i = 0; i < n; i++) {

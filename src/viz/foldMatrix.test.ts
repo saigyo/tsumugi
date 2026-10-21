@@ -26,3 +26,13 @@ test('a matrix shorter than the span is not folded and never read past its rows'
   expect(f.rows).toEqual([0, 1])
   expect(f.values).toEqual(short)
 })
+
+test('an empty or reversed span folds nothing and terminates', () => {
+  const m = [[1], [0.5, 0.5], [0.2, 0.3, 0.5], [0.1, 0.2, 0.3, 0.4], [0.1, 0.1, 0.1, 0.1, 0.6], [0.1, 0.1, 0.1, 0.1, 0.1, 0.5]]
+  for (const span of [[3, 3], [5, 2]] as Array<[number, number]>) {
+    const f = foldMatrix(m, span)
+    expect(f.rows).toEqual([0, 1, 2, 3, 4, 5])
+    expect(f.cols).toHaveLength(6)
+    expect(f.values).toEqual(foldMatrix(m, undefined).values)
+  }
+})

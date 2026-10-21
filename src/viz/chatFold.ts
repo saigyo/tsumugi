@@ -7,7 +7,7 @@ export type FoldItem = { kind: 'token'; index: number } | { kind: 'fold'; count:
 
 export function foldItems(length: number, system: [number, number] | undefined, open: boolean): FoldItem[] {
   const all: FoldItem[] = Array.from({ length }, (_, index) => ({ kind: 'token', index }))
-  if (!system || system[0] >= length) return all
+  if (!system || system[0] >= system[1] || system[0] >= length) return all
   const fold: FoldItem = { kind: 'fold', count: system[1] - system[0] }
   return [...all.slice(0, system[0]), fold, ...all.slice(open ? system[0] : system[1])]
 }
