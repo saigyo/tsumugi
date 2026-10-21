@@ -78,8 +78,12 @@ export default function App() {
     usePlayerStore.getState().dispatch({ type: 'traceGrew', length: events.length })
   }, [events.length])
 
+  // the mode as of now, for code that resumes after an await
+  const modeRef = useRef<Mode>('sim')
+  const applyMode = (m: Mode) => { modeRef.current = m; setMode(m) }
+
   const handleModeChange = async (m: Mode): Promise<boolean> => {
-    setMode(m)
+    applyMode(m)
     setModelError(null)
     if (m === 'real' && !realEngineRef.current) {
       setRealReady(false)
@@ -96,10 +100,10 @@ export default function App() {
         setAttn(prepping.engine.attentions ?? false)
         setRealReady(true)
         writeFlag('tsumugi.realModelUsed', true)
-        return true
+        return modeRef.current === 'real'
       } catch (err) {
         setModelError(err instanceof Error ? err.message : String(err))
-        setMode('sim')
+        applyMode('sim')
         setRealReady(false)
         return false
       } finally {
@@ -232,7 +236,7 @@ export default function App() {
       <ModelSlot mode={mode} loading={loading} fromCache={fromCache} progress={progress} error={modelError}
         bannerClosed={bannerClosed} onLoad={() => { void handleModeChange('real') }}
         onClose={() => { writeFlag('tsumugi.simBannerClosed', true); setBannerClosed(true) }}
-        onFallback={() => { setModelError(null); setMode('sim') }} />
+        onFallback={() => { setModelError(null); applyMode('sim') }} />
       <RunShelf records={records} activeId={activeId} compare={compare} armed={compareArmed}
         persistFailed={persistFailed} importError={importError}
         onActivate={(id) => { void handleActivate(id) }}

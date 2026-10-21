@@ -161,3 +161,13 @@ test('the banner’s button loads the model; ready sets the remembered flag', as
   deferreds[0].resolve()
   await waitFor(() => expect(localStorage.getItem('tsumugi.realModelUsed')).toBe('1'))
 })
+
+test('switching back to Simulated while the chat example is loading runs nothing', async () => {
+  render(<App />)
+  fireEvent.click(screen.getAllByTestId('example-chip').at(-1)!)
+  expect(constructCount).toBe(1)
+  fireEvent.click(screen.getByTestId('mode-sim'))
+  deferreds[0].resolve()
+  await waitFor(() => expect(screen.getByTestId('btn-generate')).not.toBeDisabled())
+  expect(runs).toHaveLength(0)
+})
