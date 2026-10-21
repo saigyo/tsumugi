@@ -118,10 +118,15 @@ they are IDs, not positions.
 
 ## Real-mode quality
 
-- [ ] **#8 Chat templating** — run prompts through SmolLM2-Instruct's actual
-  chat template so the model sees its expected format; should noticeably
-  improve real-mode output quality and is honest about how instruct models
-  are invoked. Touches the tokenize stage's story. *(v1 spec, out of scope)*
+- [x] **#8 Chat templating** — real runs can go through SmolLM2's own chat
+  template ("Chat", the default for typed prompts) or as plain text
+  ("Continue text"), with an editable system prompt (empty = no system
+  turn). The template's tokens are shown dashed, the system turn folds in
+  the strip, the attention matrix and Edit sizes, and the attention matrix's
+  cells fit the card (20 → 8 px). A "Chat: a question" example; the
+  real model got a Simulated | Real switch, a banner, a title badge and
+  load buttons where the simulation stops. Spec
+  `docs/superpowers/specs/2026-10-21-chat-templating-design.md`.
 
 - [x] **#19 Faithful browser model** — the q8 model (dynamic int8, one
   activation scale per tensor) lost the small activations whenever the
