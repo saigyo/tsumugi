@@ -7,6 +7,7 @@
 - prompt bar, token strip, example chip: `.superpowers/brainstorm/59075-1792614513/content/chat-mode.html`
   (option B in sections 1 and 2; the strip's fold is amended below)
 - attention matrix: `.superpowers/brainstorm/59075-1792614513/content/attention-matrix.html` (option B)
+- the real model made prominent: `.superpowers/brainstorm/59075-1792614513/content/real-mode-hint.html` (option A)
 
 ## Purpose
 
@@ -71,12 +72,16 @@ From the fp32 model (throwaway scripts). Greedy decoding unless noted;
   the attention matrix and the Edit sizes card. The data keeps every
   position; folding is presentation only.
 - **The attention matrix's cells fit the card width** (both formats).
+- **The real model is made prominent** (section 6): a "Simulated | Real
+  model" switch at the front of the prompt row replaces the checkbox, a
+  banner explains the simulation, and the model's status moves to the
+  banner's slot and a badge next to the title.
 - **Not included:** multi-turn conversations; Chat in the simulated mode.
 
 ## 1. Prompt bar and examples
 
-- **The format switch:** a segmented control "Chat | Continue text" in front
-  of the prompt field (`data-testid="format-switch"`), shown only while
+- **The format switch:** a segmented control "Chat | Continue text" after
+  the mode switch (section 6), in front of the prompt field (`data-testid="format-switch"`), shown only while
   "Real model" is on. Its state lives in `PromptBar` like the temperature,
   default Chat. With the real model off, every run is Continue text.
 - **The system prompt line:** under the prompt row, only in Chat. Label
@@ -239,6 +244,59 @@ New entry `chat-template` ("Chat template"), sections:
 Linked from the format switch's ⓘ, the fold chip's title, and
 `TokenizerDetail`. The `token` entry gets one sentence pointing to it.
 
+## 6. Making the real model hard to miss
+
+Chat mode, attention, the MLP cards and the neuron data all need the real
+model, which today hides behind a small checkbox at the end of the settings
+row. Nothing here downloads without a click.
+
+- **The mode switch:** a segmented control "Simulated | Real model · 250 MB"
+  (`data-testid="mode-switch"`) at the front of the prompt row replaces the
+  checkbox (`mode-toggle`). The format switch follows it when the real model
+  is on. The checkbox's tooltip text moves to the switch's real option.
+- **The banner** (`data-testid="sim-banner"`), in a slot under the example
+  chips, while the mode is simulated and the banner has not been closed:
+  "**You are watching a simulation.** Its numbers are made up to show the
+  shape of the pipeline. Load the real model to see what SmolLM2 actually
+  computes: real attention, the MLP inside each layer, and answers in Chat
+  mode. 250 MB, downloaded once, runs entirely in your browser." with a
+  "Load the real model" button and a close button (×, label "Close").
+  Vermillion wash as in the mockup (`--shu-soft` border, `--shu-wash`
+  ground).
+- **The title badge** (`data-testid="mode-badge"`) next to "Tsumugi":
+  "Simulated" (vermillion outline) while simulated, also after the banner is
+  closed; "Loading…" while loading; "Real model · {device}{ · attn}" when
+  ready (replacing today's device chip in the settings row).
+- **Model status in the banner's slot:** while loading, after any "Load the
+  real model" click (banner, switch or a card's button), the slot shows
+  "Loading the real model: {file} · {percent} %" with a thin progress bar,
+  even if the banner was closed. A load error shows there too, with the
+  existing "Continue in Simulated mode" button. When the model is ready, the
+  slot disappears. `ModelStatus` moves from the settings row into this slot;
+  the settings row keeps T, top-k and max.
+- **Buttons where the simulation stops:** the "Real model only" notes in the
+  Layers detail (MLP, neuron and step-by-step cards) get a "Load the real
+  model" button, and the simulated-attention note gets a "Load the real
+  model" link. They call one shared action (`requestRealModel` in a small
+  store the app subscribes to), not props passed through every card. During
+  a load they are disabled.
+- **Remembered choices** (`localStorage`, every access in try/catch; without
+  storage the app behaves as on a first visit):
+  - `tsumugi.simBannerClosed`: set by the close button.
+  - `tsumugi.realModelUsed`: set when the real model becomes ready.
+  - On start, when `realModelUsed` is set **and** the model's files are in
+    the browser cache, the app switches to real mode by itself; the slot
+    shows "Loading the real model from the browser's cache…" until ready.
+    The cache check (`realModelCached()`) opens the Cache Storage
+    `transformers-cache` (transformers.js `env.cacheKey`) and looks for the
+    model file of the pinned revision. If it is missing (cache cleared), the
+    app starts simulated and shows the banner again, even if it was closed
+    before, without downloading anything.
+- **The simulated attention note** reads "Illustrative pattern (simulated):
+  the real model would show the weights it computed." (today's text claims
+  the browser model exposes no attention, which has not been true since the
+  attention export).
+
 ## Testing
 
 Unit (vitest):
@@ -263,6 +321,15 @@ Unit (vitest):
   floor 8; labels thinned below 14 and kept for the hovered row/column;
   hovering does not re-render cells; toggle shows the full matrix.
 - `EditSizeCard`: folded row, open/close, cap after folding.
+- Mode switch and banner: banner shown on a first visit in simulated mode,
+  close remembered, hidden in real mode; badge texts for simulated, loading
+  and ready; progress and error in the banner slot even after closing; card
+  buttons call `requestRealModel` and are disabled while loading.
+- Start-up: `realModelUsed` with cached files → real mode without a click;
+  without cached files → simulated with the banner; storage that throws →
+  first-visit behaviour. `realModelCached` against a fake Cache Storage.
+- Existing tests that tick `mode-toggle` or read `device-chip` move to the
+  mode switch and the badge.
 
 Browser (Playwright, real model): with T set to 0 (greedy, so the run is
 deterministic), the chat example produces a strip with the fold chip, an
