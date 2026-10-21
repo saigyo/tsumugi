@@ -89,7 +89,7 @@ they are IDs, not positions.
   and labels, and the layer is shared with the neuron card. A sticky
   section bar (Overview, Attention, Edit sizes, Votes, Inside one MLP,
   Step by step, plus the shared layer stepper) sits below the playback
-  controls. Built 2026-10-21; model v6 published on <pending>. Stored
+  controls. Built 2026-10-21; model v6 published on 2026-10-21. Stored
   runs grow by about 340 KB per generated token, and runs without step
   data (recorded before v6, or step data damaged on import) say so.
   *(#15 follow-up)*
@@ -139,7 +139,7 @@ they are IDs, not positions.
   votes (max gap 0.069), so the neuron card's "≈" should no longer appear;
   it stays as a safeguard. The 8-step greedy check accepts a flip on a
   near-tie (stock margin ≤ 0.1; the one flip seen has margin 0.011).
-  Built 2026-10-21; model v6 published on <pending>. *(#15 final review,
+  Built 2026-10-21; model v6 published on 2026-10-21. *(#15 final review,
   2026-10-11)*
 
 ## Housekeeping / parked minors
