@@ -81,6 +81,16 @@ test('every callout chip points at a section that exists', () => {
     expect(sectionsOf(c.id), `${c.label} → ${c.id} § ${c.section}`).toContain(c.section)
 })
 
+test('every callout chip hovers its own sentence, not the entry summary', () => {
+  const sets = [EMBEDDING_CALLOUTS, logitsCallouts(3, '49 152'), SOFTMAX_CALLOUTS, EDIT_CALLOUTS, NEURON_CALLOUTS, MLP_STEP_CALLOUTS]
+  const tips = sets.flat().map((c) => c.tip)
+  for (const c of sets.flat()) {
+    expect(c.tip.length, c.label).toBeGreaterThan(20)
+    expect(c.tip, c.label).not.toBe(getEntry(c.id)!.summary)
+  }
+  expect(new Set(tips).size).toBe(tips.length)
+})
+
 test('How to read Tsumugi walks the screen in the order the app lays it out', () => {
   const { container } = render(<>{getEntry('how-to-read')!.body()}</>)
   const steps = [...container.querySelectorAll('li > strong')].map((el) => el.textContent)

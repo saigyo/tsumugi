@@ -50,9 +50,9 @@ export const edit: GlossaryEntry = {
           of the two writes more at a layer tells you whether that layer mostly gathers context or mostly
           transforms what is already there. These are typical patterns in small models, not rules.</p>
       </Section>
-      <p className="gl-aside">In real mode, the browser runs an 8-bit compressed copy of the model. Its compression
-        rounds layer 11’s MLP edits to zero for every prompt token after the first, so that column of the heatmap
-        is empty. That comes from the compression, not from SmolLM2.</p>
+      <p className="gl-aside">Runs saved with an earlier version of Tsumugi can show an empty layer 11 column: its
+        browser model was compressed more strongly and rounded those MLP edits to zero for every prompt token after
+        the first. That came from the compression, not from SmolLM2.</p>
       <p className="gl-aside">In papers: <em>block output</em>, <em>write to the residual stream</em>, or{' '}
         <em>residual update</em>.</p>
     </>

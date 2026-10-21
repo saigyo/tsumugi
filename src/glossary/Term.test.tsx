@@ -1,5 +1,5 @@
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { afterEach, expect, test } from 'vitest'
+import { afterEach, expect, test, vi } from 'vitest'
 import { resetGlossaryStore, useGlossaryStore } from './store'
 import { Term } from './Term'
 import type { GlossaryId } from './types'
@@ -71,6 +71,37 @@ test('focus returned by the closing drawer does not bring the tooltip back', () 
   act(() => { term.blur() })
   fireEvent.focus(term)                                    // a real later focus shows it again
   expect(screen.getByTestId('gl-tip')).toBeInTheDocument()
+})
+
+test('a tip prop replaces the entry summary in the tooltip', () => {
+  render(<Term id="mlp" section="two-projections" variant="chip" tip="Gate and up read the same vector.">ⓘ why two projections</Term>)
+  fireEvent.mouseEnter(screen.getByTestId('gl-term'))
+  const tip = screen.getByTestId('gl-tip')
+  expect(tip).toHaveTextContent('Gate and up read the same vector.')
+  expect(tip).not.toHaveTextContent('The per-token step')
+  expect(tip).toHaveTextContent('Click to read more.')
+})
+
+test('near the bottom of the window the tooltip opens above the term', () => {
+  render(<Term id="edit">edit</Term>)
+  const term = screen.getByTestId('gl-term')
+  term.getBoundingClientRect = () => ({ left: 100, right: 130, top: 860, bottom: 878, width: 30, height: 18, x: 100, y: 860, toJSON: () => ({}) })
+  Object.defineProperty(window, 'innerHeight', { configurable: true, value: 900 })
+  const height = vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(60)
+  fireEvent.mouseEnter(term)
+  expect(screen.getByTestId('gl-tip').style.top).toBe(`${860 - 4 - 60}px`)
+  height.mockRestore()
+})
+
+test('with room below, the tooltip stays below the term', () => {
+  render(<Term id="edit">edit</Term>)
+  const term = screen.getByTestId('gl-term')
+  term.getBoundingClientRect = () => ({ left: 100, right: 130, top: 300, bottom: 318, width: 30, height: 18, x: 100, y: 300, toJSON: () => ({}) })
+  Object.defineProperty(window, 'innerHeight', { configurable: true, value: 900 })
+  const height = vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(60)
+  fireEvent.mouseEnter(term)
+  expect(screen.getByTestId('gl-tip').style.top).toBe('322px')
+  height.mockRestore()
 })
 
 test('Escape hides the tooltip', () => {

@@ -134,7 +134,7 @@ export function LogitsReadout({ candidates, lastHidden, dims, vocabSize, selecte
 
       <div className="embed-callouts">
         {logitsCallouts(candidates.length, vocab).map((c) => (
-          <Term key={c.label} id={c.id} section={c.section} variant="chip" testId="embed-callout">ⓘ {c.label}</Term>
+          <Term key={c.label} id={c.id} section={c.section} tip={c.tip} variant="chip" testId="embed-callout">ⓘ {c.label}</Term>
         ))}
       </div>
     </div>

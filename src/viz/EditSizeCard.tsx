@@ -56,7 +56,7 @@ export function EditSizeCard({ rows: all, note, onLayer }: { rows?: EditRows; no
           <EditBars rows={rows} index={sel} onLayer={onLayer} />
           <div className="embed-callouts">
             {EDIT_CALLOUTS.map((c) => (
-              <Term key={c.label} id={c.id} section={c.section} variant="chip" testId="embed-callout">ⓘ {c.label}</Term>
+              <Term key={c.label} id={c.id} section={c.section} tip={c.tip} variant="chip" testId="embed-callout">ⓘ {c.label}</Term>
             ))}
           </div>
         </>

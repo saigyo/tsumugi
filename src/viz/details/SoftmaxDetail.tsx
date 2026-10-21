@@ -52,7 +52,7 @@ export function SoftmaxDetail({ events, cursor }: { events: TraceEvent[]; cursor
       </div>
       <div className="embed-callouts">
         {SOFTMAX_CALLOUTS.map((c) => (
-          <Term key={c.label} id={c.id} section={c.section} variant="chip" testId="embed-callout">ⓘ {c.label}</Term>
+          <Term key={c.label} id={c.id} section={c.section} tip={c.tip} variant="chip" testId="embed-callout">ⓘ {c.label}</Term>
         ))}
       </div>
     </div>

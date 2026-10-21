@@ -162,3 +162,17 @@ test('the norm note says x and n are clipped and w is scaled to its own peak', a
   await waitFor(() => screen.getByTestId('strip-n'))
   expect(screen.getByTestId('steps-card')).toHaveTextContent('x and n clipped at 2× their typical size, w scaled to its largest value.')
 })
+
+test('each ⓘ chip hovers the sentence of the section it opens', async () => {
+  card()
+  await waitFor(() => screen.getAllByTestId('steps-callout'))
+  const tips = screen.getAllByTestId('steps-callout').map((chip) => {
+    fireEvent.mouseEnter(chip)
+    const text = screen.getByTestId('gl-tip').textContent
+    fireEvent.mouseLeave(chip)
+    return text
+  })
+  expect(tips[0]).toContain('SiLU is smooth')
+  expect(tips[1]).toContain('The gate decides how much passes')
+  expect(tips[2]).toContain('about a hundred neurons')
+})

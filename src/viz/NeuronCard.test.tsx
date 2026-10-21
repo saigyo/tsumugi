@@ -104,7 +104,7 @@ test('a total off by more than the tolerance shows ≈ and the note', async () =
   card({ candidates: off })
   await waitFor(() => screen.getAllByTestId('neuron-row'))
   expect(screen.getByTestId('neuron-total')).toHaveTextContent('≈')
-  expect(screen.getByTestId('neuron-approx-note')).toHaveTextContent('The browser’s 8-bit model rounds this MLP’s inputs')
+  expect(screen.getByTestId('neuron-approx-note')).toHaveTextContent('Runs saved with an earlier version of Tsumugi show this')
 })
 
 test('a load error offers retry', async () => {

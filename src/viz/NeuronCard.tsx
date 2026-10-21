@@ -17,7 +17,7 @@ const MODE_NAME: Record<Mode, string> = { vote: 'behind the vote', size: 'firing
 const LOADING = 'Loading the MLP weights (about 0.9 MB per layer, once per model version)…'
 const MISMATCH = 'This run’s neuron data doesn’t match the MLP weights file.'
 const NO_ROW = 'No neuron data for this candidate.'
-const APPROX = 'The browser’s 8-bit model rounds this MLP’s inputs, so the neuron votes don’t add up exactly to the votes card.'
+const APPROX = 'The neuron votes don’t add up exactly to the votes card here. Runs saved with an earlier version of Tsumugi show this: its browser model rounded each MLP’s inputs.'
 const BAR_MAX = 70
 
 const signed = (v: number, digits = 2) => `${v >= 0 ? '+' : '−'}${Math.abs(v).toFixed(digits)}`
@@ -89,7 +89,7 @@ function NeuronBody({ data, candidates, selected, layer }: {
         ) : <NeuronTable data={data} asset={state.asset} weights={state.layer} layer={layer} mode={mode} cand={cand} />}
       <div className="embed-callouts">
         {NEURON_CALLOUTS.map((c) => (
-          <Term key={c.label} id={c.id} section={c.section} variant="chip" testId="neuron-callout">ⓘ {c.label}</Term>
+          <Term key={c.label} id={c.id} section={c.section} tip={c.tip} variant="chip" testId="neuron-callout">ⓘ {c.label}</Term>
         ))}
       </div>
     </>

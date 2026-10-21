@@ -51,9 +51,9 @@ export const mlpNeuron: GlossaryEntry = {
           the space the readout compares with, so a column’s closest rows of E say little about what the neuron
           does there.</p>
       </Section>
-      <p className="gl-aside">In real mode the browser runs an 8-bit compressed copy of the model, which rounds each
-        MLP’s inputs before the down matrix. The card computes the neuron votes from the unrounded activations, so
-        for some layers they miss the votes card’s number by a little; the total then shows “≈”.</p>
+      <p className="gl-aside">In runs saved with an earlier version of Tsumugi, the browser model rounded each MLP’s
+        inputs before the down matrix. The card computes the neuron votes from the unrounded activations, so for
+        some layers they miss the votes card’s number by a little; the total then shows “≈”.</p>
     </>
   ),
 }

@@ -100,7 +100,7 @@ function StepsBody({ data, candidates, selected, layer }: { data: NeuronData; ca
         {weights ? <DownStrips s={s} layer={weights.layer} dims={dims} marked={marked} /> : pending}
       </Step>
       <div className="embed-callouts">
-        {MLP_STEP_CALLOUTS.map((c) => <Term key={c.label} id={c.id} section={c.section} variant="chip" testId="steps-callout">ⓘ {c.label}</Term>)}
+        {MLP_STEP_CALLOUTS.map((c) => <Term key={c.label} id={c.id} section={c.section} tip={c.tip} variant="chip" testId="steps-callout">ⓘ {c.label}</Term>)}
       </div>
     </>
   )
