@@ -183,3 +183,24 @@ test('a note under the scatter says which dots carry numbers and how to see the 
   expect(screen.getByTestId('steps-scatter-note')).toHaveTextContent(
     'Numbers: the three marked neurons with the largest activations. Hover or focus any dot for its number.')
 })
+
+test('hovering a neuron in one chart rings the same neuron in every step', async () => {
+  card()
+  await waitFor(() => screen.getByTestId('strip-edit'))
+  const rows = [...screen.getByTestId('steps-card').querySelectorAll('[data-testid^="strip-c"]')]
+  const i = Number(rows[0].getAttribute('data-testid')!.slice('strip-c'.length))   // the largest listed neuron
+  const rings = () => Object.fromEntries(['steps-scatter', 'steps-silu', 'steps-product'].map((id) =>
+    [id, screen.getByTestId(id).querySelector('[data-testid="steps-ring"]')?.getAttribute('data-neuron') ?? null]))
+  const ringedRows = () => [...screen.getByTestId('steps-card').querySelectorAll('.step-row-ring [data-testid^="strip-c"]')]
+    .map((e) => e.getAttribute('data-testid'))
+  expect(rings()).toEqual({ 'steps-scatter': null, 'steps-silu': null, 'steps-product': null })
+
+  const dot = screen.getByTestId('steps-silu').querySelector(`[data-neuron="${i}"]`)!
+  fireEvent.mouseEnter(dot)
+  expect(rings()).toEqual({ 'steps-scatter': String(i), 'steps-silu': String(i), 'steps-product': String(i) })
+  expect(ringedRows()).toEqual([`strip-c${i}`])
+  expect(screen.getAllByTestId('steps-box')).toHaveLength(1)              // the box stays in the chart pointed at
+  fireEvent.mouseLeave(dot)
+  expect(rings()).toEqual({ 'steps-scatter': null, 'steps-silu': null, 'steps-product': null })
+  expect(ringedRows()).toEqual([])
+})

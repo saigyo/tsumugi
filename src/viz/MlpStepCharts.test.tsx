@@ -92,3 +92,24 @@ test('a count beyond the bars shown gets an off-chart note at the right end', ()
   expect(notes.map((t) => t.textContent)).toEqual(['half needs 250 neurons', '90 % needs 450 neurons'])
   for (const t of notes) expect(t.getAttribute('text-anchor')).toBe('end')
 })
+
+test('the ring sits on the hovered neuron in each chart, and no bar is ringed for a neuron outside the shown bars', () => {
+  const hv = (neuron: number) => ({ neuron, chart: 'scatter' as const, x: 0, y: 0, height: 150 })
+  const charts = (neuron: number) => render(<>
+    <GateUpScatter gate={gate} up={up} domain={[-4, 12]} marked={[]} named={[]} hover={hv(neuron)} onHover={() => {}} box={null} />
+    <SiluChart gate={gate} domain={[-4, 12]} marked={[]} counts={{ negative: 2, positive: 3 }} hover={hv(neuron)} onHover={() => {}} box={null} />
+    <ProductBars h={h} summary={productSummary(h, 2)} marked={[]} hover={hv(neuron)} onHover={() => {}} box={null} />
+  </>)
+  const ring = (id: string) => screen.getByTestId(id).querySelector('[data-testid="steps-ring"]')
+  const shown = productSummary(h, 2).order
+  const inside = shown[0], outside = [0, 1, 2, 3, 4].find((i) => !shown.includes(i))!
+  charts(inside)
+  const dot = screen.getByTestId('steps-silu').querySelector(`circle[data-neuron="${inside}"]`)!
+  expect(ring('steps-silu')!.getAttribute('cx')).toBe(dot.getAttribute('cx'))
+  expect(ring('steps-silu')!.getAttribute('cy')).toBe(dot.getAttribute('cy'))
+  expect(ring('steps-product')!.getAttribute('data-neuron')).toBe(String(inside))
+  cleanup()
+  charts(outside)
+  expect(ring('steps-scatter')!.getAttribute('data-neuron')).toBe(String(outside))
+  expect(ring('steps-product')).toBeNull()
+})

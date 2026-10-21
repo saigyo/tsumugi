@@ -98,7 +98,7 @@ function StepsBody({ data, candidates, selected, layer }: { data: NeuronData; ca
       </Step>
       <Step n={5} name="Down" tex={String.raw`\text{edit} = W_{\text{down}} \cdot h`}
         text={<>Each neuron adds its column of W<sub>down</sub>, scaled by its activation. The sum is what this layer’s MLP adds to the stream.</>}>
-        {weights ? <DownStrips s={s} layer={weights.layer} dims={dims} marked={marked} /> : pending}
+        {weights ? <DownStrips s={s} layer={weights.layer} dims={dims} marked={marked} ring={hover?.neuron ?? null} /> : pending}
       </Step>
       <div className="embed-callouts">
         {MLP_STEP_CALLOUTS.map((c) => <Term key={c.label} id={c.id} section={c.section} tip={c.tip} variant="chip" testId="steps-callout">ⓘ {c.label}</Term>)}
@@ -129,13 +129,15 @@ const NormStrips = memo(function NormStrips({ s, w, eps }: { s: LayerSteps; w: F
   )
 })
 
-const DownStrips = memo(function DownStrips({ s, layer, dims, marked }: { s: LayerSteps; layer: NeuronLayer; dims: number; marked: number[] }) {
+const DownStrips = memo(function DownStrips({ s, layer, dims, marked, ring }: { s: LayerSteps; layer: NeuronLayer; dims: number; marked: number[]; ring: number | null }) {
   const top = useMemo(() => [...marked].map((i) => ({ i, size: Math.abs(s.h[i]) * columnNorm(layer, dims, i) }))
     .sort((a, b) => b.size - a.size).slice(0, 3).map(({ i }) => ({ i, values: contribution(layer, dims, i, s.h[i]) })), [marked, s, layer, dims])
   const lim = 2 * rms(s.edit)
   return (
     <div>
-      {top.map(({ i, values }) => <StepStrip key={i} values={values} lim={lim} label={`N${i}: ${f2(s.h[i])} × column`} testId={`strip-c${i}`} labelClass="step-strip-mono" />)}
+      {/* the wrapper carries the ring, so a hover leaves the strip itself (and its cells) untouched */}
+      {top.map(({ i, values }) => <div key={i} className={i === ring ? 'step-row-ring' : undefined}>
+        <StepStrip values={values} lim={lim} label={`N${i}: ${f2(s.h[i])} × column`} testId={`strip-c${i}`} labelClass="step-strip-mono" /></div>)}
       <div className="step-strip-row"><span className="step-strip-label">+ {s.h.length - top.length} more</span><span className="mlp-note">…</span></div>
       <StepStrip values={s.edit} lim={lim} label="= edit" testId="strip-edit" labelClass="step-strip-sum" />
       <p data-testid="steps-ratio" className="mlp-scale-note">‖edit‖ = {Math.hypot(...s.edit).toFixed(0)},{' '}

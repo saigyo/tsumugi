@@ -52,7 +52,7 @@ function Frame({ testId, h, label, box, children }: { testId: string; h: number;
   )
 }
 
-export function GateUpScatter({ gate, up, domain, marked, named, onHover, box }: {
+export function GateUpScatter({ gate, up, domain, marked, named, hover, onHover, box }: {
   gate: Float32Array; up: Float32Array; domain: [number, number]; marked: number[]; named: number[]
   hover: Hover | null; onHover(h: Hover | null): void; box: ReactNode
 }) {
@@ -75,12 +75,13 @@ export function GateUpScatter({ gate, up, domain, marked, named, onHover, box }:
       {ticks(domain).map((t) => <text key={t} x={x(t)} y={H - 6} textAnchor="middle" className="step-axis">{t}</text>)}
       {ticks([lo, hi]).map((t) => <text key={t} x={X0 - 6} y={y(t) + 3} textAnchor="end" className="step-axis">{t}</text>)}
       <Dots xs={xs} ys={ys} marked={marked} chart="scatter" height={H} onHover={onHover} />
+      <Ring hover={hover} xs={xs} ys={ys} />
       {named.map((i) => <text key={i} x={x(gate[i]) + 6} y={y(up[i]) + 4} className="step-name">N{i}</text>)}
     </Frame>
   )
 }
 
-export function SiluChart({ gate, domain, marked, counts, onHover, box }: {
+export function SiluChart({ gate, domain, marked, counts, hover, onHover, box }: {
   gate: Float32Array; domain: [number, number]; marked: number[]; counts: { negative: number; positive: number }
   hover: Hover | null; onHover(h: Hover | null): void; box: ReactNode
 }) {
@@ -111,8 +112,16 @@ export function SiluChart({ gate, domain, marked, counts, onHover, box }: {
       {ticks(domain).map((t) => <text key={t} x={x(t)} y={H - 6} textAnchor="middle" className="step-axis">{t}</text>)}
       {ticks([0, yMax]).map((t) => <text key={t} x={X0 - 6} y={y(t) + 3} textAnchor="end" className="step-axis">{t}</text>)}
       <Dots xs={xs} ys={ys} marked={marked} chart="silu" height={H} onHover={onHover} />
+      <Ring hover={hover} xs={xs} ys={ys} />
     </Frame>
   )
+}
+
+// The neuron hovered in any step, ringed in every step so it can be followed down the card.
+function Ring({ hover, xs, ys }: { hover: Hover | null; xs: number[]; ys: number[] }) {
+  if (!hover) return null
+  const i = hover.neuron
+  return <circle data-testid="steps-ring" data-neuron={i} cx={xs[i]} cy={ys[i]} r={8} className="step-ring" />
 }
 
 const Bars = memo(function Bars({ h, order, peak, marked, mid, reach, height, onHover }: {
@@ -132,7 +141,7 @@ const Bars = memo(function Bars({ h, order, peak, marked, mid, reach, height, on
   })}</>
 })
 
-export function ProductBars({ h, summary, marked, onHover, box }: {
+export function ProductBars({ h, summary, marked, hover, onHover, box }: {
   h: Float32Array; summary: ReturnType<typeof productSummary>; marked: number[]
   hover: Hover | null; onHover(h: Hover | null): void; box: ReactNode
 }) {
@@ -147,6 +156,9 @@ export function ProductBars({ h, summary, marked, onHover, box }: {
     <Frame testId="steps-product" h={H} label="the largest activations, largest first" box={box}>
       <line x1={X0} x2={X1} y1={mid} y2={mid} className="step-zero" />
       <Bars h={h} order={order} peak={peak} marked={marked} mid={mid} reach={reach} height={H} onHover={onHover} />
+      {hover && order.includes(hover.neuron) && (
+        <rect data-testid="steps-ring" data-neuron={hover.neuron} className="step-ring" rx={3}
+          x={at(order.indexOf(hover.neuron)) + bw / 2 - 5} width={10} y={4} height={H - 8} />)}
       {cuts.map(([k, name, ty]) => k > 0 && (k <= order.length
         ? <g key={name}>
             <line x1={at(k)} x2={at(k)} y1={6} y2={H - 6} className="step-cut" />
