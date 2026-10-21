@@ -123,7 +123,7 @@ async function run(runId: number, prompt: string, params: GenParams, format: Pro
         { tokenize: false, add_generation_prompt: true })
     promptIds = tokenizer.encode(text, { add_special_tokens: false })
     chat = chatSpans(promptIds,
-      tokenizer.convert_tokens_to_ids('<|im_start|>'), tokenizer.convert_tokens_to_ids('<|im_end|>'))
+      tokenizer.convert_tokens_to_ids('<|im_start|>'), tokenizer.convert_tokens_to_ids('<|im_end|>'), format.system !== null)
     if (chat) {
       ;({ ids: promptIds, spans: chat, truncated } = fitChatToBudget(promptIds, chat, budget))
     }

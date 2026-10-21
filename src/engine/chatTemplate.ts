@@ -18,12 +18,12 @@ export const noSystemChat = (prompt: string): string =>
 // Locates the system turn and the user's words in a chat prompt's ids. The
 // expected shape: <|im_start|> at 0, a system turn (optional), the user turn
 // "<|im_start|> user \n … <|im_end|> \n", and the generation prompt
-// "<|im_start|> ass istant \n". Anything else gives undefined, and the views
+// "<|im_start|> ass istant \n". hasSystem says whether the prompt was built with a
+// system turn, so a typed <|im_start|> cannot pass for one. Anything else gives undefined, and the views
 // show every position unfolded.
-export function chatSpans(ids: number[], imStart: number, imEnd: number): ChatSpans | undefined {
+export function chatSpans(ids: number[], imStart: number, imEnd: number, hasSystem: boolean): ChatSpans | undefined {
   const starts = ids.flatMap((id, i) => (id === imStart ? [i] : []))
-  if (starts[0] !== 0 || (starts.length !== 2 && starts.length !== 3)) return undefined
-  const hasSystem = starts.length === 3
+  if (starts[0] !== 0 || starts.length !== (hasSystem ? 3 : 2)) return undefined
   const userTurn = hasSystem ? starts[1] : starts[0]
   const u = userTurn + 3                       // after <|im_start|>, "user", "\n"
   const e = ids.indexOf(imEnd, u)
