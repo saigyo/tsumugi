@@ -1,4 +1,4 @@
-import type { EmbedSource, LayerVotes, LogitCandidate, NeuronData, TokenInfo, TraceEvent } from '../trace/types'
+import type { ChatSpans, EmbedSource, LayerVotes, LogitCandidate, NeuronData, TokenInfo, TraceEvent } from '../trace/types'
 
 export type StageId = 'tokenizer' | 'embeddings' | 'layers' | 'logits' | 'softmax' | 'sampler' | null
 
@@ -182,4 +182,11 @@ export function cycleNeurons(events: TraceEvent[], cursor: number): CycleNeurons
   if (edits?.neurons) return { status: 'ok', data: edits.neurons }
   if (edits || events.some((e) => (e.type === 'logits' && e.cycle === cycle) || e.type === 'run-end')) return { status: 'none' }
   return { status: 'pending' }
+}
+
+// A chat run's system and user spans (from its tokenize event), or undefined
+// for a plain-text run, a run recorded before chat mode, or a failed scan.
+export function chatLayout(events: TraceEvent[]): ChatSpans | undefined {
+  for (const e of events) if (e.type === 'tokenize') return e.chat
+  return undefined
 }

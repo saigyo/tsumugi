@@ -1,4 +1,4 @@
-import type { GenParams, RunEndReason, TraceEvent } from '../trace/types'
+import type { GenParams, PromptFormat, RunEndReason, TraceEvent } from '../trace/types'
 import { dropBrokenNeurons, validateTrace } from '../trace/validate'
 import type { RunMeta, RunRecord, SealMeta } from './runsStore'
 
@@ -12,6 +12,14 @@ export function serializeRun(record: RunRecord): { filename: string; json: strin
     filename: `tsumugi-run-${slug}-${date}.json`,
     json: JSON.stringify({ formatVersion: RUN_FILE_VERSION, meta: record.meta, events: record.events }, null, 2),
   }
+}
+
+const formatOf = (f: unknown): PromptFormat | undefined => {
+  if (typeof f !== 'object' || f === null) return undefined
+  const v = f as { kind?: unknown; system?: unknown }
+  if (v.kind === 'text') return { kind: 'text' }
+  if (v.kind === 'chat' && (v.system === null || typeof v.system === 'string')) return { kind: 'chat', system: v.system }
+  return undefined
 }
 
 export type ParsedRunFile =
@@ -43,6 +51,7 @@ export function parseRunFile(text: string): ParsedRunFile {
     meta: {
       prompt: m.prompt, params: m.params as GenParams, mode: m.mode,
       ...(typeof m.modelId === 'string' ? { modelId: m.modelId } : {}),
+      ...(formatOf(m.format) ? { format: formatOf(m.format) } : {}),
       endedAt: m.endedAt, reason: m.reason as RunEndReason,
     },
     events,

@@ -93,3 +93,18 @@ test('exit-compare stays reachable when only one record remains while comparing'
   fireEvent.click(screen.getByTestId('btn-compare-exit'))
   expect(p.onExitCompare).toHaveBeenCalled()
 })
+
+test('a chat run’s chip says Chat and its title names the system prompt', () => {
+  const chat = makeRunRecord(1, { mode: 'real', prompt: 'What is the capital of France?' })
+  chat.meta.format = { kind: 'chat', system: 'You are a helpful AI assistant named SmolLM, trained by Hugging Face' }
+  const none = makeRunRecord(2, { mode: 'real', prompt: 'Hi there' })
+  none.meta.format = { kind: 'chat', system: null }
+  const plain = makeRunRecord(3, { prompt: 'The cat sat' })
+  render(<RunShelf {...props({ records: [chat, none, plain] })} />)
+  const mains = screen.getAllByTestId('run-chip-main')
+  expect(mains[0]).toHaveTextContent('#1 · Chat · What is the')
+  expect(mains[0]).toHaveAttribute('title', expect.stringContaining('system: default'))
+  expect(mains[1]).toHaveAttribute('title', expect.stringContaining('system: none'))
+  expect(mains[2]).toHaveTextContent('#3 · The cat sat')
+  expect(mains[2].getAttribute('title')).not.toContain('system:')
+})

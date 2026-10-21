@@ -81,3 +81,15 @@ test('an import with one broken neuron field and one broken step field names bot
   const parsed = parseRunFile(runText(events))
   expect(parsed.ok && parsed.note).toBe('Neuron data of 1 cycle was damaged and left out. Step-by-step data of 1 cycle was damaged and left out.')
 })
+
+test('a chat run file keeps its format; a malformed format is dropped and the run loads as text', () => {
+  const events = buildFixtureTrace({ chat: true, mode: 'real' })
+  const meta = { prompt: 'What is the capital of France?', params: { temperature: 0, topK: 1, maxNewTokens: 8 },
+    mode: 'real', endedAt: 1, reason: 'eos' }
+  const good = parseRunFile(JSON.stringify({ formatVersion: 1, events, meta: { ...meta, format: { kind: 'chat', system: null } } }))
+  expect(good.ok && good.meta.format).toEqual({ kind: 'chat', system: null })
+  const bad = parseRunFile(JSON.stringify({ formatVersion: 1, events, meta: { ...meta, format: { kind: 'chat', system: 3 } } }))
+  expect(bad.ok && bad.meta.format).toBeUndefined()
+  const old = parseRunFile(JSON.stringify({ formatVersion: 1, events, meta }))
+  expect(old.ok && old.meta.format).toBeUndefined()
+})

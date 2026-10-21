@@ -125,6 +125,7 @@ export default function App() {
             archiveSeal({
               prompt: start.prompt, params: start.params, mode: start.mode,
               ...(start.mode === 'real' ? { modelId: start.modelId } : {}),
+              ...(start.format ? { format: start.format } : {}),
               endedAt: Date.now(), reason: e.reason,
             }, events)
           }

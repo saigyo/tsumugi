@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest'
 import { buildFixtureTrace, fixtureEmbedding, makeFixtureTrace } from '../test/fixtures'
-import { activeStage, cycleNeurons, cycleTickIndices, cycleVotes, distributionFor, editRows, embeddingRows, eventAt, flowShapes, latestOfType, stageEventIndex, viewedCycle, visibleTokens } from './selectors'
+import { activeStage, chatLayout, cycleNeurons, cycleTickIndices, cycleVotes, distributionFor, editRows, embeddingRows, eventAt, flowShapes, latestOfType, stageEventIndex, viewedCycle, visibleTokens } from './selectors'
 import type { TraceEvent } from '../trace/types'
 import { validateTrace } from '../trace/validate'
 
@@ -197,4 +197,9 @@ test('the trace fixture with neurons validates and its votes still add up to the
     const v = c.votes!
     expect(v.embed + v.attn.reduce((a, b) => a + b, 0) + v.mlp.reduce((a, b) => a + b, 0)).toBeCloseTo(c.logit, 5)
   }
+})
+
+test('chatLayout returns the run’s spans, or undefined for a plain-text run', () => {
+  expect(chatLayout(buildFixtureTrace({ chat: true }))).toEqual({ system: [1, 21], user: [24, 31] })
+  expect(chatLayout(buildFixtureTrace())).toBeUndefined()
 })

@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { GenParams, Mode, RunEndReason, TraceEvent } from '../trace/types'
+import type { GenParams, Mode, PromptFormat, RunEndReason, TraceEvent } from '../trace/types'
 
 export interface RunMeta {
   seq: number               // monotonic per-archive counter; never reused, so chip labels
@@ -8,6 +8,7 @@ export interface RunMeta {
   params: GenParams
   mode: Mode
   modelId?: string          // real mode only
+  format?: PromptFormat     // chat runs only; absent = Continue text
   endedAt: number           // epoch ms, stamped at seal time
   reason: RunEndReason
   pinned: boolean

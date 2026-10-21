@@ -1,6 +1,19 @@
+import { DEFAULT_SYSTEM_PROMPT } from '../engine/chatTemplate'
 import { READOUT_CELLS, type AttentionGridCell, type LayerVotes, type LogitCandidate, type Mode, type RunEndReason, type TraceEvent, type TokenInfo } from '../trace/types'
 import type { RunRecord } from '../app/runsStore'
 import { fixtureMlpVotes, fixtureNeuronData } from './neuronFixture'
+
+const tk = (pairs: Array<[number, string]>): TokenInfo[] => pairs.map(([id, text]) => ({ id, text }))
+// The real chat prompt for "What is the capital of France?" with the default
+// system prompt (SmolLM2-135M-Instruct): system turn [1, 21), user words [24, 31).
+export const CHAT_PROMPT_TOKENS = tk([[1, '<|im_start|>'], [9690, 'system'], [198, '\n'], [2683, 'You'], [359, ' are'],
+  [253, ' a'], [5356, ' helpful'], [5646, ' AI'], [11173, ' assistant'], [3365, ' named'], [3511, ' Sm'], [308, 'ol'],
+  [34519, 'LM'], [28, ','], [7018, ' trained'], [411, ' by'], [407, ' H'], [19712, 'ugging'], [8182, ' Face'],
+  [2, '<|im_end|>'], [198, '\n'], [1, '<|im_start|>'], [4093, 'user'], [198, '\n'], [1780, 'What'], [314, ' is'],
+  [260, ' the'], [3575, ' capital'], [282, ' of'], [4649, ' France'], [47, '?'], [2, '<|im_end|>'], [198, '\n'],
+  [1, '<|im_start|>'], [520, 'ass'], [9531, 'istant'], [198, '\n']])
+export const CHAT_ANSWER_TOKENS = tk([[504, 'The'], [3575, ' capital'], [282, ' of'], [4649, ' France'], [314, ' is'],
+  [7042, ' Paris'], [30, '.'], [2, '<|im_end|>']])
 
 export interface FixtureTraceOpts {
   cycles?: number
@@ -21,6 +34,8 @@ export interface FixtureTraceOpts {
   neurons?: boolean
   // with neurons: include the v6 step data (default true)
   steps?: boolean
+  // a chat run: the real 37-token chat prompt, the answer, spans and format
+  chat?: boolean
 }
 
 const DEFAULT_WORDS = [' sat', ' on', ' the', ' mat']
@@ -62,17 +77,20 @@ export const fixtureRatio = (pos: number, layer: number, block: 0 | 1) =>
   r3(0.7 + 0.7 * Math.sin(pos * 0.9 + layer * 0.5 + block * 1.3))
 
 export function buildFixtureTrace(opts: FixtureTraceOpts = {}): TraceEvent[] {
-  const cycles = opts.cycles ?? 2
+  const cycles = opts.cycles ?? (opts.chat ? CHAT_ANSWER_TOKENS.length : 2)
   const layers = opts.layers ?? 3
   if (opts.neurons && layers !== 3) throw new Error('neuron fixture has 3 layers')
-  const promptTokens = opts.promptTokens ?? [{ id: 10, text: 'The' }, { id: 11, text: ' cat' }]
+  const promptTokens = opts.promptTokens ?? (opts.chat ? CHAT_PROMPT_TOKENS : [{ id: 10, text: 'The' }, { id: 11, text: ' cat' }])
   const temperature = opts.temperature ?? 0.8
   const chosenFor = (c: number): TokenInfo =>
-    opts.chosen?.[c] ?? { id: 100 + c, text: DEFAULT_WORDS[c % DEFAULT_WORDS.length] }
+    opts.chosen?.[c] ?? (opts.chat ? CHAT_ANSWER_TOKENS[c % CHAT_ANSWER_TOKENS.length]
+      : { id: 100 + c, text: DEFAULT_WORDS[c % DEFAULT_WORDS.length] })
   const events: TraceEvent[] = [
-    { type: 'run-start', prompt: opts.prompt ?? 'The cat', mode: opts.mode ?? 'sim', modelId: 'fixture',
-      params: { temperature, topK: 10, maxNewTokens: cycles }, vocabSize: 49152 },
-    { type: 'tokenize', tokens: promptTokens },
+    { type: 'run-start', prompt: opts.prompt ?? (opts.chat ? 'What is the capital of France?' : 'The cat'),
+      mode: opts.mode ?? 'sim', modelId: 'fixture',
+      params: { temperature, topK: 10, maxNewTokens: cycles }, vocabSize: 49152,
+      ...(opts.chat ? { format: { kind: 'chat', system: DEFAULT_SYSTEM_PROMPT } as const } : {}) },
+    { type: 'tokenize', tokens: promptTokens, ...(opts.chat ? { chat: { system: [1, 21] as [number, number], user: [24, 31] as [number, number] } } : {}) },
   ]
   for (let c = 0; c < cycles; c++) {
     const chosen = chosenFor(c)
@@ -125,7 +143,7 @@ export function buildFixtureTrace(opts: FixtureTraceOpts = {}): TraceEvent[] {
     events.push({ type: 'sample', cycle: c, chosen, method: 'top-k' })
     events.push({ type: 'append', cycle: c, token: chosen })
   }
-  events.push({ type: 'run-end', reason: opts.reason ?? 'max-tokens' })
+  events.push({ type: 'run-end', reason: opts.reason ?? (opts.chat ? 'eos' : 'max-tokens') })
   return events
 }
 
