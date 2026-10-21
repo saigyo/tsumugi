@@ -144,3 +144,9 @@ test('summaries show whitespace tokens as glyphs, like the token chips', () => {
   expect(summaryOf('softmax')).toBe('↵: 70%')
   expect(summaryOf('sampler')).toBe('chose ↵')
 })
+
+test('the tokenizer card of a chat run says how many tokens are yours', () => {
+  const events = buildFixtureTrace({ chat: true })
+  render(<PipelineBand events={events} cursor={1} onStageClick={() => {}} />)
+  expect(screen.getAllByTestId('stage-card')[0]).toHaveTextContent('37 tokens · 7 yours')
+})

@@ -277,3 +277,11 @@ test('the step-by-step card: a simulated run shows its note, a real run without 
   await waitFor(() => expect(screen.getAllByTestId('neuron-row').length).toBeGreaterThan(0))
   vi.restoreAllMocks()
 })
+
+test('the tokenizer detail of a chat run says how many tokens the template added and folds the system turn', () => {
+  const events = buildFixtureTrace({ chat: true, mode: 'real' })
+  render(<DetailPanel events={events} cursor={1} mode="real" />)
+  expect(screen.getByTestId('tokenizer-chat-note')).toHaveTextContent('30 of the 37 tokens were added by the template')
+  expect(screen.getByTestId('tokenizer-chat-note').querySelector('[data-term="chat-template"]')).not.toBeNull()
+  expect(screen.getByTestId('system-fold')).toHaveTextContent('system prompt · 20 tokens ▸')
+})

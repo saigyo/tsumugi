@@ -30,7 +30,7 @@ export function DetailPanel({ events, cursor, mode, pinnedHeads, onPin, pinNote 
   switch (stage) {
     case 'tokenizer': {
       const e = latestOfType(events, cursor, 'tokenize')
-      return e ? <TokenizerDetail tokens={e.tokens} truncated={e.truncated} /> : empty
+      return e ? <TokenizerDetail tokens={e.tokens} truncated={e.truncated} chat={e.chat} /> : empty
     }
     case 'embeddings': {
       const e = latestOfType(events, cursor, 'embed')

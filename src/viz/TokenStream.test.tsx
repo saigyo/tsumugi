@@ -50,3 +50,43 @@ test('mouse leave hides the popover; prompt tokens have none', () => {
   fireEvent.mouseEnter(screen.getAllByTestId('prompt-token')[0])
   expect(screen.queryByTestId('token-popover')).not.toBeInTheDocument()
 })
+
+test('a chat run folds the system turn after the first token; the chip opens and closes it', () => {
+  const events = buildFixtureTrace({ chat: true })
+  render(<TokenStream events={events} cursor={events.length - 1} />)
+  const fold = screen.getByTestId('system-fold')
+  expect(fold).toHaveTextContent('system prompt · 20 tokens ▸')
+  expect(fold).toHaveAttribute('aria-expanded', 'false')
+  expect(screen.getAllByTestId('prompt-token')).toHaveLength(37 - 20)
+  expect(screen.getAllByTestId('prompt-token')[0]).toHaveTextContent('<|im_start|>')
+  fireEvent.click(fold)
+  expect(screen.getAllByTestId('prompt-token')).toHaveLength(37)
+  expect(screen.getByTestId('system-fold')).toHaveTextContent('▾')
+})
+
+test('chat tokens carry their role; the generated <|im_end|> is marked as the end of the turn', () => {
+  const events = buildFixtureTrace({ chat: true })
+  render(<TokenStream events={events} cursor={events.length - 1} />)
+  const prompt = screen.getAllByTestId('prompt-token')
+  expect(prompt[0]).toHaveClass('token-special')
+  expect(prompt.find((t) => t.textContent === 'user')).toHaveClass('token-template')
+  expect(prompt.find((t) => t.textContent === 'What')).not.toHaveClass('token-template')
+  const last = screen.getAllByTestId('generated-token').at(-1)!
+  expect(last).toHaveClass('token-end')
+  expect(last).toHaveAttribute('title', expect.stringContaining('end of turn'))
+})
+
+test('a chat run without a system turn has no fold chip', () => {
+  const events = buildFixtureTrace({ chat: true })
+  const t = events.find((e) => e.type === 'tokenize')!
+  if (t.type === 'tokenize') t.chat = { user: [24, 31] }
+  render(<TokenStream events={events} cursor={events.length - 1} />)
+  expect(screen.queryByTestId('system-fold')).toBeNull()
+})
+
+test('a plain run looks as before: no fold chip, no template classes', () => {
+  const events = buildFixtureTrace()
+  render(<TokenStream events={events} cursor={events.length - 1} />)
+  expect(screen.queryByTestId('system-fold')).toBeNull()
+  expect(screen.getAllByTestId('prompt-token').every((t) => !t.className.includes('token-template'))).toBe(true)
+})

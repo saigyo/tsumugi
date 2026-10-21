@@ -97,6 +97,14 @@ input[type="number"] { width: 4rem; }
   padding: 0 .3rem; margin: 0 1px; white-space: pre; background: var(--card);
 }
 .token-generated { border-color: var(--ai); background: var(--ai-wash); position: relative; cursor: help; }
+/* chat runs: the template's tokens dashed, special tokens in indigo, the end of the turn in vermillion */
+.token-template { border-style: dashed; color: var(--ink-faint); background: transparent; }
+.token-special { border-style: dashed; border-color: var(--ai-soft); color: var(--ai); background: transparent;
+  font-family: var(--mono); font-size: .78em; }
+.token-end { border-color: var(--shu); color: var(--shu); background: var(--shu-wash); font-family: var(--mono); font-size: .78em; }
+.token-fold { border-style: dashed; color: var(--ink-soft); background: var(--washi); font: inherit; cursor: pointer; }
+.token-fold:hover { border-color: var(--ai); }
+.token-chip.token-template { border: 1px dashed var(--line-strong); background: transparent; }
 
 .token-popover {
   position: absolute; top: calc(100% + 4px); left: 0; z-index: 10; background: var(--card);

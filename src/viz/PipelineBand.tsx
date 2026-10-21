@@ -19,7 +19,7 @@ function summaryFor(stage: Exclude<StageId, null>, events: TraceEvent[], cursor:
   switch (stage) {
     case 'tokenizer': {
       const e = latestOfType(events, cursor, 'tokenize')
-      return e ? `${e.tokens.length} tokens` : null
+      return e ? (e.chat ? `${e.tokens.length} tokens · ${e.chat.user[1] - e.chat.user[0]} yours` : `${e.tokens.length} tokens`) : null
     }
     case 'embeddings': {
       const e = latestOfType(events, cursor, 'embed')
