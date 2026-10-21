@@ -1,5 +1,5 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { afterEach, expect, test } from 'vitest'
+import { afterEach, expect, test, vi } from 'vitest'
 import { buildFixtureTrace, CHAT_ANSWER_TOKENS, CHAT_PROMPT_TOKENS, makeFixtureTrace } from '../test/fixtures'
 import { AttentionHeatmap } from './AttentionHeatmap'
 
@@ -136,4 +136,36 @@ test('an induction head in a chat run explains that the template’s markers rep
   const induction = [{ ...chatAttn.heads[0], label: 'induction' as const }]
   render(<AttentionHeatmap heads={induction} tokens={chatTokens} chat={chat} />)
   expect(screen.getByTestId('attn-hint')).toHaveTextContent('In Chat mode the template’s markers')
+})
+
+test('a narrow card shrinks the cells and thins the labels; the hovered row and column keep theirs', () => {
+  const resize = vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(400)
+  render(<AttentionHeatmap heads={chatAttn.heads} tokens={chatTokens} chat={chat} />)
+  const cells = screen.getAllByTestId('attn-cell')
+  expect(Number(cells[0].getAttribute('width'))).toBeLessThan(19)
+  const shown = screen.getAllByTestId('row-label').filter((l) => l.textContent !== '')
+  expect(shown.length).toBeLessThan(screen.getAllByTestId('row-label').length)
+  const unlabelled = screen.getAllByTestId('row-label').findIndex((l) => l.textContent === '')
+  const cell = cells.find((c) => c.getAttribute('data-row') === String(unlabelled))!
+  fireEvent.mouseEnter(cell)
+  expect(screen.getAllByTestId('row-label')[unlabelled].textContent).not.toBe('')
+  resize.mockRestore()
+})
+
+test('hovering draws one outline on top and leaves the cells untouched', () => {
+  render(<AttentionHeatmap heads={attn.heads} tokens={tokens} />)
+  expect(screen.queryByTestId('attn-hover')).toBeNull()
+  const cell = screen.getAllByTestId('attn-cell')[1]
+  fireEvent.mouseEnter(cell)
+  expect(screen.getByTestId('attn-hover')).toHaveAttribute('x', cell.getAttribute('x'))
+  expect(screen.getAllByTestId('attn-cell').every((c) => !c.hasAttribute('stroke-width'))).toBe(true)
+})
+
+test('a hovered cell that vanishes when the matrix shrinks does not crash the readout', () => {
+  const { rerender } = render(<AttentionHeatmap heads={chatAttn.heads} tokens={chatTokens} chat={chat} />)
+  const cells = screen.getAllByTestId('attn-cell')
+  fireEvent.mouseEnter(cells[cells.length - 1])
+  rerender(<AttentionHeatmap heads={attn.heads} tokens={tokens} />)
+  expect(screen.getByTestId('attn-readout').textContent?.trim()).toBe('')
+  expect(screen.queryByTestId('attn-hover')).toBeNull()
 })

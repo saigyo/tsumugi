@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react'
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { AttentionHead, AttentionLabel, ChatSpans, TokenInfo } from '../trace/types'
 import { readableTokenText } from '../engine/tokenBytes'
 import { visibleToken } from './tokenText'
-import { foldMatrix } from './foldMatrix'
+import { foldMatrix, type FoldedMatrix } from './foldMatrix'
+import { cellSize, labelStep } from './heatmapSizing'
 
 const HINTS: Record<AttentionLabel, string> = {
   'attention-sink': 'A bright first column: surplus attention parks on the first token as a learned “do nothing” default.',
@@ -13,10 +14,27 @@ const HINTS: Record<AttentionLabel, string> = {
   pinned: 'Hand-picked from the grid — compare against the patterns you know.',
 }
 
-const CELL = 20
 const LABEL_W = 66
 const DIAG_PAD = 58   // room above the matrix for the slanted column labels
 const RIGHT_PAD = 70  // overhang of the right-most slanted label
+
+const Cells = memo(function Cells({ folded, cell, onHover, rowLabel, colLabel }: {
+  folded: FoldedMatrix; cell: number; onHover: (h: { r: number; c: number } | null) => void
+  rowLabel: (i: number) => string; colLabel: (j: number) => string
+}) {
+  return <>{folded.values.map((row, r) => row.map((w, c) => {
+    const fold = folded.cols[c].to - folded.cols[c].from > 1
+    return (
+      <rect key={`${r}-${c}`} data-testid="attn-cell" data-row={r} data-col={c}
+        x={LABEL_W + c * cell} y={DIAG_PAD + r * cell} width={cell - 1} height={cell - 1}
+        fill={`hsl(211 ${Math.round(30 + 25 * Math.min(1, w))}% ${Math.round(94 - 70 * Math.min(1, w))}%)`}
+        className={fold ? 'attn-cell-fold' : undefined}
+        onMouseEnter={() => onHover({ r, c })} onMouseLeave={() => onHover(null)}>
+        <title>{`${rowLabel(r)} → ${colLabel(c)}: ${Math.round(w * 100)}%`}</title>
+      </rect>
+    )
+  }))}</>
+})
 
 export function AttentionHeatmap({ heads, tokens, focus, chat, foldToggle = true }: {
   heads: AttentionHead[]; tokens: TokenInfo[]
@@ -25,7 +43,18 @@ export function AttentionHeatmap({ heads, tokens, focus, chat, foldToggle = true
 }) {
   const [selected, setSelected] = useState(0)
   const [showSystem, setShowSystem] = useState(false)
-  const [hovered, setHovered] = useState<{ r: number; c: number } | null>(null)
+  const [hoveredRaw, setHovered] = useState<{ r: number; c: number } | null>(null)
+  const wrapRef = useRef<HTMLDivElement>(null)
+  const [width, setWidth] = useState<number | null>(null)
+  useLayoutEffect(() => {
+    const el = wrapRef.current
+    if (!el) return
+    setWidth(el.clientWidth || null)
+    if (typeof ResizeObserver === 'undefined') return
+    const ro = new ResizeObserver(() => setWidth(el.clientWidth || null))
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
   const clampedSelected = Math.min(selected, heads.length - 1)
   const head = heads[clampedSelected]
   const focusKey = focus ? `${focus.layer}-${focus.head}-${focus.label}` : null
@@ -40,20 +69,30 @@ export function AttentionHeatmap({ heads, tokens, focus, chat, foldToggle = true
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusKey])
 
-  if (!head) return null
-  const folded = foldMatrix(head.matrix, showSystem && foldToggle ? undefined : chat?.system)
-  const nRows = folded.rows.length
-  const nCols = folded.cols.length
+  const matrix = head?.matrix
+  const system = chat?.system
+  const folded = useMemo(
+    () => matrix ? foldMatrix(matrix, showSystem && foldToggle ? undefined : system) : null,
+    [matrix, system, showSystem, foldToggle])
   // compact labels: leading spaces dropped, newlines and tabs as glyphs
-  const label = (i: number) => tokens[i] ? visibleToken(readableTokenText(tokens[i].id, tokens[i].text).replace(/^ +/, '')) : `#${i}`
-  const rowLabel = (i: number) => label(folded.rows[i])
-  const colLabel = (j: number) => {
+  const label = useCallback((i: number) => tokens[i] ? visibleToken(readableTokenText(tokens[i].id, tokens[i].text).replace(/^ +/, '')) : `#${i}`, [tokens])
+  const rowLabel = useCallback((i: number) => folded ? label(folded.rows[i]) : '', [folded, label])
+  const colLabel = useCallback((j: number) => {
+    if (!folded) return ''
     const c = folded.cols[j]
     return c.to - c.from > 1 ? `system prompt (${c.to - c.from})` : label(c.from)
-  }
+  }, [folded, label])
+
+  if (!head || !folded) return null
+  const nRows = folded.rows.length
+  const nCols = folded.cols.length
+  // a hover left over from a larger matrix points at nothing
+  const hovered = hoveredRaw && hoveredRaw.r < nRows && hoveredRaw.c < nCols ? hoveredRaw : null
+  const cell = cellSize(width, nCols, LABEL_W + RIGHT_PAD)
+  const step = labelStep(cell)
 
   return (
-    <div data-testid="attention-heatmap" className="attention-heatmap">
+    <div ref={wrapRef} data-testid="attention-heatmap" className="attention-heatmap">
       <div className="head-chip-row">
         {heads.map((h, i) => (
           <button key={`${h.layer}-${h.head}-${h.label}`} data-testid="head-chip" data-active={String(i === clampedSelected)}
@@ -70,45 +109,32 @@ export function AttentionHeatmap({ heads, tokens, focus, chat, foldToggle = true
           Show system prompt
         </label>
       )}
-      <svg width={LABEL_W + nCols * CELL + RIGHT_PAD} height={DIAG_PAD + nRows * CELL + 4}
-        viewBox={`0 0 ${LABEL_W + nCols * CELL + RIGHT_PAD} ${DIAG_PAD + nRows * CELL + 4}`} role="img"
+      <svg width={LABEL_W + nCols * cell + RIGHT_PAD} height={DIAG_PAD + nRows * cell + 4}
+        viewBox={`0 0 ${LABEL_W + nCols * cell + RIGHT_PAD} ${DIAG_PAD + nRows * cell + 4}`} role="img"
         aria-label={`attention weights, ${head.label} head`}>
         {folded.cols.map((_, i) => {
-          const cx = LABEL_W + i * CELL + CELL / 2
+          const cx = LABEL_W + i * cell + cell / 2
           const firstRow = folded.rows.findIndex((r) => r >= folded.cols[i].from)
-          const cy = DIAG_PAD + firstRow * CELL - 5
+          const cy = DIAG_PAD + firstRow * cell - 5
           return (
             <text key={`c${i}`} data-testid="col-label" data-hl={String(hovered?.c === i)}
               x={cx} y={cy} textAnchor="start" transform={`rotate(-45 ${cx} ${cy})`}
               className="attn-label attn-col-label">
-              {colLabel(i)}
+              {i % step === 0 || hovered?.c === i ? colLabel(i) : ''}
             </text>
           )
         })}
-        {folded.values.map((row, r) => (
-          <g key={r}>
-            <text data-testid="row-label" data-hl={String(hovered?.r === r)}
-              x={LABEL_W - 8} y={DIAG_PAD + r * CELL + CELL / 2 + 4} textAnchor="end" className="attn-label">
-              {rowLabel(r)}
-            </text>
-            {row.map((w, c) => {
-              const isHovered = hovered?.r === r && hovered?.c === c
-              const isFold = folded.cols[c].to - folded.cols[c].from > 1
-              return (
-                <rect key={c} data-testid="attn-cell" x={LABEL_W + c * CELL} y={DIAG_PAD + r * CELL}
-                  width={CELL - 1} height={CELL - 1}
-                  fill={`hsl(211 ${Math.round(30 + 25 * Math.min(1, w))}% ${Math.round(94 - 70 * Math.min(1, w))}%)`}
-                  className={isFold ? 'attn-cell-fold' : undefined}
-                  stroke={isHovered ? '#d64' : isFold ? 'var(--ai)' : 'none'} strokeWidth={isHovered ? 2 : isFold ? 1 : 0}
-                  strokeDasharray={isFold && !isHovered ? '2 2' : undefined}
-                  onMouseEnter={() => setHovered({ r, c })}
-                  onMouseLeave={() => setHovered(null)}>
-                  <title>{`${rowLabel(r)} → ${colLabel(c)}: ${Math.round(w * 100)}%`}</title>
-                </rect>
-              )
-            })}
-          </g>
+        {folded.rows.map((_, r) => (
+          <text key={`r${r}`} data-testid="row-label" data-hl={String(hovered?.r === r)}
+            x={LABEL_W - 8} y={DIAG_PAD + r * cell + cell / 2 + 4} textAnchor="end" className="attn-label">
+            {r % step === 0 || hovered?.r === r ? rowLabel(r) : ''}
+          </text>
         ))}
+        <Cells folded={folded} cell={cell} onHover={setHovered} rowLabel={rowLabel} colLabel={colLabel} />
+        {hovered && (
+          <rect data-testid="attn-hover" className="attn-hover" pointerEvents="none"
+            x={LABEL_W + hovered.c * cell} y={DIAG_PAD + hovered.r * cell} width={cell - 1} height={cell - 1} />
+        )}
       </svg>
       <p data-testid="attn-readout" className="attn-readout">
         {hovered
