@@ -1,5 +1,6 @@
 /// <reference lib="webworker" />
-import type { GenParams, LayerVotes, NeuronData, RunEndReason, TokenInfo, TraceEvent } from '../../trace/types'
+import type { ChatSpans, GenParams, PromptFormat, LayerVotes, NeuronData, RunEndReason, TokenInfo, TraceEvent } from '../../trace/types'
+import { chatSpans, fitChatToBudget, noSystemChat } from '../chatTemplate'
 import { ATTN_MODEL_ID, ATTN_MODEL_REVISION } from '../tokenizer'
 import { sampleIndex, softmax, topK } from '../math'
 import { addAttentionOutput, createAccumulator, type AttnAccumulator } from './attentionAccum'
@@ -100,20 +101,38 @@ function updateCache(DynamicCacheCtor: any, output: any, prevCache: any): any {
   return cache
 }
 
-async function run(runId: number, prompt: string, params: GenParams) {
+async function run(runId: number, prompt: string, params: GenParams, format: PromptFormat) {
   aborted = false
   lastRun = null
   const emit = (event: TraceEvent) => post({ type: 'trace', runId, event })
   const { Tensor, DynamicCache } = await import('@huggingface/transformers')
 
   emit({ type: 'run-start', prompt, mode: 'real', modelId: loadedModelId, params,
+    ...(format.kind === 'chat' ? { format } : {}),
     ...(model.config.vocab_size ? { vocabSize: model.config.vocab_size } : {}) })
-  let promptIds: number[] = tokenizer.encode(prompt, { add_special_tokens: false })
   const maxCtx: number = model.config.max_position_embeddings ?? 2048
   const budget = Math.max(1, maxCtx - params.maxNewTokens)
-  const truncated = promptIds.length > budget
-  if (truncated) promptIds = promptIds.slice(-budget)   // keep the most recent tokens
-  emit({ type: 'tokenize', tokens: promptIds.map(tokenInfo), ...(truncated ? { truncated } : {}) })
+  let promptIds: number[]
+  let chat: ChatSpans | undefined
+  let truncated = false
+  if (format.kind === 'chat') {
+    const text: string = format.system === null
+      ? noSystemChat(prompt)
+      : tokenizer.apply_chat_template(
+        [{ role: 'system', content: format.system }, { role: 'user', content: prompt }],
+        { tokenize: false, add_generation_prompt: true })
+    promptIds = tokenizer.encode(text, { add_special_tokens: false })
+    chat = chatSpans(promptIds,
+      tokenizer.convert_tokens_to_ids('<|im_start|>'), tokenizer.convert_tokens_to_ids('<|im_end|>'))
+    if (chat) {
+      ;({ ids: promptIds, spans: chat, truncated } = fitChatToBudget(promptIds, chat, budget))
+    }
+  } else {
+    promptIds = tokenizer.encode(prompt, { add_special_tokens: false })
+  }
+  if (promptIds.length > budget) { promptIds = promptIds.slice(-budget); truncated = true; chat = undefined }
+  emit({ type: 'tokenize', tokens: promptIds.map(tokenInfo),
+    ...(truncated ? { truncated } : {}), ...(chat ? { chat } : {}) })
 
   const numLayers: number = model.config.num_hidden_layers ?? 12
   const dims: number = model.config.hidden_size ?? 576
@@ -300,7 +319,7 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
   try {
     const msg = e.data
     if (msg.type === 'prepare') await prepare(msg.modelId)
-    if (msg.type === 'run') await run(msg.runId, msg.prompt, msg.params)
+    if (msg.type === 'run') await run(msg.runId, msg.prompt, msg.params, msg.format ?? { kind: 'text' })
     if (msg.type === 'abort') aborted = true
     if (msg.type === 'head-request') {
       const r = lastRun

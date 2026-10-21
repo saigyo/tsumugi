@@ -1,4 +1,5 @@
-import type { AttentionLabel, GenParams, TraceEvent } from '../../trace/types'
+import type { AttentionLabel, GenParams, PromptFormat, TraceEvent } from '../../trace/types'
+import { TEXT_FORMAT } from '../chatTemplate'
 import { MODEL_ID } from '../tokenizer'
 import type { PipelineEngine, ProgressInfo, RunHandle } from '../types'
 import type { WorkerRequest, WorkerResponse } from './protocol'
@@ -40,7 +41,7 @@ export class TransformersEngine implements PipelineEngine {
     })
   }
 
-  run(prompt: string, params: GenParams, emit: (e: TraceEvent) => void): RunHandle {
+  run(prompt: string, params: GenParams, emit: (e: TraceEvent) => void, format: PromptFormat = TEXT_FORMAT): RunHandle {
     const runId = this.nextRunId++
     const done = new Promise<void>((resolve) => {
       const listener = (msg: WorkerResponse) => {
@@ -52,7 +53,7 @@ export class TransformersEngine implements PipelineEngine {
         }
       }
       this.listeners.add(listener)
-      this.post({ type: 'run', runId, prompt, params })
+      this.post({ type: 'run', runId, prompt, params, format })
     })
     return { abort: () => this.post({ type: 'abort' }), done }
   }

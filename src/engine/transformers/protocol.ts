@@ -1,9 +1,9 @@
-import type { AttentionLabel, GenParams, TraceEvent } from '../../trace/types'
+import type { AttentionLabel, GenParams, PromptFormat, TraceEvent } from '../../trace/types'
 import type { ProgressInfo } from '../types'
 
 export type WorkerRequest =
   | { type: 'prepare'; modelId: string }
-  | { type: 'run'; runId: number; prompt: string; params: GenParams }
+  | { type: 'run'; runId: number; prompt: string; params: GenParams; format: PromptFormat }
   | { type: 'abort' }
   // pin-exactness side channel — the one data path beside the trace;
   // must not grow other uses without a new design

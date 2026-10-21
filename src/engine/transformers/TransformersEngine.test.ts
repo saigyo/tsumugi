@@ -92,3 +92,11 @@ test('fetchHead resolves the unavailable case as an empty matrix', async () => {
   expect(r.matrix).toEqual([])
   expect(r.label).toBeNull()
 })
+
+test('run sends the prompt format to the worker; plain text when none is given', () => {
+  const { worker, engine } = make()
+  engine.run('Hi', { temperature: 0, topK: 1, maxNewTokens: 1 }, () => {}, { kind: 'chat', system: null })
+  engine.run('Hi', { temperature: 0, topK: 1, maxNewTokens: 1 }, () => {})
+  expect(worker.sent[0]).toMatchObject({ type: 'run', format: { kind: 'chat', system: null } })
+  expect(worker.sent[1]).toMatchObject({ type: 'run', format: { kind: 'text' } })
+})

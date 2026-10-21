@@ -81,8 +81,10 @@ export interface NeuronData {
 }
 
 export type TraceEvent =
-  | { type: 'run-start'; prompt: string; mode: Mode; modelId: string; params: GenParams; vocabSize?: number }
-  | { type: 'tokenize'; tokens: TokenInfo[]; truncated?: boolean }
+  | { type: 'run-start'; prompt: string; mode: Mode; modelId: string; params: GenParams; vocabSize?: number
+      // chat runs only; absent = Continue text (and every run recorded before chat mode)
+      format?: PromptFormat }
+  | { type: 'tokenize'; tokens: TokenInfo[]; truncated?: boolean; chat?: ChatSpans }
   | { type: 'embed'; cycle: number; seqLen: number; dims: number; source: EmbedSource; rows?: number[][] }
   | { type: 'layer'; cycle: number; index: number; total: number; activationNorm?: number }
   | { type: 'attention'; cycle: number; heads: AttentionHead[] }
