@@ -100,3 +100,17 @@ test('if loading fails, the chat example runs nothing', async () => {
   await waitFor(() => expect(screen.getByTestId('model-error')).toBeInTheDocument())
   expect(runs).toHaveLength(0)
 })
+
+test('the chat example after the real model was loaded and Simulated chosen switches back to real', async () => {
+  render(<App />)
+  fireEvent.change(screen.getByTestId('prompt-input'), { target: { value: 'x' } })
+  fireEvent.click(screen.getByTestId('mode-real'))
+  deferreds[0].resolve()
+  await waitFor(() => expect(screen.getByTestId('btn-generate')).not.toBeDisabled())
+  fireEvent.click(screen.getByTestId('mode-sim'))
+  expect(screen.getByTestId('mode-sim')).toHaveAttribute('aria-pressed', 'true')
+  fireEvent.click(screen.getAllByTestId('example-chip').at(-1)!)
+  await waitFor(() => expect(runs).toHaveLength(1))
+  expect(screen.getByTestId('mode-real')).toHaveAttribute('aria-pressed', 'true')
+  expect(runs[0][3]).toMatchObject({ kind: 'chat' })
+})

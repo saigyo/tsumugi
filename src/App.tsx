@@ -109,7 +109,7 @@ export default function App() {
 
   const handleGenerate = async (prompt: string, params: GenParams, format: PromptFormat = TEXT_FORMAT) => {
     // the chat example can be clicked while simulated: load the real model first
-    if (format.kind === 'chat' && !realEngineRef.current && !(await handleModeChange('real'))) return
+    if (format.kind === 'chat' && mode !== 'real' && !(await handleModeChange('real'))) return
     runRef.current?.abort()
     await runRef.current?.done
     useTraceStore.getState().clear()
