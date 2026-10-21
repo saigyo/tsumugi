@@ -3,7 +3,7 @@ import type { RunRecord } from '../../app/runsStore'
 import type { AttentionHead, TokenInfo, TraceEvent } from '../../trace/types'
 import { AttentionHeatmap } from '../AttentionHeatmap'
 import { Thumb } from '../AttentionGridExplorer'
-import { distributionFor, latestOfType, visibleTokens } from '../selectors'
+import { chatLayout, distributionFor, latestOfType, visibleTokens } from '../selectors'
 import { alignRuns, combinedDistribution, pairedHeads, type CombinedRow, type PairedHead } from './compareSelectors'
 import { visibleToken } from '../tokenText'
 
@@ -97,7 +97,7 @@ function AttnSide({ events, head, pair, name, cycle, lastCycle }: {
     return (
       <div data-testid="cmp-attn-side" className="cmp-attn-side">
         <span className="cmp-side-name">{name}</span>
-        <AttentionHeatmap heads={[head]} tokens={runTokens(events)} />
+        <AttentionHeatmap heads={[head]} tokens={runTokens(events)} chat={chatLayout(events)} foldToggle={false} />
       </div>
     )
   }

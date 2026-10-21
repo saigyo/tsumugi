@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { AttentionHead, Mode, TokenInfo, TraceEvent } from '../../trace/types'
+import type { AttentionHead, ChatSpans, Mode, TokenInfo, TraceEvent } from '../../trace/types'
 import { AttentionGridExplorer } from '../AttentionGridExplorer'
 import { AttentionHeatmap } from '../AttentionHeatmap'
 import { ResidualStreamDiagram } from '../ResidualStreamDiagram'
@@ -21,7 +21,7 @@ export const STEPS_SIM_NOTE = 'Real model only: simulated runs don’t compute a
 export const STEPS_OLD_NOTE = 'This run has no step-by-step data (recorded before it existed, or left out because it was damaged).'
 const EDITS_PENDING_NOTE = 'Edit sizes appear once this cycle’s layers are measured.'
 
-export function LayersDetail({ event, mode, attention, attentionInRun, tokens, streamShape, grid, pinnedHeads, onPin, pinNote, edits, votes, neurons, run }: {
+export function LayersDetail({ event, mode, attention, attentionInRun, tokens, streamShape, grid, pinnedHeads, onPin, pinNote, edits, votes, neurons, run, chat }: {
   event: Extract<TraceEvent, { type: 'layer' }>
   mode: Mode
   attention?: Extract<TraceEvent, { type: 'attention' }>
@@ -36,6 +36,7 @@ export function LayersDetail({ event, mode, attention, attentionInRun, tokens, s
   votes?: CycleVotes
   neurons?: CycleNeurons
   run?: TraceEvent
+  chat?: ChatSpans
 }) {
   const selectLayer = useMlpLayer((s) => s.select)
   const onLayer = run ? (l: number) => selectLayer(run, l) : undefined
@@ -68,7 +69,7 @@ export function LayersDetail({ event, mode, attention, attentionInRun, tokens, s
       </div>
       </div>
       <div id="layers-attention" className="layers-section">
-      {heads.length > 0 && tokens && <AttentionHeatmap heads={heads} tokens={tokens} focus={focus} />}
+      {heads.length > 0 && tokens && <AttentionHeatmap heads={heads} tokens={tokens} focus={focus} chat={chat} />}
       {pinNote && <p data-testid="pin-note" className="attn-note">{pinNote}</p>}
       {grid && (
         <button data-testid="btn-explore-heads" className="explore-toggle"
