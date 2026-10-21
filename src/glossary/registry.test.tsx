@@ -187,3 +187,8 @@ test('the MLP neuron entry explains the split step by step and links from MLP an
   expect(getEntry('mlp')!.related).toContain('mlp-neuron')
   expect(getEntry('votes')!.related).toContain('mlp-neuron')
 })
+
+test('the chat template entry has its five sections and sits in the Tokenizer group', () => {
+  expect(sectionsOf('chat-template')).toEqual(['what', 'system-prompt', 'special-tokens', 'continue-text', 'sink'])
+  expect(getEntry('chat-template')?.stage).toBe('tokenize')
+})

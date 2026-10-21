@@ -1,4 +1,5 @@
 import { visibleToken } from '../../viz/tokenText'
+import { Term } from '../Term'
 import type { GlossaryEntry } from '../types'
 
 const SHOWN = 12
@@ -19,7 +20,7 @@ export const token: GlossaryEntry = {
         <span className="token-chip hue-1"><span className="chip-text">␣cat</span></span>{' '}
         <span className="token-chip hue-2"><span className="chip-text">␣sat</span></span> → three ids</p>
       <p>A leading space belongs to the token, shown as ␣: “␣cat” and “cat” are different vocabulary entries.
-        Some ids are control markers rather than text, such as <code>{'<|im_end|>'}</code>, which ends a turn.</p>
+        Some ids are control markers rather than text, such as <code>{'<|im_end|>'}</code>, which ends a turn.{' '}In Chat mode the prompt is wrapped in more of these: see <Term id="chat-template">chat template</Term>.</p>
       <p>Generation works on ids too: each cycle produces one new id, which the tokenizer turns back into
         text.</p>
     </>

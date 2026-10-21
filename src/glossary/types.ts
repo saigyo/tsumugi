@@ -5,7 +5,7 @@ import type { GenParams, Mode, TokenInfo } from '../trace/types'
 // to each other (related, <Term>), so deriving the type from them would be
 // circular. The registry test checks one entry per id.
 export const GLOSSARY_IDS = [
-  'how-to-read', 'token', 'embedding', 'residual-stream', 'edit', 'layer',
+  'how-to-read', 'token', 'chat-template', 'embedding', 'residual-stream', 'edit', 'layer',
   'attention', 'mlp', 'votes', 'mlp-neuron', 'logit', 'softmax', 'sampling', 'modes',
 ] as const
 export type GlossaryId = typeof GLOSSARY_IDS[number]

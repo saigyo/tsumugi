@@ -1,4 +1,5 @@
 import { attention } from './entries/attention'
+import { chatTemplate } from './entries/chat-template'
 import { edit } from './entries/edit'
 import { embedding } from './entries/embedding'
 import { howToRead } from './entries/how-to-read'
@@ -15,7 +16,7 @@ import { votes } from './entries/votes'
 import type { GlossaryEntry, GlossaryId, GlossaryStage } from './types'
 
 export const ENTRIES: GlossaryEntry[] = [
-  howToRead, token, embedding, residualStream, edit, layer, attention, mlp, votes, mlpNeuron, logit, softmax, sampling, modes,
+  howToRead, token, chatTemplate, embedding, residualStream, edit, layer, attention, mlp, votes, mlpNeuron, logit, softmax, sampling, modes,
 ]
 
 const BY_ID = new Map<string, GlossaryEntry>(ENTRIES.map((e) => [e.id, e]))
