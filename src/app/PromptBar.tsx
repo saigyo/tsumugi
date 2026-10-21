@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react'
+import { useState } from 'react'
 import { DEFAULT_SYSTEM_PROMPT, TEXT_FORMAT, systemOf } from '../engine/chatTemplate'
 import { Term } from '../glossary/Term'
 import type { GenParams, Mode, PromptFormat } from '../trace/types'
@@ -22,7 +22,6 @@ export interface PromptBarProps {
   generating?: boolean
   onStop?(): void
   examples?: PromptExample[]
-  status?: ReactNode
 }
 
 const clampOrKeep = (raw: string, min: number, max: number, prev: number): number => {
@@ -31,7 +30,7 @@ const clampOrKeep = (raw: string, min: number, max: number, prev: number): numbe
   return Math.min(max, Math.max(min, n))
 }
 
-export function PromptBar({ mode, onModeChange, onGenerate, busy, generating = false, onStop, examples, status }: PromptBarProps) {
+export function PromptBar({ mode, onModeChange, onGenerate, busy, generating = false, onStop, examples }: PromptBarProps) {
   const [prompt, setPrompt] = useState('')
   const [temperature, setTemperature] = useState(0.8)
   const [topK, setTopK] = useState(10)
@@ -93,7 +92,6 @@ export function PromptBar({ mode, onModeChange, onGenerate, busy, generating = f
         <label title="Max new tokens: the loop bound — the generation cycle runs at most this many times. The run ends earlier if the model samples its end-of-sequence token (the run summary shows which happened). In real mode every token is one full forward pass.">
           max <input data-testid="maxtok-input" type="number" min="1" max="100" value={maxNewTokens}
           onChange={(e) => setMaxNewTokens(clampOrKeep(e.target.value, 1, 100, maxNewTokens))} /></label>
-        {status && <span data-testid="model-status-slot" className="model-status-slot">{status}</span>}
       </div>
       {examples && examples.length > 0 && (
         <div className="example-chip-row">

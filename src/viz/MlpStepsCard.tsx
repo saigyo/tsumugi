@@ -27,8 +27,8 @@ const activationsOf = (d: NeuronData) => { let a = acts.get(d); if (!a) { a = un
 // "The MLP, step by step" (#17): one layer's MLP for the last token in five
 // steps, with the model's own numbers. Layer and marked neurons follow
 // "Inside one MLP"; steps 1 and 5 need the layer file (norm weight, columns).
-export function MlpStepsCard({ data, candidates, note, run }: {
-  data?: NeuronData; candidates?: VotedCandidate[]; note: string; run?: TraceEvent
+export function MlpStepsCard({ data, candidates, note, noteAction, run }: {
+  data?: NeuronData; candidates?: VotedCandidate[]; note: string; noteAction?: ReactNode; run?: TraceEvent
 }) {
   const ready = data?.steps && candidates && candidates.length > 0
   const { layer, layers, selected, step } = useMlpLayerControl(ready ? candidates : undefined, run)
@@ -40,7 +40,7 @@ export function MlpStepsCard({ data, candidates, note, run }: {
           <button type="button" data-testid="steps-next" aria-label="Next layer" disabled={layer >= layers - 1} onClick={() => step(1)}>▶</button>
         </span>
       )}{' '}<Term id="mlp" variant="icon" label="About the MLP" testId="steps-info">ⓘ</Term></h4>
-      {!ready || layer === null ? <p data-testid="steps-note" className="mlp-note">{note}</p>
+      {!ready || layer === null ? <p data-testid="steps-note" className="mlp-note">{note} {noteAction}</p>
         : <StepsBody data={data} candidates={candidates} selected={selected} layer={layer} />}
     </section>
   )

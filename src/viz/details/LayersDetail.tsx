@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { LoadRealButton } from '../../app/LoadRealButton'
 import type { AttentionHead, ChatSpans, Mode, TokenInfo, TraceEvent } from '../../trace/types'
 import { AttentionGridExplorer } from '../AttentionGridExplorer'
 import { AttentionHeatmap } from '../AttentionHeatmap'
@@ -41,6 +42,7 @@ export function LayersDetail({ event, mode, attention, attentionInRun, tokens, s
   const selectLayer = useMlpLayer((s) => s.select)
   const onLayer = run ? (l: number) => selectLayer(run, l) : undefined
   const [explore, setExplore] = useState(false)
+  const noteAction = mode === 'sim' ? <LoadRealButton /> : undefined
   const cycleHeads = attention?.heads ?? []
   // a pinned head that is also this cycle's showcase head under the same
   // label would duplicate its chip (and its React key) — show it once
@@ -81,16 +83,18 @@ export function LayersDetail({ event, mode, attention, attentionInRun, tokens, s
       </div>
       <div data-testid="mlp-cards">
         <div id="layers-edits" className="layers-section">
-          <EditSizeCard onLayer={onLayer} chat={chat} rows={mode === 'real' ? edits : undefined} note={mode === 'sim' ? SIM_NOTE : votes?.status === 'pending' ? EDITS_PENDING_NOTE : OLD_NOTE} />
+          <EditSizeCard noteAction={noteAction} onLayer={onLayer} chat={chat} rows={mode === 'real' ? edits : undefined} note={mode === 'sim' ? SIM_NOTE : votes?.status === 'pending' ? EDITS_PENDING_NOTE : OLD_NOTE} />
         </div>
         <div id="layers-votes" className="layers-section">
           <LayerVotesCard
+          noteAction={noteAction}
           onLayer={onLayer}
           candidates={mode === 'real' && votes?.status === 'ok' ? votes.candidates : undefined}
           note={mode === 'sim' ? SIM_NOTE : votes?.status === 'pending' ? PENDING_NOTE : OLD_NOTE} />
         </div>
         <div id="layers-neurons" className="layers-section">
           <NeuronCard
+          noteAction={noteAction}
           data={mode === 'real' && neurons?.status === 'ok' ? neurons.data : undefined}
           candidates={mode === 'real' && votes?.status === 'ok' ? votes.candidates : undefined}
           note={mode === 'sim' ? NEURON_SIM_NOTE
@@ -99,6 +103,7 @@ export function LayersDetail({ event, mode, attention, attentionInRun, tokens, s
         </div>
         <div id="layers-steps" className="layers-section">
           <MlpStepsCard
+          noteAction={noteAction}
           data={mode === 'real' && neurons?.status === 'ok' ? neurons.data : undefined}
           candidates={mode === 'real' && votes?.status === 'ok' ? votes.candidates : undefined}
           note={mode === 'sim' ? STEPS_SIM_NOTE

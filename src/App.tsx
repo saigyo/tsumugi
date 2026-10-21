@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Controls } from './app/Controls'
-import { ModelStatus } from './app/ModelStatus'
+import { ModeBadge } from './app/ModeBadge'
+import { ModelSlot } from './app/ModelSlot'
+import { readFlag, realModelCached, useRealModel, writeFlag } from './app/realModel'
 import { PromptBar } from './app/PromptBar'
 import { usePins } from './app/usePins'
 import { CURATED_EXAMPLES } from './engine/simulated/examples'
@@ -47,6 +49,9 @@ export default function App() {
   // first token) — Generate is disabled and shows activity, Stop appears
   const [generating, setGenerating] = useState(false)
   const [attn, setAttn] = useState(false)
+  const [bannerClosed, setBannerClosed] = useState(() => readFlag('tsumugi.simBannerClosed'))
+  const [fromCache, setFromCache] = useState(false)
+  const loading = mode === 'real' && !realReady && !modelError
   const records = useRunsStore((s) => s.records)
   const activeId = useRunsStore((s) => s.activeId)
   const persistFailed = useRunsStore((s) => s.persistFailed)
@@ -90,6 +95,7 @@ export default function App() {
         setDevice(prepping.engine.device)
         setAttn(prepping.engine.attentions ?? false)
         setRealReady(true)
+        writeFlag('tsumugi.realModelUsed', true)
         return true
       } catch (err) {
         setModelError(err instanceof Error ? err.message : String(err))
@@ -99,13 +105,32 @@ export default function App() {
       } finally {
         if (preparingRef.current === prepping) preparingRef.current = null
         setProgress(null)
+        setFromCache(false)
       }
     } else if (m === 'real' && realEngineRef.current) {
       setRealReady(true)
+      writeFlag('tsumugi.realModelUsed', true)
       return true
     }
     return false
   }
+
+  useEffect(() => {
+    if (!readFlag('tsumugi.realModelUsed')) return
+    let live = true
+    void realModelCached().then((ok) => {
+      if (!live) return
+      if (ok) { setFromCache(true); void handleModeChange('real') }
+      else { writeFlag('tsumugi.simBannerClosed', false); setBannerClosed(false) }
+    })
+    return () => { live = false }
+    // runs once on start; handleModeChange is stable enough for a one-shot call
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  useEffect(() => {
+    useRealModel.setState({ request: () => { void handleModeChange('real') }, loading })
+  })
 
   const handleGenerate = async (prompt: string, params: GenParams, format: PromptFormat = TEXT_FORMAT) => {
     // the chat example can be clicked while simulated: load the real model first
@@ -198,15 +223,16 @@ export default function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <h1><span className="app-mark">紬</span> Tsumugi <span className="app-subtitle">LLM Pipeline Visualizer</span></h1>
+        <h1><span className="app-mark">紬</span> Tsumugi <ModeBadge mode={mode} loading={loading} device={device} attentions={attn} /> <span className="app-subtitle">LLM Pipeline Visualizer</span></h1>
         <HelpButton />
       </header>
       <PromptBar mode={mode} onModeChange={handleModeChange} onGenerate={handleGenerate}
         busy={mode === 'real' && !realReady} generating={generating} onStop={handleStop}
-        examples={[...CURATED_EXAMPLES, CHAT_EXAMPLE]}
-        status={<ModelStatus progress={progress} device={mode === 'real' ? device : null} error={modelError}
-          attentions={mode === 'real' && attn}
-          onFallback={() => { setModelError(null); setMode('sim') }} />} />
+        examples={[...CURATED_EXAMPLES, CHAT_EXAMPLE]} />
+      <ModelSlot mode={mode} loading={loading} fromCache={fromCache} progress={progress} error={modelError}
+        bannerClosed={bannerClosed} onLoad={() => { void handleModeChange('real') }}
+        onClose={() => { writeFlag('tsumugi.simBannerClosed', true); setBannerClosed(true) }}
+        onFallback={() => { setModelError(null); setMode('sim') }} />
       <RunShelf records={records} activeId={activeId} compare={compare} armed={compareArmed}
         persistFailed={persistFailed} importError={importError}
         onActivate={(id) => { void handleActivate(id) }}

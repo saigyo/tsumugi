@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { EDIT_CALLOUTS } from '../glossary/callouts'
 import { Term } from '../glossary/Term'
 import { Formula } from './Formula'
@@ -28,7 +28,7 @@ function capItems(items: FoldItem[], max: number): FoldItem[] {
 // each block's edit relative to the stream it is added to — one heatmap with
 // an MLP / attention toggle, and bars for the selected token. Pure
 // presentation; the block and the token are local view state.
-export function EditSizeCard({ rows: all, note, onLayer, chat }: { rows?: EditRows; note: string; onLayer?: (layer: number) => void; chat?: ChatSpans }) {
+export function EditSizeCard({ rows: all, note, noteAction, onLayer, chat }: { rows?: EditRows; note: string; noteAction?: ReactNode; onLayer?: (layer: number) => void; chat?: ChatSpans }) {
   const [block, setBlock] = useState<Block>('mlp')
   const [picked, setPicked] = useState<number | null>(null)
   const [open, setOpen] = useState(false)
@@ -42,7 +42,7 @@ export function EditSizeCard({ rows: all, note, onLayer, chat }: { rows?: EditRo
     <section data-testid="edit-size-card" className="mlp-card">
       <h4>How much each layer changes the vector{' '}
         <Term id="edit" variant="icon" label="About edit sizes" testId="edit-size-info">ⓘ</Term></h4>
-      {!all ? <p data-testid="edit-size-note" className="mlp-note">{note}</p> : (
+      {!all ? <p data-testid="edit-size-note" className="mlp-note">{note} {noteAction}</p> : (
         <>
           <p className="mlp-caption">Every block adds an <Term id="edit">edit</Term> to the{' '}
             <Term id="residual-stream">residual stream</Term>. The colour shows how big that edit is compared with

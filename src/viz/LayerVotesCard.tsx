@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { Term } from '../glossary/Term'
 import type { LayerVotes } from '../trace/types'
 import { selectedCandidate, useCandidateSelection } from './candidateSelection'
@@ -29,8 +29,8 @@ function cellText(blocks: Blocks, layer: number, token: { id: number; text: stri
 // block (final norm frozen at its real scale). The candidate selection is
 // shared with the Logits card; the blocks shown and the hovered cell are
 // local view state.
-export function LayerVotesCard({ candidates, note, onLayer }: {
-  candidates?: VotedCandidate[]; note: string; onLayer?: (layer: number) => void
+export function LayerVotesCard({ candidates, note, noteAction, onLayer }: {
+  candidates?: VotedCandidate[]; note: string; noteAction?: ReactNode; onLayer?: (layer: number) => void
 }) {
   const pick = useCandidateSelection((s) => s.pick)
   const select = useCandidateSelection((s) => s.select)
@@ -38,7 +38,7 @@ export function LayerVotesCard({ candidates, note, onLayer }: {
     <section data-testid="votes-card" className="mlp-card">
       <h4>What each layer voted for{' '}
         <Term id="votes" variant="icon" label="About per-layer votes" testId="votes-info">ⓘ</Term></h4>
-      {!candidates || candidates.length === 0 ? <p data-testid="votes-note" className="mlp-note">{note}</p> : (
+      {!candidates || candidates.length === 0 ? <p data-testid="votes-note" className="mlp-note">{note} {noteAction}</p> : (
         <VotesBody candidates={candidates} selected={selectedCandidate(pick, candidates)}
           onSelect={(i) => select(candidates, i)} onLayer={onLayer} />
       )}

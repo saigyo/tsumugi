@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, type ReactNode } from 'react'
 import { NEURON_CALLOUTS } from '../glossary/callouts'
 import { Term } from '../glossary/Term'
 import type { NeuronAsset } from '../neurons/asset'
@@ -34,8 +34,8 @@ const activationsOf = (d: NeuronData) => {
 // "Inside one MLP": one layer's MLP vote for the selected candidate split into
 // one vote per neuron (#16). Candidate selection is shared with the Logits and
 // votes cards, the layer with both MLP cards; the mode is kept across remounts (neuronMode.ts).
-export function NeuronCard({ data, candidates, note, run }: {
-  data?: NeuronData; candidates?: VotedCandidate[]; note: string; run?: TraceEvent
+export function NeuronCard({ data, candidates, note, noteAction, run }: {
+  data?: NeuronData; candidates?: VotedCandidate[]; note: string; noteAction?: ReactNode; run?: TraceEvent
 }) {
   const ready = data && candidates && candidates.length > 0
   const { layer, layers, selected: sel, step } = useMlpLayerControl(ready ? candidates : undefined, run)
@@ -47,7 +47,7 @@ export function NeuronCard({ data, candidates, note, run }: {
           <button type="button" data-testid="neuron-next" aria-label="Next layer" disabled={layer >= layers - 1} onClick={() => step(1)}>▶</button>
         </span>
       )}{' '}<Term id="mlp-neuron" variant="icon" label="About MLP neurons" testId="neuron-info">ⓘ</Term></h4>
-      {!ready || layer === null ? <p data-testid="neuron-note" className="mlp-note">{note}</p>
+      {!ready || layer === null ? <p data-testid="neuron-note" className="mlp-note">{note} {noteAction}</p>
         : <NeuronBody data={data} candidates={candidates} selected={sel} layer={layer} />}
     </section>
   )

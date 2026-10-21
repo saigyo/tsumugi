@@ -169,3 +169,9 @@ test('a hovered cell that vanishes when the matrix shrinks does not crash the re
   expect(screen.getByTestId('attn-readout').textContent?.trim()).toBe('')
   expect(screen.queryByTestId('attn-hover')).toBeNull()
 })
+
+test('the simulated note says the real model would show computed weights, with a link to load it', () => {
+  render(<AttentionHeatmap heads={attn.heads} tokens={tokens} />)
+  expect(screen.getByTestId('attn-note')).toHaveTextContent('Illustrative pattern (simulated): the real model would show the weights it computed.')
+  expect(screen.getByTestId('attn-note').querySelector('[data-testid="load-real"]')).not.toBeNull()
+})

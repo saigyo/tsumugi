@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, expect, test, vi } from 'vitest'
 import * as asset from '../neurons/asset'
 import { fixtureNeuronAsset, fixtureNeuronLayer } from '../test/neuronFixture'
@@ -7,6 +7,7 @@ import type { AttentionHead } from '../trace/types'
 import { DetailPanel } from './DetailPanel'
 import { STEPS_OLD_NOTE, STEPS_SIM_NOTE } from './details/LayersDetail'
 import { texOf } from '../test/tex'
+import { useRealModel } from '../app/realModel'
 
 const trace = makeFixtureTrace()  // cursor 1=tokenize, 2=embed, 3..5=layers, 6=attention
 
@@ -284,4 +285,18 @@ test('the tokenizer detail of a chat run says how many tokens the template added
   expect(screen.getByTestId('tokenizer-chat-note')).toHaveTextContent('30 of the 37 tokens were added by the template')
   expect(screen.getByTestId('tokenizer-chat-note').querySelector('[data-term="chat-template"]')).not.toBeNull()
   expect(screen.getByTestId('system-fold')).toHaveTextContent('system prompt · 20 tokens ▸')
+})
+
+test('in a simulated run the real-model-only notes offer to load the real model', () => {
+  const request = vi.fn()
+  act(() => { useRealModel.setState({ request, loading: false }) })
+  const events = buildFixtureTrace()
+  const layer = events.findIndex((e) => e.type === 'layer')
+  render(<DetailPanel events={events} cursor={layer} mode="sim" />)
+  const buttons = screen.getAllByTestId('load-real')
+  expect(buttons.length).toBeGreaterThanOrEqual(4)
+  fireEvent.click(buttons[0])
+  expect(request).toHaveBeenCalledOnce()
+  act(() => { useRealModel.setState({ request, loading: true }) })
+  expect(screen.getAllByTestId('load-real').every((b) => (b as HTMLButtonElement).disabled)).toBe(true)
 })

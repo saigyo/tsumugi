@@ -2,6 +2,7 @@ import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useStat
 import type { AttentionHead, AttentionLabel, ChatSpans, TokenInfo } from '../trace/types'
 import { readableTokenText } from '../engine/tokenBytes'
 import { visibleToken } from './tokenText'
+import { LoadRealButton } from '../app/LoadRealButton'
 import { foldMatrix, type FoldedMatrix } from './foldMatrix'
 import { cellSize, labelStep } from './heatmapSizing'
 
@@ -147,7 +148,7 @@ export function AttentionHeatmap({ heads, tokens, focus, chat, foldToggle = true
           ? head.score != null
             ? 'Measured on this prompt — head roles detected from the attention weights, not labeled by the model.'
             : 'Measured on this prompt — attention accumulated over the whole run (the model finishes ahead of the replay).'
-          : 'Illustrative pattern (simulated) — real attention weights are not exposed by the browser model.'}
+          : <>Illustrative pattern (simulated): the real model would show the weights it computed. <LoadRealButton variant="link" /></>}
       </p>
     </div>
   )

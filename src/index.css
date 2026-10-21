@@ -89,7 +89,6 @@ input[type="number"] { width: 4rem; }
 .config-row label[title] { cursor: help; }
 .config-divider { width: 1px; height: 1.4rem; background: var(--line); }
 .mode-note { color: var(--ink-faint); font-size: .78rem; }
-.model-status-slot { display: inline-flex; align-items: center; gap: .4rem; min-width: 0; }
 
 .token-stream { min-height: 2.4rem; padding: .6rem 0; }
 .token {
@@ -204,7 +203,18 @@ input[type="number"] { width: 4rem; }
 
 .notice, .model-error { color: var(--shu); }
 .model-progress { color: var(--ink-soft); font-size: .85rem; }
-.device-chip { border: 1px solid var(--line-strong); border-radius: 999px; padding: 0 .5rem; font-size: .8rem; color: var(--ink-soft); }
+.mode-badge { display: inline-block; font-size: .68rem; letter-spacing: .04em; text-transform: uppercase;
+  border: 1px solid var(--line-strong); border-radius: 3px; padding: 0 .35rem; margin-left: .5rem; vertical-align: .2rem;
+  color: var(--ink-soft); background: var(--card); }
+.mode-badge-sim { border-color: var(--shu-soft); color: var(--shu); }
+.model-slot { margin-top: .6rem; border-radius: 8px; padding: .55rem .8rem; font-size: .85rem; }
+.sim-banner { display: flex; gap: .8rem; align-items: center; border: 1px solid var(--shu-soft); background: var(--shu-wash); }
+.sim-banner p { flex: 1; margin: 0; line-height: 1.45; }
+.sim-banner-close { border: 0; background: none; color: var(--ink-faint); font-size: 1.1rem; cursor: pointer; }
+.model-progress { display: flex; gap: .6rem; align-items: center; border: 1px solid var(--line); background: var(--card); color: var(--ink-soft); }
+.model-progress progress { flex: 1; max-width: 16rem; height: .4rem; accent-color: var(--ai); }
+.load-real { border: 1px solid var(--ai); background: var(--ai); color: #fff; border-radius: 4px; padding: .3rem .7rem; white-space: nowrap; }
+.load-real:disabled { opacity: .5; }
 
 .token-chip-row { display: flex; flex-wrap: wrap; gap: .3rem; margin-top: .5rem; }
 .token-chip { display: inline-flex; align-items: baseline; gap: .35rem; padding: .15rem .55rem; border-radius: 999px; }

@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom/vitest'
-import { afterEach, vi } from 'vitest'
+import { afterEach, beforeEach, vi } from 'vitest'
 import { resetNeuronCache } from '../neurons/asset'
 import { resetCandidateSelection } from '../viz/candidateSelection'
 import { resetMlpLayer } from '../viz/mlpLayerSelection'
@@ -15,4 +15,11 @@ afterEach(() => {
   resetMlpLayer()
   resetNeuronMode()
   resetNeuronCache()
+})
+
+// Node 26 defines its own global localStorage (undefined without
+// --localstorage-file), which hides jsdom's; point it back at jsdom's.
+beforeEach(() => {
+  const jsdom = (globalThis as { jsdom?: { window: Window } }).jsdom
+  if (jsdom) vi.stubGlobal('localStorage', jsdom.window.localStorage)
 })

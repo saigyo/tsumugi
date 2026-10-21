@@ -7,11 +7,17 @@ import { usePlayerStore } from './player/store'
 
 let constructCount = 0
 let runs: unknown[][] = []
+let cached = false
 let deferreds: Array<{ resolve: () => void; reject: (err: Error) => void }> = []
 
 vi.mock('./engine/tokenizer', async (importOriginal) => {
   const mod = await importOriginal<typeof import('./engine/tokenizer')>()
   return { ...mod, loadTokenizer: async () => mod.fallbackTokenizer() }
+})
+
+vi.mock('./app/realModel', async (importOriginal) => {
+  const mod = await importOriginal<typeof import('./app/realModel')>()
+  return { ...mod, realModelCached: async () => cached }
 })
 
 vi.mock('./engine/transformers/TransformersEngine', () => {
@@ -33,6 +39,8 @@ beforeEach(() => {
   constructCount = 0
   deferreds = []
   runs = []
+  cached = false
+  localStorage.clear()
   useTraceStore.getState().clear()
   usePlayerStore.setState({ ...initialPlayerState })
 })
@@ -113,4 +121,43 @@ test('the chat example after the real model was loaded and Simulated chosen swit
   await waitFor(() => expect(runs).toHaveLength(1))
   expect(screen.getByTestId('mode-real')).toHaveAttribute('aria-pressed', 'true')
   expect(runs[0][3]).toMatchObject({ kind: 'chat' })
+})
+
+test('first visit: the banner shows; closing it is remembered', async () => {
+  const { unmount } = render(<App />)
+  expect(screen.getByTestId('sim-banner')).toBeInTheDocument()
+  expect(screen.getByTestId('mode-badge')).toHaveTextContent('Simulated')
+  fireEvent.click(screen.getByRole('button', { name: 'Close' }))
+  expect(screen.queryByTestId('sim-banner')).toBeNull()
+  expect(screen.getByTestId('mode-badge')).toHaveTextContent('Simulated')
+  unmount()
+  render(<App />)
+  expect(screen.queryByTestId('sim-banner')).toBeNull()
+})
+
+test('a returning user with the model cached starts in real mode without a click', async () => {
+  localStorage.setItem('tsumugi.realModelUsed', '1')
+  cached = true
+  render(<App />)
+  await waitFor(() => expect(constructCount).toBe(1))
+  expect(screen.getByTestId('model-progress')).toHaveTextContent('from the browser’s cache')
+  deferreds[0].resolve()
+  await waitFor(() => expect(screen.getByTestId('mode-badge')).toHaveTextContent('Real model · wasm'))
+})
+
+test('a returning user whose cache was cleared starts simulated with the banner and downloads nothing', async () => {
+  localStorage.setItem('tsumugi.realModelUsed', '1')
+  localStorage.setItem('tsumugi.simBannerClosed', '1')
+  cached = false
+  render(<App />)
+  await waitFor(() => expect(screen.getByTestId('sim-banner')).toBeInTheDocument())
+  expect(constructCount).toBe(0)
+})
+
+test('the banner’s button loads the model; ready sets the remembered flag', async () => {
+  render(<App />)
+  fireEvent.click(screen.getByTestId('banner-load'))
+  expect(constructCount).toBe(1)
+  deferreds[0].resolve()
+  await waitFor(() => expect(localStorage.getItem('tsumugi.realModelUsed')).toBe('1'))
 })
