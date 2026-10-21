@@ -6,6 +6,7 @@ import { initialPlayerState } from './player/reducer'
 import { usePlayerStore } from './player/store'
 
 let constructCount = 0
+let runs: unknown[][] = []
 let deferreds: Array<{ resolve: () => void; reject: (err: Error) => void }> = []
 
 vi.mock('./engine/tokenizer', async (importOriginal) => {
@@ -23,7 +24,7 @@ vi.mock('./engine/transformers/TransformersEngine', () => {
     prepare() {
       return new Promise<void>((resolve, reject) => { deferreds.push({ resolve, reject }) })
     }
-    run() { throw new Error('not used in this test') }
+    run(...args: unknown[]) { runs.push(args); return { abort() {}, done: Promise.resolve() } }
   }
   return { TransformersEngine: FakeTransformersEngine }
 })
@@ -31,6 +32,7 @@ vi.mock('./engine/transformers/TransformersEngine', () => {
 beforeEach(() => {
   constructCount = 0
   deferreds = []
+  runs = []
   useTraceStore.getState().clear()
   usePlayerStore.setState({ ...initialPlayerState })
 })
@@ -40,14 +42,13 @@ afterEach(() => cleanup())
 test('rapid mode toggling mid-prepare constructs exactly one TransformersEngine', async () => {
   render(<App />)
   fireEvent.change(screen.getByTestId('prompt-input'), { target: { value: 'The cat sat' } })
-  const toggle = screen.getByTestId('mode-toggle')
 
   // real -> sim -> real -> sim -> real, all while the first prepare() is still pending.
-  fireEvent.click(toggle)
-  fireEvent.click(toggle)
-  fireEvent.click(toggle)
-  fireEvent.click(toggle)
-  fireEvent.click(toggle)
+  fireEvent.click(screen.getByTestId('mode-real'))
+  fireEvent.click(screen.getByTestId('mode-sim'))
+  fireEvent.click(screen.getByTestId('mode-real'))
+  fireEvent.click(screen.getByTestId('mode-sim'))
+  fireEvent.click(screen.getByTestId('mode-real'))
 
   expect(constructCount).toBe(1)
   expect(deferreds).toHaveLength(1)
@@ -63,21 +64,39 @@ test('rapid mode toggling mid-prepare constructs exactly one TransformersEngine'
 test('a failed prepare clears the in-flight guard so a later toggle retries', async () => {
   render(<App />)
   fireEvent.change(screen.getByTestId('prompt-input'), { target: { value: 'The cat sat' } })
-  const toggle = screen.getByTestId('mode-toggle')
 
-  fireEvent.click(toggle) // sim -> real, starts prepare #1
+  fireEvent.click(screen.getByTestId('mode-real')) // sim -> real, starts prepare #1
   expect(constructCount).toBe(1)
 
   deferreds[0].reject(new Error('download failed'))
   await waitFor(() => {
-    expect(screen.getByTestId('mode-toggle')).not.toBeChecked()
+    expect(screen.getByTestId('mode-real')).toHaveAttribute('aria-pressed', 'false')
   })
 
-  fireEvent.click(toggle) // sim -> real again, guard was cleared so this retries
+  fireEvent.click(screen.getByTestId('mode-real')) // sim -> real again, guard was cleared so this retries
   expect(constructCount).toBe(2)
 
   deferreds[1].resolve()
   await waitFor(() => {
     expect(screen.getByTestId('btn-generate')).not.toBeDisabled()
   })
+})
+
+test('the chat example with the real model off loads it first, then runs as chat', async () => {
+  render(<App />)
+  fireEvent.click(screen.getAllByTestId('example-chip').at(-1)!)
+  expect(constructCount).toBe(1)
+  expect(runs).toHaveLength(0)
+  deferreds[0].resolve()
+  await waitFor(() => expect(runs).toHaveLength(1))
+  expect(runs[0][0]).toBe('What is the capital of France?')
+  expect(runs[0][3]).toMatchObject({ kind: 'chat' })
+})
+
+test('if loading fails, the chat example runs nothing', async () => {
+  render(<App />)
+  fireEvent.click(screen.getAllByTestId('example-chip').at(-1)!)
+  deferreds[0].reject(new Error('download failed'))
+  await waitFor(() => expect(screen.getByTestId('model-error')).toBeInTheDocument())
+  expect(runs).toHaveLength(0)
 })

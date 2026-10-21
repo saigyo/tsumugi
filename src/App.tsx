@@ -10,7 +10,9 @@ import { TransformersEngine } from './engine/transformers/TransformersEngine'
 import type { PipelineEngine, ProgressInfo, RunHandle } from './engine/types'
 import { usePlaybackTicker, usePlayerStore } from './player/store'
 import { useTraceStore } from './trace/store'
-import type { GenParams, Mode } from './trace/types'
+import type { GenParams, Mode, PromptFormat } from './trace/types'
+import { TEXT_FORMAT } from './engine/chatTemplate'
+import { CHAT_EXAMPLE } from './app/chatExample'
 import { DetailPanel } from './viz/DetailPanel'
 import { PipelineBand } from './viz/PipelineBand'
 import { TokenStream } from './viz/TokenStream'
@@ -71,7 +73,7 @@ export default function App() {
     usePlayerStore.getState().dispatch({ type: 'traceGrew', length: events.length })
   }, [events.length])
 
-  const handleModeChange = async (m: Mode) => {
+  const handleModeChange = async (m: Mode): Promise<boolean> => {
     setMode(m)
     setModelError(null)
     if (m === 'real' && !realEngineRef.current) {
@@ -88,20 +90,26 @@ export default function App() {
         setDevice(prepping.engine.device)
         setAttn(prepping.engine.attentions ?? false)
         setRealReady(true)
+        return true
       } catch (err) {
         setModelError(err instanceof Error ? err.message : String(err))
         setMode('sim')
         setRealReady(false)
+        return false
       } finally {
         if (preparingRef.current === prepping) preparingRef.current = null
         setProgress(null)
       }
     } else if (m === 'real' && realEngineRef.current) {
       setRealReady(true)
+      return true
     }
+    return false
   }
 
-  const handleGenerate = async (prompt: string, params: GenParams) => {
+  const handleGenerate = async (prompt: string, params: GenParams, format: PromptFormat = TEXT_FORMAT) => {
+    // the chat example can be clicked while simulated: load the real model first
+    if (format.kind === 'chat' && !realEngineRef.current && !(await handleModeChange('real'))) return
     runRef.current?.abort()
     await runRef.current?.done
     useTraceStore.getState().clear()
@@ -110,7 +118,7 @@ export default function App() {
     setCompare(null)
     setCompareArmed(false)
     const engine: PipelineEngine =
-      mode === 'real' && realEngineRef.current
+      (format.kind === 'chat' || mode === 'real') && realEngineRef.current
         ? realEngineRef.current
         : new SimulatedEngine(tokenizerRef.current)
     try {
@@ -130,7 +138,7 @@ export default function App() {
             }, events)
           }
         }
-      })
+      }, format)
       runRef.current = handle
       setGenerating(true)
       // settles on completion, EOS, abort and error alike
@@ -195,7 +203,7 @@ export default function App() {
       </header>
       <PromptBar mode={mode} onModeChange={handleModeChange} onGenerate={handleGenerate}
         busy={mode === 'real' && !realReady} generating={generating} onStop={handleStop}
-        examples={CURATED_EXAMPLES}
+        examples={[...CURATED_EXAMPLES, CHAT_EXAMPLE]}
         status={<ModelStatus progress={progress} device={mode === 'real' ? device : null} error={modelError}
           attentions={mode === 'real' && attn}
           onFallback={() => { setModelError(null); setMode('sim') }} />} />

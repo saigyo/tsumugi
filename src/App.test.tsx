@@ -99,7 +99,7 @@ test('generate is disabled while real mode is still loading the model', async ()
   fireEvent.change(screen.getByTestId('prompt-input'), { target: { value: 'The cat sat' } })
   expect(screen.getByTestId('btn-generate')).not.toBeDisabled()
 
-  fireEvent.click(screen.getByTestId('mode-toggle'))
+  fireEvent.click(screen.getByTestId('mode-real'))
 
   await waitFor(() => {
     expect(screen.getByTestId('btn-generate')).toBeDisabled()

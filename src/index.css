@@ -635,3 +635,14 @@ math { font-family: 'Latin Modern Math', math, 'STIX Two Math', 'Cambria Math', 
 .attn-cell-fold { stroke: var(--ai); stroke-dasharray: 2 2; }
 .mlp-fold { border-style: dashed; color: var(--ink-soft); }
 .mlp-cells-empty { min-height: 1px; }
+
+.seg { display: inline-flex; align-items: center; border: 1px solid var(--ai-soft); border-radius: 6px; overflow: hidden; }
+.seg > button { border: 0; border-radius: 0; background: var(--card); color: var(--ai); padding: .35rem .7rem; font-size: .85rem; }
+.seg > button[aria-pressed="true"] { background: var(--ai); color: #fff; }
+.seg > button[aria-pressed="true"] .mode-note { color: var(--ai-wash-strong); }
+.seg .gl-term-wrap { padding: 0 .4rem; }
+.system-row { display: flex; gap: .5rem; align-items: center; font-size: .85rem; color: var(--ink-soft); }
+.system-row input { flex: 1; min-width: 12rem; padding: .3rem .5rem; }
+.link-button { border: 0; background: none; color: var(--ai); text-decoration: underline; padding: 0; font-size: .85rem; cursor: pointer; }
+.example-chip-tag { font-size: .68rem; color: var(--ai); border: 1px solid var(--ai-soft); border-radius: 3px;
+  padding: 0 .2rem; margin-right: .3rem; background: var(--card); }
