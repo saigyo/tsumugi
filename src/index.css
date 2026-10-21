@@ -641,7 +641,7 @@ math { font-family: 'Latin Modern Math', math, 'STIX Two Math', 'Cambria Math', 
 .layers-nav-link[aria-current="true"] { background: var(--ai); border-color: var(--ai); color: #fff; }
 .layers-nav-layer { margin-left: auto; font-size: .76rem; white-space: nowrap; display: flex; align-items: center; gap: .2rem; }
 .layers-section { scroll-margin-top: calc(var(--controls-h, 0px) + var(--nav-h, 2.6rem) + 6px); }
-.attn-hover { fill: none; stroke: #d64; stroke-width: 2; }
+.attn-hover { fill: none; stroke: var(--shu); stroke-width: 2; }
 .attn-cell-fold { stroke: var(--ai); stroke-dasharray: 2 2; }
 .mlp-fold { border-style: dashed; color: var(--ink-soft); }
 .mlp-cells-empty { min-height: 1px; }

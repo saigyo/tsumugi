@@ -8,7 +8,7 @@ export function ModelSlot({ mode, loading, fromCache, progress, error, bannerClo
   bannerClosed: boolean; onLoad(): void; onClose(): void; onFallback(): void
 }) {
   if (error) return (
-    <div data-testid="model-error" className="model-slot model-error">
+    <div role="status" data-testid="model-error" className="model-slot model-error">
       Real model unavailable: {error}
       <button data-testid="btn-fallback" onClick={onFallback}>Continue in Simulated mode</button>
     </div>
@@ -16,10 +16,10 @@ export function ModelSlot({ mode, loading, fromCache, progress, error, bannerClo
   if (loading) {
     const pct = progress && progress.total > 0 ? Math.round((progress.loaded / progress.total) * 100) : null
     return (
-      <div data-testid="model-progress" className="model-slot model-progress">
+      <div role="status" data-testid="model-progress" className="model-slot model-progress">
         {fromCache ? 'Loading the real model from the browser’s cache…'
           : progress ? `Loading the real model: ${progress.file} · ${pct ?? 0} %` : 'Loading the real model…'}
-        {pct !== null && <progress data-testid="model-progress-bar" max={100} value={pct} />}
+        {pct !== null && <progress aria-label="Download progress" data-testid="model-progress-bar" max={100} value={pct} />}
       </div>
     )
   }

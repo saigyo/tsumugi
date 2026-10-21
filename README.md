@@ -44,6 +44,16 @@ and underlined words and ⓘ chips in the cards open the matching entry.
   to the stock `HuggingFaceTB/SmolLM2-135M-Instruct` export (~120 MB,
   schematic layers). Prefers WebGPU, falls back to WASM automatically.
 
+  With the real model the prompt bar offers two ways to run a prompt.
+  **Continue text** feeds your words to the model as they are. **Chat**
+  (real model only) wraps them in SmolLM2's chat template, so the model
+  answers as the assistant. The system prompt is editable; leave it empty
+  for no system turn. The template's system turn is folded into one chip in
+  the token views and the attention matrix; click it to open. The
+  **Chat: a question** example shows the difference. The simulation shows a
+  banner offering the real model. After its first use the real model starts
+  automatically from the browser cache; nothing is downloaded without a click.
+
 ## One matrix, end to end — the residual stream
 
 The pipeline stages look like separate machines, but there is only one
