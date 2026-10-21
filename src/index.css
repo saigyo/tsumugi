@@ -633,3 +633,5 @@ math { font-family: 'Latin Modern Math', math, 'STIX Two Math', 'Cambria Math', 
 .layers-section { scroll-margin-top: calc(var(--controls-h, 0px) + var(--nav-h, 2.6rem) + 6px); }
 .attn-hover { fill: none; stroke: #d64; stroke-width: 2; }
 .attn-cell-fold { stroke: var(--ai); stroke-dasharray: 2 2; }
+.mlp-fold { border-style: dashed; color: var(--ink-soft); }
+.mlp-cells-empty { min-height: 1px; }

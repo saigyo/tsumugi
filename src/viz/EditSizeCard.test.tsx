@@ -118,3 +118,37 @@ test('clicking a heatmap cell or a bar reports its layer', () => {
   fireEvent.click(screen.getAllByTestId('edit-bar').find((b) => b.dataset.layer === '1')!)
   expect(onLayer.mock.calls).toEqual([[2], [1]])
 })
+
+const chatRows = (n: number) => ({
+  tokens: Array.from({ length: n }, (_, i) => ({ id: i, text: `t${i}` })),
+  attn: Array.from({ length: n }, () => [0.1, 0.2, 0.3]),
+  mlp: Array.from({ length: n }, () => [0.4, 0.5, 0.6]),
+})
+const chat = { system: [1, 21] as [number, number], user: [24, 31] as [number, number] }
+
+test('a chat run folds the system rows into one row that opens on click', () => {
+  render(<EditSizeCard rows={chatRows(45)} chat={chat} note="unused" />)
+  const fold = screen.getByTestId('edit-fold')
+  expect(fold).toHaveTextContent('system prompt · 20 tokens ▸')
+  expect(screen.getAllByTestId('edit-row-label')).toHaveLength(25)
+  fireEvent.click(fold)
+  expect(screen.getAllByTestId('edit-row-label')).toHaveLength(45)
+})
+
+test('the 64-row cap applies after folding', () => {
+  render(<EditSizeCard rows={chatRows(80)} chat={chat} note="unused" />)
+  expect(screen.getAllByTestId('edit-row-label')).toHaveLength(60)   // 80 − 20 fit under the cap
+  expect(screen.queryByTestId('edit-rows-note')).toBeNull()
+  cleanup()
+  render(<EditSizeCard rows={chatRows(100)} chat={chat} note="unused" />)
+  expect(screen.getAllByTestId('edit-row-label')).toHaveLength(64)
+  expect(screen.queryByTestId('edit-fold')).toBeNull()               // the fold row lies before the cut
+  expect(screen.getByTestId('edit-rows-note')).toHaveTextContent('showing the last 64 of 100 tokens')
+})
+
+test('the fold row is not selectable; the bars keep showing the selected token', () => {
+  render(<EditSizeCard rows={chatRows(45)} chat={chat} note="unused" />)
+  fireEvent.click(screen.getByTestId('edit-fold'))
+  fireEvent.click(screen.getByTestId('edit-fold'))
+  expect(screen.getByTestId('edit-bars-label')).toHaveTextContent('t44')
+})

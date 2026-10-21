@@ -2,7 +2,9 @@ import { useState } from 'react'
 import { EDIT_CALLOUTS } from '../glossary/callouts'
 import { Term } from '../glossary/Term'
 import { Formula } from './Formula'
+import { FOLD_TITLE, foldItems, foldLabel, type FoldItem } from './chatFold'
 import { ratioFill } from './mlpMath'
+import type { ChatSpans } from '../trace/types'
 import type { EditRows } from './selectors'
 import { visibleToken } from './tokenText'
 
@@ -14,25 +16,33 @@ const BAR_CAP = 2
 // A long prompt would draw tokens × 30 cells: show the most recent rows.
 const MAX_ROWS = 64
 
-const lastRows = (r: EditRows): EditRows => r.tokens.length <= MAX_ROWS ? r : {
-  tokens: r.tokens.slice(-MAX_ROWS), attn: r.attn.slice(-MAX_ROWS), mlp: r.mlp.slice(-MAX_ROWS),
+// The last max token items; a fold item before the cut is dropped with it.
+function capItems(items: FoldItem[], max: number): FoldItem[] {
+  let tokens = 0
+  for (let i = items.length - 1; i >= 0; i--)
+    if (items[i].kind === 'token' && ++tokens === max) return items.slice(i)
+  return items
 }
 
 // "How much each layer changes the vector": per token and layer, the size of
 // each block's edit relative to the stream it is added to — one heatmap with
 // an MLP / attention toggle, and bars for the selected token. Pure
 // presentation; the block and the token are local view state.
-export function EditSizeCard({ rows: all, note, onLayer }: { rows?: EditRows; note: string; onLayer?: (layer: number) => void }) {
+export function EditSizeCard({ rows: all, note, onLayer, chat }: { rows?: EditRows; note: string; onLayer?: (layer: number) => void; chat?: ChatSpans }) {
   const [block, setBlock] = useState<Block>('mlp')
   const [picked, setPicked] = useState<number | null>(null)
-  const rows = all ? lastRows(all) : undefined
-  const last = rows ? rows.tokens.length - 1 : -1
+  const [open, setOpen] = useState(false)
+  const n = all ? all.tokens.length : 0
+  const folded = all ? foldItems(n, chat?.system, open) : []
+  const items = capItems(folded, MAX_ROWS)
+  const shown = items.filter((it) => it.kind === 'token').length
+  const last = n - 1
   const sel = picked !== null && picked <= last ? picked : last
   return (
     <section data-testid="edit-size-card" className="mlp-card">
       <h4>How much each layer changes the vector{' '}
         <Term id="edit" variant="icon" label="About edit sizes" testId="edit-size-info">ⓘ</Term></h4>
-      {!rows || !all ? <p data-testid="edit-size-note" className="mlp-note">{note}</p> : (
+      {!all ? <p data-testid="edit-size-note" className="mlp-note">{note}</p> : (
         <>
           <p className="mlp-caption">Every block adds an <Term id="edit">edit</Term> to the{' '}
             <Term id="residual-stream">residual stream</Term>. The colour shows how big that edit is compared with
@@ -48,12 +58,12 @@ export function EditSizeCard({ rows: all, note, onLayer }: { rows?: EditRows; no
             </div>
             <div data-testid="edit-legend" className="mlp-legend">0 <span className="mlp-ramp" aria-hidden="true" /> ≥ 1.0</div>
           </div>
-          <EditHeatmap rows={rows} block={block} selected={sel} onSelect={setPicked} onLayer={onLayer} />
-          {all.tokens.length > rows.tokens.length && (
+          <EditHeatmap rows={all} items={items} open={open} onToggle={() => setOpen((v) => !v)} block={block} selected={sel} onSelect={setPicked} onLayer={onLayer} />
+          {shown < folded.filter((it) => it.kind === 'token').length && (
             <p data-testid="edit-rows-note" className="mlp-scale-note">
-              showing the last {rows.tokens.length} of {all.tokens.length} tokens</p>
+              showing the last {shown} of {n} tokens</p>
           )}
-          <EditBars rows={rows} index={sel} onLayer={onLayer} />
+          <EditBars rows={all} index={sel} onLayer={onLayer} />
           <div className="embed-callouts">
             {EDIT_CALLOUTS.map((c) => (
               <Term key={c.label} id={c.id} section={c.section} tip={c.tip} variant="chip" testId="embed-callout">ⓘ {c.label}</Term>
@@ -65,13 +75,22 @@ export function EditSizeCard({ rows: all, note, onLayer }: { rows?: EditRows; no
   )
 }
 
-function EditHeatmap({ rows, block, selected, onSelect, onLayer }: {
-  rows: EditRows; block: Block; selected: number; onSelect: (row: number) => void; onLayer?: (layer: number) => void
+function EditHeatmap({ rows, items, open, onToggle, block, selected, onSelect, onLayer }: {
+  rows: EditRows; items: FoldItem[]; open: boolean; onToggle: () => void; block: Block; selected: number; onSelect: (row: number) => void; onLayer?: (layer: number) => void
 }) {
   const layers = rows[block][0]?.length ?? 0
   return (
     <div className="mlp-heatmap" role="group" aria-label={`${BLOCK_NAME[block]} edit sizes, tokens by layers`}>
-      {rows.tokens.map((t, r) => (
+      {items.map((item) => {
+        if (item.kind === 'fold') return (
+          <div key="fold" className="mlp-heatmap-row">
+            <button type="button" data-testid="edit-fold" className="mlp-tok mlp-fold" aria-expanded={open}
+              title={FOLD_TITLE} onClick={onToggle}>{foldLabel(item.count, open)}</button>
+            <div className="mlp-cells mlp-cells-empty" />
+          </div>
+        )
+        const r = item.index, t = rows.tokens[r]
+        return (
         <div key={r} className="mlp-heatmap-row">
           <button type="button" data-testid="edit-row-label" aria-pressed={r === selected}
             className="mlp-tok" onClick={() => onSelect(r)}>{visibleToken(t)}</button>
@@ -83,7 +102,8 @@ function EditHeatmap({ rows, block, selected, onSelect, onLayer }: {
             ))}
           </div>
         </div>
-      ))}
+        )
+      })}
       <div className="mlp-heatmap-row">
         <span />
         <div data-testid="edit-axis" className="mlp-cells mlp-axis" style={{ gridTemplateColumns: `repeat(${layers}, 1fr)` }}>

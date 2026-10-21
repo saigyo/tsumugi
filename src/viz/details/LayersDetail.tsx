@@ -81,7 +81,7 @@ export function LayersDetail({ event, mode, attention, attentionInRun, tokens, s
       </div>
       <div data-testid="mlp-cards">
         <div id="layers-edits" className="layers-section">
-          <EditSizeCard onLayer={onLayer} rows={mode === 'real' ? edits : undefined} note={mode === 'sim' ? SIM_NOTE : votes?.status === 'pending' ? EDITS_PENDING_NOTE : OLD_NOTE} />
+          <EditSizeCard onLayer={onLayer} chat={chat} rows={mode === 'real' ? edits : undefined} note={mode === 'sim' ? SIM_NOTE : votes?.status === 'pending' ? EDITS_PENDING_NOTE : OLD_NOTE} />
         </div>
         <div id="layers-votes" className="layers-section">
           <LayerVotesCard
