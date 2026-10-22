@@ -64,6 +64,16 @@ test('a chat run folds the system turn after the first token; the chip opens and
   expect(screen.getByTestId('system-fold')).toHaveTextContent('▾')
 })
 
+test('a new run starts with the fold closed again', () => {
+  const first = buildFixtureTrace({ chat: true })
+  const { rerender } = render(<TokenStream events={first} cursor={first.length - 1} />)
+  fireEvent.click(screen.getByTestId('system-fold'))
+  expect(screen.getByTestId('system-fold')).toHaveAttribute('aria-expanded', 'true')
+  const second = buildFixtureTrace({ chat: true })
+  rerender(<TokenStream events={second} cursor={second.length - 1} />)
+  expect(screen.getByTestId('system-fold')).toHaveAttribute('aria-expanded', 'false')
+})
+
 test('chat tokens carry their role; the generated <|im_end|> is marked as the end of the turn', () => {
   const events = buildFixtureTrace({ chat: true })
   render(<TokenStream events={events} cursor={events.length - 1} />)

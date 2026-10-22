@@ -148,7 +148,22 @@ test('the 64-row cap applies after folding', () => {
 
 test('the fold row is not selectable; the bars keep showing the selected token', () => {
   render(<EditSizeCard rows={chatRows(45)} chat={chat} note="unused" />)
+  fireEvent.click(screen.getAllByTestId('edit-row-label').find((b) => b.textContent === 't30')!)
+  const fold = screen.getByTestId('edit-fold')
+  expect(fold).not.toHaveAttribute('aria-pressed')
+  fireEvent.click(fold)
+  expect(screen.getByTestId('edit-bars-label')).toHaveTextContent('t30')
+  fireEvent.click(fold)
+  expect(screen.getByTestId('edit-bars-label')).toHaveTextContent('t30')
+})
+
+test('closing the fold over the selected row selects the last token again', () => {
+  render(<EditSizeCard rows={chatRows(45)} chat={chat} note="unused" />)
   fireEvent.click(screen.getByTestId('edit-fold'))
+  fireEvent.click(screen.getAllByTestId('edit-row-label').find((b) => b.textContent === 't5')!)
+  expect(screen.getByTestId('edit-bars-label')).toHaveTextContent('t5')
   fireEvent.click(screen.getByTestId('edit-fold'))
   expect(screen.getByTestId('edit-bars-label')).toHaveTextContent('t44')
+  expect(screen.getAllByTestId('edit-row-label').filter((b) => b.getAttribute('aria-pressed') === 'true')
+    .map((b) => b.textContent)).toEqual(['t44'])
 })

@@ -102,8 +102,9 @@ input[type="number"] { width: 4rem; }
   font-family: var(--mono); font-size: .78em; }
 .token-end { border-color: var(--shu); color: var(--shu); background: var(--shu-wash); font-family: var(--mono); font-size: .78em; }
 .token-fold { border-style: dashed; color: var(--ink-soft); background: var(--washi); font: inherit; cursor: pointer; }
-.token-fold:hover { border-color: var(--ai); }
+.token-fold:hover, .token-fold:focus-visible { border-color: var(--ai); }
 .token-chip.token-template { border: 1px dashed var(--line-strong); background: transparent; }
+.token-chip.token-special { border: 1px dashed var(--ai-soft); }
 
 .token-popover {
   position: absolute; top: calc(100% + 4px); left: 0; z-index: 10; background: var(--card);

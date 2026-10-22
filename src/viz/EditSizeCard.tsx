@@ -37,7 +37,8 @@ export function EditSizeCard({ rows: all, note, noteAction, onLayer, chat }: { r
   const items = capItems(folded, MAX_ROWS)
   const shown = items.filter((it) => it.kind === 'token').length
   const last = n - 1
-  const sel = picked !== null && picked <= last ? picked : last
+  // a pick hidden by the closed fold or the row cap falls back to the last token
+  const sel = picked !== null && items.some((it) => it.kind === 'token' && it.index === picked) ? picked : last
   return (
     <section data-testid="edit-size-card" className="mlp-card">
       <h4>How much each layer changes the vector{' '}
