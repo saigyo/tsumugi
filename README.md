@@ -1,4 +1,4 @@
-# 紬 Tsumugi — An LLM Pipeline Visualizer
+# 紬 Tsumugi — Watch a language model write, one token at a time
 
 **Tsumugi** (紬) is a traditional Japanese cloth woven from raw silk,
 prized for its rough, hand-spun texture. The name plays on the related
@@ -6,8 +6,8 @@ verb 紡ぐ (*tsumugu*) — to spin, to weave: an LLM pipeline weaves its
 output token by token into text, each new thread pulled from the
 probability distribution the model spins over its vocabulary.
 
-Tsumugi is a single-page app that visualizes how a prompt flows through
-an LLM's autoregressive generation loop — tokenize once, then embed →
+Tsumugi is an LLM pipeline visualizer: a single-page app that shows how
+a prompt flows through an LLM's autoregressive generation loop — tokenize once, then embed →
 transformer layers → logits → softmax → sample → append the sampled token
 id and loop back to embed. Built for
 developers and CS students who are comfortable with code but want to

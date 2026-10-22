@@ -54,7 +54,7 @@ h1 { margin: 0 0 1rem; font-size: 1.7rem; letter-spacing: .01em; }
   font-size: 1.25em;
   margin-right: .15rem;
 }
-.app-subtitle { font-size: .55em; font-weight: 400; color: var(--ink-faint); margin-left: .5rem; }
+.app-subtitle { display: block; font-size: .52em; font-weight: 400; color: var(--ink-faint); margin-top: .1rem; letter-spacing: 0; }
 
 h3 { margin-top: 0; color: var(--ai-deep); font-weight: 600; }
 
