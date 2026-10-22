@@ -8,6 +8,8 @@ import { usePlayerStore } from './player/store'
 let constructCount = 0
 let runs: unknown[][] = []
 let cached = false
+// set to hold the start-up cache check open until the test settles it
+let cacheCheck: { promise: Promise<boolean>; resolve: (ok: boolean) => void } | null = null
 let deferreds: Array<{ resolve: () => void; reject: (err: Error) => void }> = []
 
 vi.mock('./engine/tokenizer', async (importOriginal) => {
@@ -17,7 +19,7 @@ vi.mock('./engine/tokenizer', async (importOriginal) => {
 
 vi.mock('./app/realModel', async (importOriginal) => {
   const mod = await importOriginal<typeof import('./app/realModel')>()
-  return { ...mod, realModelCached: async () => cached }
+  return { ...mod, realModelCached: () => cacheCheck?.promise ?? Promise.resolve(cached) }
 })
 
 vi.mock('./engine/transformers/TransformersEngine', () => {
@@ -40,6 +42,7 @@ beforeEach(() => {
   deferreds = []
   runs = []
   cached = false
+  cacheCheck = null
   localStorage.clear()
   useTraceStore.getState().clear()
   usePlayerStore.setState({ ...initialPlayerState })
@@ -170,4 +173,36 @@ test('switching back to Simulated while the chat example is loading runs nothing
   deferreds[0].resolve()
   await waitFor(() => expect(screen.getByTestId('btn-generate')).not.toBeDisabled())
   expect(runs).toHaveLength(0)
+})
+
+function holdCacheCheck() {
+  let resolve!: (ok: boolean) => void
+  const promise = new Promise<boolean>((r) => { resolve = r })
+  cacheCheck = { promise, resolve }
+  return cacheCheck
+}
+
+test('choosing Simulated during the start-up cache check keeps the app simulated', async () => {
+  localStorage.setItem('tsumugi.realModelUsed', '1')
+  const check = holdCacheCheck()
+  render(<App />)
+  fireEvent.click(screen.getByTestId('mode-sim'))
+  check.resolve(true)
+  await check.promise
+  await new Promise((r) => setTimeout(r, 0))
+  expect(constructCount).toBe(0)
+  expect(screen.getByTestId('mode-sim')).toHaveAttribute('aria-pressed', 'true')
+})
+
+test('a download started during the start-up cache check is not labelled as from the cache', async () => {
+  localStorage.setItem('tsumugi.realModelUsed', '1')
+  const check = holdCacheCheck()
+  render(<App />)
+  fireEvent.click(screen.getByTestId('mode-real'))
+  expect(constructCount).toBe(1)
+  check.resolve(true)
+  await check.promise
+  await new Promise((r) => setTimeout(r, 0))
+  expect(constructCount).toBe(1)
+  expect(screen.queryByText(/from the browser’s cache/)).toBeNull()
 })

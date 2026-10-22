@@ -30,6 +30,20 @@ test('the mode switch reports changes and shows the current mode', () => {
   expect(onModeChange).toHaveBeenCalledWith('real')
 })
 
+test('while the real model loads, its button shows loading, not selected', () => {
+  render(<PromptBar mode="real" onModeChange={noop} onGenerate={noop} busy={true} />)
+  expect(screen.getByTestId('mode-real')).toHaveAttribute('aria-pressed', 'false')
+  expect(screen.getByTestId('mode-real')).toHaveAttribute('aria-busy', 'true')
+  expect(screen.getByTestId('mode-sim')).toHaveAttribute('aria-pressed', 'false')
+})
+
+test('clicking Simulated while already simulated still reports the choice', () => {
+  const onModeChange = vi.fn()
+  render(<PromptBar mode="sim" onModeChange={onModeChange} onGenerate={noop} busy={false} />)
+  fireEvent.click(screen.getByTestId('mode-sim'))
+  expect(onModeChange).toHaveBeenCalledWith('sim')
+})
+
 test('out-of-range typed values are clamped; NaN keeps the previous value', () => {
   const onGenerate = vi.fn()
   render(<PromptBar mode="sim" onModeChange={noop} onGenerate={onGenerate} busy={false} />)

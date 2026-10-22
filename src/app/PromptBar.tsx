@@ -45,8 +45,9 @@ export function PromptBar({ mode, onModeChange, onGenerate, busy, generating = f
       <div className="prompt-row">
         <div className="seg" role="group" aria-label="Model" data-testid="mode-switch">
           <button type="button" data-testid="mode-sim" aria-pressed={mode === 'sim'}
-            onClick={() => { if (mode !== 'sim') onModeChange('sim') }}>Simulated</button>
-          <button type="button" data-testid="mode-real" aria-pressed={mode === 'real'} title={REAL_TITLE}
+            onClick={() => onModeChange('sim')}>Simulated</button>
+          <button type="button" data-testid="mode-real" aria-pressed={mode === 'real' && !busy}
+            aria-busy={(mode === 'real' && busy) || undefined} title={REAL_TITLE}
             onClick={() => { if (mode !== 'real') onModeChange('real') }}>Real model <span className="mode-note">· 250 MB</span></button>
         </div>
         {mode === 'real' && (

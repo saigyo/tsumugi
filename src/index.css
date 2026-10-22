@@ -649,6 +649,7 @@ math { font-family: 'Latin Modern Math', math, 'STIX Two Math', 'Cambria Math', 
 .seg { display: inline-flex; align-items: center; border: 1px solid var(--ai-soft); border-radius: 6px; overflow: hidden; }
 .seg > button { border: 0; border-radius: 0; background: var(--card); color: var(--ai); padding: .35rem .7rem; font-size: .85rem; }
 .seg > button[aria-pressed="true"] { background: var(--ai); color: #fff; }
+.seg > button[aria-busy="true"] { background: var(--ai-wash); }
 .seg > button[aria-pressed="true"] .mode-note { color: var(--ai-wash-strong); }
 .seg .gl-term-wrap { padding: 0 .4rem; }
 .system-row { display: flex; gap: .5rem; align-items: center; font-size: .85rem; color: var(--ink-soft); }

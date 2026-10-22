@@ -81,6 +81,10 @@ export default function App() {
   // the mode as of now, for code that resumes after an await
   const modeRef = useRef<Mode>('sim')
   const applyMode = (m: Mode) => { modeRef.current = m; setMode(m) }
+  // set once the user picks a mode or loads the model; the start-up cache
+  // check then leaves the mode and the progress label alone
+  const userChoseRef = useRef(false)
+  const chooseMode = (m: Mode) => { userChoseRef.current = true; return handleModeChange(m) }
 
   const handleModeChange = async (m: Mode): Promise<boolean> => {
     applyMode(m)
@@ -123,7 +127,7 @@ export default function App() {
     if (!readFlag('tsumugi.realModelUsed')) return
     let live = true
     void realModelCached().then((ok) => {
-      if (!live) return
+      if (!live || userChoseRef.current) return
       if (ok) { setFromCache(true); void handleModeChange('real') }
       else { writeFlag('tsumugi.simBannerClosed', false); setBannerClosed(false) }
     })
@@ -133,12 +137,12 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    useRealModel.setState({ request: () => { void handleModeChange('real') }, loading })
+    useRealModel.setState({ request: () => { void chooseMode('real') }, loading })
   })
 
   const handleGenerate = async (prompt: string, params: GenParams, format: PromptFormat = TEXT_FORMAT) => {
     // the chat example can be clicked while simulated: load the real model first
-    if (format.kind === 'chat' && (mode !== 'real' || !realEngineRef.current) && !(await handleModeChange('real'))) return
+    if (format.kind === 'chat' && (mode !== 'real' || !realEngineRef.current) && !(await chooseMode('real'))) return
     runRef.current?.abort()
     await runRef.current?.done
     useTraceStore.getState().clear()
@@ -230,13 +234,13 @@ export default function App() {
         <h1><span className="app-mark">紬</span> Tsumugi <ModeBadge mode={mode} loading={loading} device={device} attentions={attn} /> <span className="app-subtitle">LLM Pipeline Visualizer</span></h1>
         <HelpButton />
       </header>
-      <PromptBar mode={mode} onModeChange={handleModeChange} onGenerate={handleGenerate}
+      <PromptBar mode={mode} onModeChange={chooseMode} onGenerate={handleGenerate}
         busy={mode === 'real' && !realReady} generating={generating} onStop={handleStop}
         examples={[...CURATED_EXAMPLES, CHAT_EXAMPLE]} />
       <ModelSlot mode={mode} loading={loading} fromCache={fromCache} progress={progress} error={modelError}
-        bannerClosed={bannerClosed} onLoad={() => { void handleModeChange('real') }}
+        bannerClosed={bannerClosed} onLoad={() => { void chooseMode('real') }}
         onClose={() => { writeFlag('tsumugi.simBannerClosed', true); setBannerClosed(true) }}
-        onFallback={() => { setModelError(null); applyMode('sim') }} />
+        onFallback={() => { userChoseRef.current = true; setModelError(null); applyMode('sim') }} />
       <RunShelf records={records} activeId={activeId} compare={compare} armed={compareArmed}
         persistFailed={persistFailed} importError={importError}
         onActivate={(id) => { void handleActivate(id) }}
