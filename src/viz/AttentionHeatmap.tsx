@@ -119,8 +119,8 @@ export function AttentionHeatmap({ heads, tokens, focus, chat, foldToggle = true
           const cx = LABEL_W + i * cell + cell / 2
           const fold = folded.cols[i].to - folded.cols[i].from > 1
           // the folded column's first cell shares its row with the next column's:
-          // its label starts a row higher so the two stay apart
-          const firstRow = folded.rows.findIndex((r) => r >= folded.cols[i].from) - (fold ? 1 : 0)
+          // its label starts half a row higher, midway between its neighbours'
+          const firstRow = folded.rows.findIndex((r) => r >= folded.cols[i].from) - (fold ? 0.5 : 0)
           const cy = DIAG_PAD + firstRow * cell - 5
           return (
             <text key={`c${i}`} data-testid="col-label" data-hl={String(hovered?.c === i)}

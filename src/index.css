@@ -105,7 +105,7 @@ input[type="number"] { width: 4rem; }
 .token-fold { border-style: dashed; color: var(--ink-soft); background: var(--washi); font: inherit; cursor: pointer; }
 .token-fold:hover, .token-fold:focus-visible { border-color: var(--ai); }
 .token-chip.token-template { border: 1px dashed var(--line-strong); background: transparent; }
-.token-chip.token-special { border: 1px dashed var(--ai-soft); }
+.token-chip.token-special { border: 1px dashed var(--ai-soft); color: var(--ai); background: transparent; }
 
 .token-popover {
   position: absolute; top: calc(100% + 4px); left: 0; z-index: 10; background: var(--card);

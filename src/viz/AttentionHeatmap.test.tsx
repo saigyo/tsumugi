@@ -116,12 +116,12 @@ test('a chat run folds the system prompt into one column; the toggle opens the f
   expect(screen.getAllByTestId('row-label')).toHaveLength(n)
 })
 
-test('the folded column’s label starts one row above the next label, like neighbouring labels elsewhere', () => {
+test('the folded column’s label starts midway between its neighbours’ labels', () => {
   render(<AttentionHeatmap heads={chatAttn.heads} tokens={chatTokens} chat={chat} />)
   const ys = screen.getAllByTestId('col-label').map((l) => Number(l.getAttribute('y')))
   const fold = screen.getAllByTestId('col-label').findIndex((l) => l.textContent === 'system prompt (20)')
-  expect(ys[fold + 1] - ys[fold]).toBe(ys[fold + 2] - ys[fold + 1])
-  expect(ys[fold + 1] - ys[fold]).toBeGreaterThan(0)
+  expect(ys[fold] - ys[fold - 1]).toBeGreaterThan(0)
+  expect(ys[fold] - ys[fold - 1]).toBe(ys[fold + 1] - ys[fold])
 })
 
 test('the folded column’s readout names the system prompt and its summed weight', () => {
