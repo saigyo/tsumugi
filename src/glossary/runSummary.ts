@@ -16,6 +16,7 @@ export function runSummary(events: TraceEvent[], cursor: number): RunSummary | n
     if (i <= at) cycle = e.cycle
     maxCycle = Math.max(maxCycle, e.cycle)
   })
+  const end = latestOfType(events, last, 'run-end')
   const tokenize = latestOfType(events, last, 'tokenize')
   const embed = latestOfType(events, at, 'embed')
   const layer = latestOfType(events, last, 'layer')
@@ -40,6 +41,8 @@ export function runSummary(events: TraceEvent[], cursor: number): RunSummary | n
     tokens: tokenize?.tokens ?? [],
     cycle,
     cycles: maxCycle + 1,
+    generated: events.filter((e) => e.type === 'append').length,
+    ...(end ? { ended: end.reason } : {}),
     ...(embed ? { stream: { seqLen: embed.seqLen, dims: embed.dims, layers: layer?.total ?? 0 } } : {}),
     ...(start.vocabSize ? { vocabSize: start.vocabSize } : {}),
     ...(sm ? { softmax: { temperature: sm.temperature,

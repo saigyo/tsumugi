@@ -1,12 +1,12 @@
 import type { ReactNode } from 'react'
-import type { GenParams, Mode, TokenInfo } from '../trace/types'
+import type { GenParams, Mode, RunEndReason, TokenInfo } from '../trace/types'
 
 // The ids are a plain list, not derived from the entry objects: entries refer
 // to each other (related, <Term>), so deriving the type from them would be
 // circular. The registry test checks one entry per id.
 export const GLOSSARY_IDS = [
   'how-to-read', 'token', 'chat-template', 'embedding', 'residual-stream', 'edit', 'layer',
-  'attention', 'mlp', 'votes', 'mlp-neuron', 'logit', 'softmax', 'sampling', 'modes',
+  'attention', 'mlp', 'votes', 'mlp-neuron', 'logit', 'softmax', 'sampling', 'generation-settings', 'modes',
 ] as const
 export type GlossaryId = typeof GLOSSARY_IDS[number]
 
@@ -21,6 +21,8 @@ export interface RunSummary {
   tokens: TokenInfo[]                    // the prompt's tokens
   cycle: number                          // viewed cycle, 0-based
   cycles: number                         // cycles in the trace so far
+  generated: number                      // tokens appended in the whole trace
+  ended?: RunEndReason                   // absent while the run is still going
   stream?: { seqLen: number; dims: number; layers: number }
   vocabSize?: number
   softmax?: { temperature: number; top: Array<{ id: number; text: string; logit?: number; prob: number }> }

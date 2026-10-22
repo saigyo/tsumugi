@@ -47,3 +47,18 @@ test('MLP facts: the last token’s largest MLP edit, and the MLP layer that add
   expect(s.votes?.layer).toBeGreaterThanOrEqual(0)
   expect(runSummary(buildFixtureTrace(), 4)!.edits).toBeUndefined()
 })
+
+test('a finished run says how many tokens it wrote and why it stopped', () => {
+  const r = runSummary(makeFixtureTrace(), 8)!
+  expect(r.generated).toBe(2)
+  expect(r.ended).toBe('max-tokens')
+  const chat = buildFixtureTrace({ chat: true })
+  expect(runSummary(chat, 2)!.ended).toBe('eos')
+})
+
+test('a run still in flight has no stop reason yet', () => {
+  const events = makeFixtureTrace().slice(0, -1)
+  const r = runSummary(events, events.length - 1)!
+  expect(r.ended).toBeUndefined()
+  expect(r.generated).toBe(2)
+})

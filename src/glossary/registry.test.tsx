@@ -192,3 +192,26 @@ test('the chat template entry has its five sections and sits in the Tokenizer gr
   expect(sectionsOf('chat-template')).toEqual(['what', 'system-prompt', 'special-tokens', 'continue-text', 'sink'])
   expect(getEntry('chat-template')?.stage).toBe('tokenize')
 })
+
+test('the generation settings entry has a section per setting and sits with Sampling', () => {
+  expect(sectionsOf('generation-settings')).toEqual(['temperature', 'top-k', 'max-new-tokens'])
+  const entry = getEntry('generation-settings')!
+  expect(entry.stage).toBe('sample')
+  expect(entry.related).toEqual(expect.arrayContaining(['sampling', 'softmax']))
+  expect(getEntry('sampling')!.related).toContain('generation-settings')
+})
+
+test('generation settings in this run: the run’s own values, how many tokens it wrote and why it stopped', () => {
+  const inRun = getEntry('generation-settings')!.inRun!
+  const { container } = render(<>{inRun(sampleRun({ generated: 5, ended: 'eos' }))}</>)
+  expect(container.textContent).toBe('This run: T = 0.8, top-k 10, up to 8 new tokens. It wrote 5 and stopped because the model picked its end token.')
+  cleanup()
+  render(<>{inRun(sampleRun({ generated: 8, ended: 'max-tokens' }))}</>)
+  expect(document.body.textContent).toContain('It wrote 8 and stopped at the limit.')
+  cleanup()
+  render(<>{inRun(sampleRun({ params: { temperature: 0, topK: 10, maxNewTokens: 8 }, generated: 3, ended: undefined }))}</>)
+  expect(document.body.textContent).toBe('This run: T = 0 (greedy), top-k 10, up to 8 new tokens. 3 so far.')
+  cleanup()
+  render(<>{inRun(sampleRun({ generated: 2, ended: 'aborted' }))}</>)
+  expect(document.body.textContent).toContain('It wrote 2 and was stopped by hand.')
+})

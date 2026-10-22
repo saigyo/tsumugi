@@ -5,7 +5,7 @@ export function sampleRun(over: Partial<RunSummary> = {}): RunSummary {
     mode: 'sim', modelId: 'fixture',
     params: { temperature: 0.8, topK: 10, maxNewTokens: 8 },
     tokens: [{ id: 10, text: 'The' }, { id: 11, text: ' cat' }],
-    cycle: 2, cycles: 8,
+    cycle: 2, cycles: 8, generated: 8, ended: 'max-tokens',
     stream: { seqLen: 4, dims: 576, layers: 30 },
     vocabSize: 49152,
     edits: { token: { id: 2368, text: ' cat' }, layer: 29, ratio: 1.42 },

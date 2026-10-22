@@ -2,8 +2,9 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, expect, test, vi } from 'vitest'
 import { PromptBar } from './PromptBar'
 import { CHAT_EXAMPLE } from './chatExample'
+import { resetGlossaryStore, useGlossaryStore } from '../glossary/store'
 
-afterEach(() => cleanup())
+afterEach(() => { cleanup(); resetGlossaryStore() })
 
 const noop = () => {}
 
@@ -67,11 +68,27 @@ test('example chips fill the prompt and start generation', () => {
   expect(onGenerate).toHaveBeenCalledWith('The cat sat', { temperature: 0.8, topK: 10, maxNewTokens: 20 }, { kind: 'text' })
 })
 
-test('sampling inputs carry explanatory tooltips', () => {
+test('the settings are labelled in full; each ⓘ opens its section of Generation settings', () => {
   render(<PromptBar mode="sim" onModeChange={noop} onGenerate={noop} busy={false} />)
-  expect(screen.getByTestId('temp-input').closest('label')).toHaveAttribute('title', expect.stringContaining('Temperature'))
-  expect(screen.getByTestId('topk-input').closest('label')).toHaveAttribute('title', expect.stringContaining('Top-k'))
-  expect(screen.getByTestId('maxtok-input').closest('label')).toHaveAttribute('title', expect.stringContaining('loop bound'))
+  expect(screen.getByLabelText('Temperature')).toBe(screen.getByTestId('temp-input'))
+  expect(screen.getByLabelText('Top-k')).toBe(screen.getByTestId('topk-input'))
+  expect(screen.getByLabelText('Max new tokens')).toBe(screen.getByTestId('maxtok-input'))
+  const icons = screen.getAllByTestId('setting-info')
+  expect(icons.map((i) => [i.dataset.term, i.dataset.section])).toEqual([
+    ['generation-settings', 'temperature'], ['generation-settings', 'top-k'], ['generation-settings', 'max-new-tokens']])
+  expect(icons.every((i) => i.closest('label') === null)).toBe(true)   // a click opens the entry, not the field
+  fireEvent.click(icons[1])
+  expect(useGlossaryStore.getState().view).toEqual({ kind: 'entry', id: 'generation-settings', section: 'top-k' })
+})
+
+test('hovering a setting’s ⓘ shows its one-line tip', () => {
+  render(<PromptBar mode="sim" onModeChange={noop} onGenerate={noop} busy={false} />)
+  const tips = ['0 = always the top token; higher = more varied.', 'Only the k best candidates can be drawn.', 'The run stops here at the latest.']
+  screen.getAllByTestId('setting-info').forEach((icon, i) => {
+    fireEvent.mouseEnter(icon)
+    expect(screen.getByTestId('gl-tip')).toHaveTextContent(tips[i])
+    fireEvent.mouseLeave(icon)
+  })
 })
 
 test('example chips are hidden while busy', () => {
