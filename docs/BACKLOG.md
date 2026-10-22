@@ -208,6 +208,38 @@ they are IDs, not positions.
   End-to-end: tests select `.controls` by class and duplicate setup; row
   stacking at 390 px is not asserted. Also (pre-existing): old v5 neuron
   files stay in the Cache Storage. *(#17 final review, 2026-10-21)*
+- [ ] **#23 Chat templating parked minors** — from #8's reviews. Chat
+  logic: `chatSpans` assumes `user` and `↵` follow `<|im_start|>` (fixed
+  offset 3); the typed-`<|im_end|>` test guards its assertions with
+  `if (spans)`; `fitChatToBudget` may still exceed the budget (the worker
+  guards it); `worker.ts` import order and a duplicated `{ kind: 'text' }`
+  instead of `TEXT_FORMAT`. Glossary: "every chat assistant wraps your
+  message in that format" overgeneralises (formats differ per model); the
+  chat-template registry test checks only sections and stage. Saved runs:
+  no shelf-title test for a custom or 60-character-cut system prompt;
+  `formatOf` is called twice. Strip and tokenizer detail: special tokens
+  in the tokenizer detail are dashed grey, not indigo; the fold stays
+  open when a new run replaces the events; `.token-fold` has no
+  `:focus-visible` style. Attention matrix: the folded column's label and
+  the next one start at the same height (tight); a stale hover is clamped
+  but not cleared, so its outline can reappear if the matrix grows back;
+  no render-count test for the memoised cells; the `clientWidth` mock is
+  restored in the test body, not `afterEach`; a loose `toBeLessThan(19)`;
+  no tests that LayersDetail and CompareView pass the spans through; the
+  toggle test doesn't assert that the fold label disappears. Edit sizes:
+  the "fold row is not selectable" test cannot fail; the selected row can
+  sit inside the closed fold. Prompt bar and app: `.config-divider` CSS is
+  unused; "Real model" shows pressed while loading; no test for a chat
+  request during a load in flight (the UI blocks it); the start-up cache
+  check can still switch to real mode or label a network download "from
+  the browser's cache" if the user clicks during it; the stock fallback
+  model never auto-starts (undocumented); `.load-real` uses `#fff`; the
+  DetailPanel test leaves `useRealModel` at `loading: true`; `viz` imports
+  `app/LoadRealButton`; every App render installs a new `request` and
+  re-renders the load buttons. Import: `dropBrokenChat` does not check the
+  token objects themselves. End-to-end: the `system-fold` locator is
+  unscoped, `stage-card.nth(2)` selects Layers by index, the matrix width
+  is measured without polling. *(#8 reviews and final review, 2026-10-22)*
 - [ ] **#9 Mobile layout** — the app is desktop-first; a narrow-viewport pass
   is substantial design work for an audience that mostly explores on
   laptops. *(v1 spec, out of scope)*
