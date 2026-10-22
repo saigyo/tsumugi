@@ -11,8 +11,9 @@ export const chatTemplate: GlossaryEntry = {
   body: () => (
     <>
       <Section id="what" title="What it is">
-        <p>SmolLM2-135M-Instruct was tuned on conversations written in one format. Every chat assistant wraps your
-          message in that format before the model sees it:</p>
+        <p>SmolLM2-135M-Instruct was tuned on conversations written in one format, and a chat app built on it
+          wraps your message in that format before the model sees it. Other models have formats of their own, with
+          other marker tokens. SmolLM2's looks like this:</p>
         <p className="gl-example"><code>{'<|im_start|>system↵You are a helpful AI assistant named SmolLM, trained by Hugging Face<|im_end|>↵'}</code><br />
           <code>{'<|im_start|>user↵What is the capital of France?<|im_end|>↵'}</code><br />
           <code>{'<|im_start|>assistant↵'}</code></p>

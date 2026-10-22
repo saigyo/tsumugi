@@ -116,6 +116,14 @@ test('a chat run folds the system prompt into one column; the toggle opens the f
   expect(screen.getAllByTestId('row-label')).toHaveLength(n)
 })
 
+test('the folded column’s label starts one row above the next label, like neighbouring labels elsewhere', () => {
+  render(<AttentionHeatmap heads={chatAttn.heads} tokens={chatTokens} chat={chat} />)
+  const ys = screen.getAllByTestId('col-label').map((l) => Number(l.getAttribute('y')))
+  const fold = screen.getAllByTestId('col-label').findIndex((l) => l.textContent === 'system prompt (20)')
+  expect(ys[fold + 1] - ys[fold]).toBe(ys[fold + 2] - ys[fold + 1])
+  expect(ys[fold + 1] - ys[fold]).toBeGreaterThan(0)
+})
+
 test('the folded column’s readout names the system prompt and its summed weight', () => {
   render(<AttentionHeatmap heads={chatAttn.heads} tokens={chatTokens} chat={chat} />)
   const cell = screen.getAllByTestId('attn-cell').find((c) => c.querySelector('title')?.textContent?.includes('→ system prompt (20)'))!
@@ -168,6 +176,16 @@ test('a hovered cell that vanishes when the matrix shrinks does not crash the re
   rerender(<AttentionHeatmap heads={attn.heads} tokens={tokens} />)
   expect(screen.getByTestId('attn-readout').textContent?.trim()).toBe('')
   expect(screen.queryByTestId('attn-hover')).toBeNull()
+})
+
+test('a hover cleared by a shrinking matrix does not come back when the matrix grows again', () => {
+  const { rerender } = render(<AttentionHeatmap heads={chatAttn.heads} tokens={chatTokens} chat={chat} />)
+  const cells = screen.getAllByTestId('attn-cell')
+  fireEvent.mouseEnter(cells[cells.length - 1])
+  rerender(<AttentionHeatmap heads={attn.heads} tokens={tokens} />)
+  rerender(<AttentionHeatmap heads={chatAttn.heads} tokens={chatTokens} chat={chat} />)
+  expect(screen.queryByTestId('attn-hover')).toBeNull()
+  expect(screen.getByTestId('attn-readout').textContent?.trim()).toBe('')
 })
 
 test('the simulated note says the real model would show computed weights, with a link to load it', () => {

@@ -87,8 +87,10 @@ export function AttentionHeatmap({ heads, tokens, focus, chat, foldToggle = true
   if (!head || !folded) return null
   const nRows = folded.rows.length
   const nCols = folded.cols.length
-  // a hover left over from a larger matrix points at nothing
+  // a hover left over from a larger matrix points at nothing: drop it, so it
+  // cannot come back if the matrix grows again
   const hovered = hoveredRaw && hoveredRaw.r < nRows && hoveredRaw.c < nCols ? hoveredRaw : null
+  if (hoveredRaw && !hovered) setHovered(null)
   const cell = cellSize(width, nCols, LABEL_W + RIGHT_PAD)
   const step = labelStep(cell)
 
@@ -115,7 +117,10 @@ export function AttentionHeatmap({ heads, tokens, focus, chat, foldToggle = true
         aria-label={`attention weights, ${head.label} head`}>
         {folded.cols.map((_, i) => {
           const cx = LABEL_W + i * cell + cell / 2
-          const firstRow = folded.rows.findIndex((r) => r >= folded.cols[i].from)
+          const fold = folded.cols[i].to - folded.cols[i].from > 1
+          // the folded column's first cell shares its row with the next column's:
+          // its label starts a row higher so the two stay apart
+          const firstRow = folded.rows.findIndex((r) => r >= folded.cols[i].from) - (fold ? 1 : 0)
           const cy = DIAG_PAD + firstRow * cell - 5
           return (
             <text key={`c${i}`} data-testid="col-label" data-hl={String(hovered?.c === i)}

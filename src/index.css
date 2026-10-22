@@ -8,6 +8,7 @@
 
   --washi: #f6f3ea;        /* page ground */
   --card: #fcfbf6;         /* raised surfaces */
+  --on-ai: #fff;           /* text on an indigo fill */
   --ink: #2b2b31;          /* sumi text */
   --ink-soft: #6e6b62;     /* secondary text */
   --ink-faint: #99958a;    /* tertiary text */
@@ -214,7 +215,7 @@ input[type="number"] { width: 4rem; }
 .sim-banner-close { border: 0; background: none; color: var(--ink-faint); font-size: 1.1rem; cursor: pointer; }
 .model-progress { display: flex; gap: .6rem; align-items: center; border: 1px solid var(--line); background: var(--card); color: var(--ink-soft); }
 .model-progress progress { flex: 1; max-width: 16rem; height: .4rem; accent-color: var(--ai); }
-.load-real { border: 1px solid var(--ai); background: var(--ai); color: #fff; border-radius: 4px; padding: .3rem .7rem; white-space: nowrap; }
+.load-real { border: 1px solid var(--ai); background: var(--ai); color: var(--on-ai); border-radius: 4px; padding: .3rem .7rem; white-space: nowrap; }
 .load-real:disabled { opacity: .5; }
 
 .token-chip-row { display: flex; flex-wrap: wrap; gap: .3rem; margin-top: .5rem; }
@@ -520,7 +521,7 @@ math { font-family: 'Latin Modern Math', math, 'STIX Two Math', 'Cambria Math', 
 .mlp-seg { display: inline-flex; border: 1px solid var(--line-strong); border-radius: 6px; overflow: hidden; }
 .mlp-seg button { font: inherit; font-size: .8rem; border: 0; border-radius: 0; background: var(--card); color: var(--ink); padding: .25rem .65rem; }
 .mlp-seg button + button { border-left: 1px solid var(--line-strong); }
-.mlp-seg button[aria-pressed="true"] { background: var(--ai); color: #fff; }
+.mlp-seg button[aria-pressed="true"] { background: var(--ai); color: var(--on-ai); }
 .mlp-legend { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; font-size: .75rem; color: var(--ink-faint); }
 .mlp-legend-note { margin-left: .4rem; }
 .mlp-ramp { width: 120px; height: 10px; border-radius: 2px; background: linear-gradient(90deg, hsl(211 30% 94%), hsl(211 55% 24%)); }
@@ -624,7 +625,7 @@ math { font-family: 'Latin Modern Math', math, 'STIX Two Math', 'Cambria Math', 
 .neuron-chip { display: inline-block; white-space: pre; padding: 0 .45rem; margin: .1rem .15rem; border-radius: 999px; background: var(--ai-wash); font-size: .78rem; }
 .neuron-away { background: var(--shu-wash); }
 .neuron-badge { font-size: .72rem; padding: .05rem .4rem; border-radius: 4px; white-space: nowrap; background: var(--line); }
-.neuron-badge-strong { background: var(--ai); color: #fff; }
+.neuron-badge-strong { background: var(--ai); color: var(--on-ai); }
 .neuron-badge-mid { background: var(--ai-wash-strong); }
 .neuron-rest td { color: var(--ink-soft); font-style: italic; }
 .neuron-total td { font-weight: 600; border-bottom: 0; }
@@ -639,7 +640,7 @@ math { font-family: 'Latin Modern Math', math, 'STIX Two Math', 'Cambria Math', 
 .layers-nav-links { display: flex; gap: .35rem; overflow-x: auto; min-width: 0; flex: 1; scrollbar-width: thin; }
 .layers-nav-link { padding: .1rem .6rem; border: 1px solid var(--line-strong); border-radius: 999px; font-size: .76rem;
   color: var(--ink); text-decoration: none; white-space: nowrap; background: var(--washi); }
-.layers-nav-link[aria-current="true"] { background: var(--ai); border-color: var(--ai); color: #fff; }
+.layers-nav-link[aria-current="true"] { background: var(--ai); border-color: var(--ai); color: var(--on-ai); }
 .layers-nav-layer { margin-left: auto; font-size: .76rem; white-space: nowrap; display: flex; align-items: center; gap: .2rem; }
 .layers-section { scroll-margin-top: calc(var(--controls-h, 0px) + var(--nav-h, 2.6rem) + 6px); }
 .attn-hover { fill: none; stroke: var(--shu); stroke-width: 2; }
@@ -649,7 +650,7 @@ math { font-family: 'Latin Modern Math', math, 'STIX Two Math', 'Cambria Math', 
 
 .seg { display: inline-flex; align-items: center; border: 1px solid var(--ai-soft); border-radius: 6px; overflow: hidden; }
 .seg > button { border: 0; border-radius: 0; background: var(--card); color: var(--ai); padding: .35rem .7rem; font-size: .85rem; }
-.seg > button[aria-pressed="true"] { background: var(--ai); color: #fff; }
+.seg > button[aria-pressed="true"] { background: var(--ai); color: var(--on-ai); }
 .seg > button[aria-busy="true"] { background: var(--ai-wash); }
 .seg > button[aria-pressed="true"] .mode-note { color: var(--ai-wash-strong); }
 .seg .gl-term-wrap { padding: 0 .4rem; }
