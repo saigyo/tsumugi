@@ -44,13 +44,9 @@ test('special tokens typed into the prompt never crash the scan and never give s
   // user typed "<|im_start|>": a fourth <|im_start|>
   const extraStart = [...DEFAULT_IDS.slice(0, 26), S, ...DEFAULT_IDS.slice(26)]
   expect(chatSpans(extraStart, S, E, true)).toBeUndefined()
-  // user typed "<|im_end|>": the user span ends early but stays inside the ids
+  // user typed "<|im_end|>" after "What is": the user span ends there, inside the ids
   const extraEnd = [...DEFAULT_IDS.slice(0, 26), E, ...DEFAULT_IDS.slice(26)]
-  const spans = chatSpans(extraEnd, S, E, true)
-  if (spans) {
-    expect(spans.user[0]).toBeLessThanOrEqual(spans.user[1])
-    expect(spans.user[1]).toBeLessThanOrEqual(extraEnd.length)
-  }
+  expect(chatSpans(extraEnd, S, E, true)).toEqual({ system: [1, 21], user: [24, 26] })
 })
 
 test('within budget nothing is cut', () => {

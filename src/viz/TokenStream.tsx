@@ -18,7 +18,7 @@ export function TokenStream({ events, cursor }: { events: TraceEvent[]; cursor: 
   const dist = hoveredCycle !== null ? distributionFor(events, hoveredCycle) : undefined
 
   return (
-    <div className="token-stream" aria-label="Token stream">
+    <div data-testid="token-stream" className="token-stream" aria-label="Token stream">
       {foldItems(prompt.length, chat?.system, open).map((item) => item.kind === 'fold' ? (
         <button key="fold" type="button" data-testid="system-fold" className="token token-fold"
           aria-expanded={open} title={FOLD_TITLE} onClick={() => setOpenFor(open ? null : events[0])}>

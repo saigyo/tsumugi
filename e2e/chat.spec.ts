@@ -18,15 +18,18 @@ test('an imported chat run: folded strip, end of turn, and an attention matrix t
   const chip = page.getByTestId('run-chip').filter({ hasText: 'Chat · What is the' })
   await chip.getByTestId('run-chip-main').click()
 
-  await expect(page.getByTestId('system-fold')).toHaveText('system prompt · 20 tokens ▸')
+  await expect(page.getByTestId('token-stream').getByTestId('system-fold')).toHaveText('system prompt · 20 tokens ▸')
   await expect(page.getByTestId('generated-token').last()).toHaveClass(/token-end/)
   await expect(page.getByTestId('generated-token').filter({ hasText: 'Paris' })).toHaveCount(1)
 
-  await page.getByTestId('stage-card').nth(2).click()
+  await page.locator('[data-testid="stage-card"][data-stage="layers"]').click()
   const heatmap = page.getByTestId('attention-heatmap')
-  const card = (await heatmap.boundingBox())!
-  const svg = (await heatmap.locator('svg').boundingBox())!
-  expect(svg.width).toBeLessThanOrEqual(card.width)
+  // the cell size follows the card's measured width: wait until it has settled
+  await expect.poll(async () => {
+    const card = await heatmap.boundingBox()
+    const svg = await heatmap.locator('svg').boundingBox()
+    return card && svg ? card.width - svg.width : -1
+  }).toBeGreaterThanOrEqual(0)
   await expect(page.getByTestId('attn-show-system')).not.toBeChecked()
   await expect(page.getByTestId('edit-fold')).toHaveText('system prompt · 20 tokens ▸')
 })

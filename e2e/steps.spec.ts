@@ -20,7 +20,7 @@ async function openFixtureRun(page: Page) {
     params: { temperature: 0.8, topK: 10, maxNewTokens: 2 }, mode: 'real', modelId: 'fixture', endedAt: Date.now(), reason: 'max-tokens' } })
   await page.getByTestId('import-input').setInputFiles({ name: 'run.json', mimeType: 'application/json', buffer: Buffer.from(file) })
   await page.getByTestId('run-chip').filter({ hasText: 'steps fixture' }).getByTestId('run-chip-main').click()
-  await page.getByTestId('stage-card').nth(2).click()
+  await page.locator('[data-testid="stage-card"][data-stage="layers"]').click()
 }
 
 test('the section bar sticks, jumps and steps the shared layer; the charts fill the card', async ({ page }) => {

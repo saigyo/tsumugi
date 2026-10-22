@@ -22,7 +22,7 @@ test('an imported real run opens Inside one MLP with a total equal to the votes 
     params: { temperature: 0.8, topK: 10, maxNewTokens: 2 }, mode: 'real', modelId: 'fixture', endedAt: Date.now(), reason: 'max-tokens' } })
   await page.getByTestId('import-input').setInputFiles({ name: 'run.json', mimeType: 'application/json', buffer: Buffer.from(file) })
   await page.getByTestId('run-chip').filter({ hasText: 'neuron fixture' }).getByTestId('run-chip-main').click()
-  await page.getByTestId('stage-card').nth(2).click()                      // Layers
+  await page.locator('[data-testid="stage-card"][data-stage="layers"]').click()
 
   const card = page.getByTestId('neuron-card')
   await expect(card.getByTestId('neuron-row')).toHaveCount(8)

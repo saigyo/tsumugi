@@ -17,7 +17,7 @@ test('first visit: hint opens How to read; ? opens the index; a card chip opens 
   await page.getByTestId('prompt-input').fill('The cat sat on the')
   await page.getByTestId('btn-generate').click()
   await page.getByTestId('run-chip').first().waitFor({ timeout: 30000 })   // the run has sealed
-  await page.getByTestId('stage-card').nth(4).click()                      // Softmax
+  await page.locator('[data-testid="stage-card"][data-stage="softmax"]').click()
   await page.getByTestId('embed-callout').filter({ hasText: 'temperature' }).click()
   await expect(page.getByTestId('gl-heading')).toContainText('Softmax')
   await expect(page.getByTestId('gl-in-run')).toContainText('T =')
