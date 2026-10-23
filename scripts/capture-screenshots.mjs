@@ -39,7 +39,7 @@ const context = await chromium.launchPersistentContext(PROFILE, {
   headless: false,
   viewport: { width: 1380, height: 940 },
 })
-// Scenes can be selected: `npm run screenshots -- pipeline glossary attention compare embeddings logits mlp neurons`
+// Scenes can be selected: `npm run screenshots -- glossary pipeline attention compare embeddings logits mlp neurons`
 // (default: all). Skipping a scene preserves its existing images — useful when
 // a previous capture caught a specimen worth keeping (e.g. a great fork).
 const only = process.argv.slice(2)
@@ -56,15 +56,6 @@ try {
   await page.waitForTimeout(1500)
   while (await $('btn-chip-remove').count()) await $('btn-chip-remove').first().click()
 
-  // ---- pipeline.png: simulated run at run end -------------------------------
-  if (want('pipeline')) {
-    await $('example-chip').first().click()                  // auto-generates
-    await $('run-chip').first().waitFor({ timeout: 15000 })
-    await $('btn-live').click()
-    await page.screenshot({ path: `${DIR}/pipeline.png` })
-    console.log('pipeline.png')
-  }
-
   // ---- glossary.png: simulated run, Softmax card with the drawer open -------
   if (want('glossary')) {
     await $('example-chip').first().click()                  // auto-generates
@@ -80,10 +71,24 @@ try {
   }
 
   // real mode serves the remaining scenes
-  if (want('attention') || want('compare') || want('embeddings') || want('logits') || want('mlp') || want('neurons')) {
-    await $('mode-toggle').check()
-    await $('model-status-slot').getByText(/attn/).waitFor({ timeout: 300000 })  // first run downloads the model
+  if (want('pipeline') || want('attention') || want('compare') || want('embeddings') || want('logits') || want('mlp') || want('neurons')) {
+    await $('mode-real').click()
+    await $('mode-badge').filter({ hasText: 'attn' }).waitFor({ timeout: 300000 })  // first run downloads the model
   }
+
+  // ---- pipeline.png: real model, the chat example at run end ----------------
+  if (want('pipeline')) {
+    await $('temp-input').fill('0')                          // greedy: the answer ends its turn with <|im_end|>
+    const before = await $('run-chip').count()
+    await $('example-chip').filter({ hasText: 'Chat:' }).click()   // auto-generates
+    await $('run-chip').nth(before).waitFor({ timeout: 120000 })
+    await $('btn-live').click()
+    await page.screenshot({ path: `${DIR}/pipeline.png` })
+    await $('temp-input').fill('0.8')
+    console.log('pipeline.png')
+  }
+  // the remaining scenes continue text, as they did before Chat mode existed
+  if (await $('format-text').count()) await $('format-text').click()
 
   // ---- real-attention.png + head-explorer.png: real mode --------------------
   if (want('attention')) {

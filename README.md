@@ -22,7 +22,7 @@ controls.
 New to the concepts? The **?** button in the app's header opens a glossary,
 and underlined words and ⓘ chips in the cards open the matching entry.
 
-![The pipeline at the end of a run: token stream, stage band, playback controls, and the run summary](docs/screenshots/pipeline.png)
+![A Chat run on the real model at its end: the question, the folded system prompt and the answer “The capital of France is Paris.” in the token stream, then the stage band, playback controls and run summary](docs/screenshots/pipeline.png)
 
 ## Modes
 
