@@ -84,7 +84,13 @@ try {
     await $('example-chip').filter({ hasText: 'Chat:' }).click()   // auto-generates
     await $('run-chip').nth(before).waitFor({ timeout: 120000 })
     await $('btn-live').click()
-    await page.screenshot({ path: `${DIR}/pipeline.png` })
+    // crop to the app column, from the header down to the run summary
+    const head = await page.locator('.app-header').boundingBox()
+    const end = await $('detail-run-end').boundingBox()
+    const pad = 16
+    await page.screenshot({ path: `${DIR}/pipeline.png`, clip: {
+      x: head.x - pad, y: Math.max(0, head.y - pad), width: head.width + 2 * pad, height: end.y + end.height - head.y + 2 * pad,
+    } })
     await $('temp-input').fill('0.8')
     console.log('pipeline.png')
   }
