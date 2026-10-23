@@ -40,6 +40,7 @@ const context = await chromium.launchPersistentContext(PROFILE, {
   viewport: { width: 1380, height: 940 },
 })
 // Scenes can be selected: `npm run screenshots -- glossary pipeline attention compare embeddings logits mlp neurons`
+// (mlp also writes mlp-steps.png)
 // (default: all). Skipping a scene preserves its existing images — useful when
 // a previous capture caught a specimen worth keeping (e.g. a great fork).
 const only = process.argv.slice(2)
@@ -210,15 +211,25 @@ try {
     await $('btn-live').click()
     await $('stage-card').nth(2).click()                            // Layers
     await $('vote-cell').first().waitFor({ timeout: 10000 })
-    // the detail panel scrolls on its own, so a page clip would miss the lower
-    // card: screenshot the element that holds both cards instead
-    // the sticky playback bar would cover the cards' top once scrolled there
-    const unstick = await page.addStyleTag({ content: '.controls { position: static !important; }' })
+    // the cards area also holds Inside one MLP and Step by step: hide those two;
+    // the sticky playback and section bars would cover the cards once scrolled there
+    const crop = await page.addStyleTag({ content: '#layers-neurons, #layers-steps { display: none !important; } '
+      + '.controls, .layers-nav { position: static !important; }' })
     await page.waitForTimeout(300)
     await $('mlp-cards').screenshot({ path: `${DIR}/mlp.png` })
-    await unstick.evaluate((el) => el.remove())
-    await $('maxtok-input').fill('20')
+    await crop.evaluate((el) => el.remove())
     console.log('mlp.png')
+    // ---- mlp-steps.png: the same run, The MLP, step by step -------------------
+    const unstick = await page.addStyleTag({ content: '.controls, .layers-nav { position: static !important; }' })
+    await $('steps-card').scrollIntoViewIfNeeded()
+    await page.locator('[data-testid="steps-card"] svg').first().waitFor({ timeout: 60000 })
+    // steps 1 and 5 need the layer's weights, fetched once per model version
+    await page.waitForFunction(() => !document.querySelector('[data-testid="steps-loading"]'), null, { timeout: 60000 })
+    await page.waitForTimeout(500)
+    await $('steps-card').screenshot({ path: `${DIR}/mlp-steps.png` })
+    await unstick.evaluate((el) => el.remove())
+    console.log('mlp-steps.png')
+    await $('maxtok-input').fill('20')
   }
 
   // ---- neurons.png: real mode, Layers stage — Inside one MLP ----------------

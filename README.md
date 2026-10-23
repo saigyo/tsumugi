@@ -262,6 +262,8 @@ the score building up through the layers, and a breakdown names the
 largest contributors. Simulated runs show a note instead: there is no MLP
 to measure.
 
+![The edit-size and per-layer votes cards](docs/screenshots/mlp.png)
+
 **Inside one MLP** opens one layer: its MLP edit is the sum of 1,536 neuron
 edits, so its vote for a candidate splits into one vote per neuron. The card
 lists the eight neurons behind the vote (or, toggled, the eight that changed
@@ -288,12 +290,12 @@ The card shares its layer with the neuron card. Runs recorded before v6 do
 not store the step data and show a "generate again" note here. Stored runs
 grow by about 340 KB per generated token.
 
+![The MLP, step by step: norm, gate and up, SiLU, product and down for layer 27, with the neurons from Inside one MLP marked](docs/screenshots/mlp-steps.png)
+
 A sticky section bar at the top of the Layers detail, just below the
 playback controls, links to Overview, Attention, Edit sizes, Votes, Inside
 one MLP and Step by step, highlights the section on screen, and holds the
 shared "MLP layer N" stepper.
-
-![The edit-size and per-layer votes cards](docs/screenshots/mlp.png)
 
 ## The glossary
 
@@ -333,7 +335,7 @@ ruler or a word chip) to inspect it:
   asymmetry that is itself informative (that run's content didn't
   activate the circuit strongly enough to win a chip).
 
-![Two same-prompt runs forking at cycle 1 with identical distributions](docs/screenshots/compare.png)
+![Two same-prompt runs forking at the first generated token with identical distributions](docs/screenshots/compare.png)
 
 ![Paired attention matrices for the selected cycle](docs/screenshots/compare-attention.png)
 
