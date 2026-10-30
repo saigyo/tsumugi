@@ -218,3 +218,18 @@ test('the load request stays the same across renders and still loads the real mo
   expect(constructCount).toBe(1)
   await waitFor(() => expect(useRealModel.getState().loading).toBe(true))
 })
+
+test('while the real model is loading, neither the chat example nor Generate can start a run', async () => {
+  render(<App />)
+  fireEvent.click(screen.getByTestId('mode-real'))       // prepare() stays pending
+  fireEvent.change(screen.getByTestId('prompt-input'), { target: { value: 'What is the capital of France?' } })
+  const chatChip = screen.getAllByTestId('example-chip').find((c) => c.textContent?.includes('Chat:'))!
+  expect(chatChip).toBeDisabled()
+  expect(screen.getByTestId('btn-generate')).toBeDisabled()
+  fireEvent.click(chatChip)
+  fireEvent.click(screen.getByTestId('btn-generate'))
+  expect(runs).toHaveLength(0)
+  expect(constructCount).toBe(1)
+  deferreds[0].resolve()
+  await waitFor(() => expect(screen.getByTestId('btn-generate')).not.toBeDisabled())
+})

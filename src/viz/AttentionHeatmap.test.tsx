@@ -114,6 +114,8 @@ test('a chat run folds the system prompt into one column; the toggle opens the f
   expect(screen.getAllByTestId('col-label').map((l) => l.textContent)).toContain('system prompt (20)')
   fireEvent.click(screen.getByTestId('attn-show-system'))
   expect(screen.getAllByTestId('row-label')).toHaveLength(n)
+  expect(screen.getAllByTestId('col-label').map((l) => l.textContent)).not.toContain('system prompt (20)')
+  expect(screen.queryAllByTestId('attn-cell').some((c) => c.classList.contains('attn-cell-fold'))).toBe(false)
 })
 
 test('the folded column’s label starts midway between its neighbours’ labels', () => {
@@ -200,4 +202,16 @@ test('a new run starts with the system prompt folded again', () => {
   expect(screen.getByTestId('attn-show-system')).toBeChecked()
   rerender(<AttentionHeatmap heads={chatAttn.heads} tokens={chatTokens} chat={{ ...chat }} />)
   expect(screen.getByTestId('attn-show-system')).not.toBeChecked()
+})
+
+test('hovering a cell redraws the readout, not the memoised cells', () => {
+  render(<AttentionHeatmap heads={chatAttn.heads} tokens={chatTokens} chat={chat} />)
+  const cells = screen.getAllByTestId('attn-cell')
+  // every cell computes its fill with two Math.round calls: a redraw of all cells shows up as hundreds
+  const round = vi.spyOn(Math, 'round')
+  try {
+    fireEvent.mouseEnter(cells[cells.length - 1])
+    fireEvent.mouseLeave(cells[cells.length - 1])
+    expect(round.mock.calls.length).toBeLessThan(cells.length)
+  } finally { round.mockRestore() }
 })

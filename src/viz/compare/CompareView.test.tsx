@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, expect, test, vi } from 'vitest'
 import { makeGridEvent, makeRunRecord } from '../../test/fixtures'
 import type { RunRecord } from '../../app/runsStore'
@@ -173,4 +173,14 @@ test('whitespace tokens show as glyphs in the token strips and the bars', () => 
   render(<CompareView a={nl(1)} b={nl(2)} />)
   expect(screen.getAllByTestId('cmp-token')[0]).toHaveTextContent('↵')
   expect(screen.getByTestId('cmp-stream-a')).toHaveTextContent('␣cat')
+})
+
+test('two chat runs fold the system prompt in both matrices, without the toggle', () => {
+  render(<CompareView a={makeRunRecord(1, { chat: true })} b={makeRunRecord(2, { chat: true })} />)
+  fireEvent.click(screen.getAllByTestId('cmp-tick')[0])
+  const maps = screen.getAllByTestId('attention-heatmap')
+  expect(maps).toHaveLength(2)
+  for (const m of maps)
+    expect(within(m).getAllByTestId('col-label').map((l) => l.textContent)).toContain('system prompt (20)')
+  expect(screen.queryByTestId('attn-show-system')).toBeNull()
 })

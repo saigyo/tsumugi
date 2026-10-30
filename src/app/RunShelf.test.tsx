@@ -108,3 +108,17 @@ test('a chat run’s chip says Chat and its title names the system prompt', () =
   expect(mains[2]).toHaveTextContent('#3 · The cat sat')
   expect(mains[2].getAttribute('title')).not.toContain('system:')
 })
+
+test('a custom system prompt is named in the title; one longer than 60 characters is cut with an ellipsis', () => {
+  const short = makeRunRecord(1, { mode: 'real', prompt: 'Hi' })
+  short.meta.format = { kind: 'chat', system: 'You always answer in French.' }
+  const long = makeRunRecord(2, { mode: 'real', prompt: 'Hi' })
+  long.meta.format = { kind: 'chat', system: 'x'.repeat(60) + 'TAIL' }
+  const exact = makeRunRecord(3, { mode: 'real', prompt: 'Hi' })
+  exact.meta.format = { kind: 'chat', system: 'y'.repeat(60) }
+  render(<RunShelf {...props({ records: [short, long, exact] })} />)
+  const titles = screen.getAllByTestId('run-chip-main').map((m) => m.getAttribute('title'))
+  expect(titles[0]).toContain(' · system: You always answer in French. · ended:')
+  expect(titles[1]).toContain(` · system: ${'x'.repeat(60)}… · ended:`)
+  expect(titles[2]).toContain(` · system: ${'y'.repeat(60)} · ended:`)
+})
