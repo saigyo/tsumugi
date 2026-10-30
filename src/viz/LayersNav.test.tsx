@@ -65,3 +65,17 @@ test('without MLP data the stepper is hidden and the links stay', () => {
   expect(screen.queryByTestId('nav-layer')).toBeNull()
   expect(screen.getAllByTestId('nav-link')).toHaveLength(6)
 })
+
+test('a section that a jump left a few pixels lower than its scroll margin still counts as reached', () => {
+  vi.useFakeTimers()
+  // jsdom's bar ends at 0; the scroll margin puts a jumped-to section 6 px below it,
+  // and fonts or rounding on another machine can leave it a little lower
+  page([-3000, -2500, -2000, -1500, -1000, 20])
+  act(() => { window.dispatchEvent(new Event('scroll')); vi.advanceTimersByTime(50) })
+  const current = () => screen.getAllByTestId('nav-link').filter((l) => l.getAttribute('aria-current') === 'true').map((l) => l.textContent)
+  expect(current()).toEqual(['Step by step'])
+  cleanup()
+  page([-3000, -2500, -2000, -1500, -1000, 120])
+  act(() => { window.dispatchEvent(new Event('scroll')); vi.advanceTimersByTime(50) })
+  expect(current()).toEqual(['Inside one MLP'])
+})

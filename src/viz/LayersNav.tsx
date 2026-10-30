@@ -18,6 +18,9 @@ function usePublishHeight(el: Element | null, name: string) {
   }, [el, name])
 }
 
+// how far below the bar a section's top may sit and still count as on screen
+const REACHED_SLACK = 32
+
 export function LayersNav({ candidates, run, showStepper }: { candidates?: VotedCandidate[]; run?: TraceEvent; showStepper: boolean }) {
   const [barEl, setBarEl] = useState<HTMLElement | null>(null)
   const [current, setCurrent] = useState(LAYER_SECTIONS[0].id)
@@ -28,8 +31,9 @@ export function LayersNav({ candidates, run, showStepper }: { candidates?: Voted
     let frame = 0
     const update = () => {
       frame = 0
-      // a section scrolled to (scroll-margin: bar + 6 px) must count as reached
-      const line = (barEl?.getBoundingClientRect().bottom ?? 0) + 8
+      // a section scrolled to (scroll-margin: bar + 6 px) must count as reached, also
+      // when fonts and rounding leave it a few pixels lower
+      const line = (barEl?.getBoundingClientRect().bottom ?? 0) + REACHED_SLACK
       let id = LAYER_SECTIONS[0].id
       for (const s of LAYER_SECTIONS) {
         const el = document.getElementById(s.id)
