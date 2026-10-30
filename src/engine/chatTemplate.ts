@@ -21,13 +21,16 @@ export const noSystemChat = (prompt: string): string =>
 // "<|im_start|> ass istant \n". hasSystem says whether the prompt was built with a
 // system turn, so a typed <|im_start|> cannot pass for one. Anything else gives undefined, and the views
 // show every position unfolded.
-export function chatSpans(ids: number[], imStart: number, imEnd: number, hasSystem: boolean): ChatSpans | undefined {
-  const starts = ids.flatMap((id, i) => (id === imStart ? [i] : []))
+export function chatSpans(ids: number[], marks: { start: number; end: number; newline: number }, hasSystem: boolean): ChatSpans | undefined {
+  const starts = ids.flatMap((id, i) => (id === marks.start ? [i] : []))
   if (starts[0] !== 0 || starts.length !== (hasSystem ? 3 : 2)) return undefined
   const userTurn = hasSystem ? starts[1] : starts[0]
-  const u = userTurn + 3                       // after <|im_start|>, "user", "\n"
-  const e = ids.indexOf(imEnd, u)
-  if (e < 0 || e > starts[starts.length - 1]) return undefined
+  const last = starts[starts.length - 1]
+  const nl = ids.indexOf(marks.newline, userTurn + 1)   // the header ends with "\n", however the role name splits
+  if (nl < 0 || nl > last) return undefined
+  const u = nl + 1
+  const e = ids.indexOf(marks.end, u)
+  if (e < 0 || e > last) return undefined
   return hasSystem ? { system: [1, starts[1]], user: [u, e] } : { user: [u, e] }
 }
 

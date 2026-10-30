@@ -2,6 +2,7 @@ import { expect, test } from 'vitest'
 import { chatSpans, DEFAULT_SYSTEM_PROMPT, fitChatToBudget, isSpecialToken, noSystemChat, systemOf } from './chatTemplate'
 
 const S = 1, E = 2   // <|im_start|>, <|im_end|>
+const M = { start: S, end: E, newline: 198 }
 // The real ids of the default chat prompt for "What is the capital of France?"
 // (SmolLM2-135M-Instruct tokenizer): system turn [1, 21), user words [24, 31).
 const DEFAULT_IDS = [1, 9690, 198, 2683, 359, 253, 5356, 5646, 11173, 3365, 3511, 308, 34519, 28, 7018, 411, 407,
@@ -26,36 +27,36 @@ test('without a system turn the string is the template’s output minus its firs
 })
 
 test('spans of the default chat prompt: system [1, 21), user [24, 31)', () => {
-  expect(chatSpans(DEFAULT_IDS, S, E, true)).toEqual({ system: [1, 21], user: [24, 31] })
+  expect(chatSpans(DEFAULT_IDS, M, true)).toEqual({ system: [1, 21], user: [24, 31] })
 })
 
 test('spans without a system turn have only the user part', () => {
-  expect(chatSpans(NO_SYSTEM_IDS, S, E, false)).toEqual({ user: [3, 4] })
+  expect(chatSpans(NO_SYSTEM_IDS, M, false)).toEqual({ user: [3, 4] })
 })
 
 test('an unexpected shape gives no spans', () => {
-  expect(chatSpans([], S, E, true)).toBeUndefined()
-  expect(chatSpans([4093, 198], S, E, true)).toBeUndefined()                          // no <|im_start|>
-  expect(chatSpans([9, S, 4093, 198, 7, E, 198, S, 520], S, E, false)).toBeUndefined()  // not at position 0
-  expect(chatSpans([S, 4093, 198, 7, 198, S, 520], S, E, false)).toBeUndefined()        // user turn never closed
+  expect(chatSpans([], M, true)).toBeUndefined()
+  expect(chatSpans([4093, 198], M, true)).toBeUndefined()                          // no <|im_start|>
+  expect(chatSpans([9, S, 4093, 198, 7, E, 198, S, 520], M, false)).toBeUndefined()  // not at position 0
+  expect(chatSpans([S, 4093, 198, 7, 198, S, 520], M, false)).toBeUndefined()        // user turn never closed
 })
 
 test('special tokens typed into the prompt never crash the scan and never give spans outside the ids', () => {
   // user typed "<|im_start|>": a fourth <|im_start|>
   const extraStart = [...DEFAULT_IDS.slice(0, 26), S, ...DEFAULT_IDS.slice(26)]
-  expect(chatSpans(extraStart, S, E, true)).toBeUndefined()
+  expect(chatSpans(extraStart, M, true)).toBeUndefined()
   // user typed "<|im_end|>" after "What is": the user span ends there, inside the ids
   const extraEnd = [...DEFAULT_IDS.slice(0, 26), E, ...DEFAULT_IDS.slice(26)]
-  expect(chatSpans(extraEnd, S, E, true)).toEqual({ system: [1, 21], user: [24, 26] })
+  expect(chatSpans(extraEnd, M, true)).toEqual({ system: [1, 21], user: [24, 26] })
 })
 
 test('within budget nothing is cut', () => {
-  const spans = chatSpans(DEFAULT_IDS, S, E, true)!
+  const spans = chatSpans(DEFAULT_IDS, M, true)!
   expect(fitChatToBudget(DEFAULT_IDS, spans, 100)).toEqual({ ids: DEFAULT_IDS, spans, truncated: false })
 })
 
 test('over budget, the start of the user’s words goes first and the template stays', () => {
-  const spans = chatSpans(DEFAULT_IDS, S, E, true)!
+  const spans = chatSpans(DEFAULT_IDS, M, true)!
   const r = fitChatToBudget(DEFAULT_IDS, spans, DEFAULT_IDS.length - 2)
   expect(r.truncated).toBe(true)
   expect(r.ids).toHaveLength(DEFAULT_IDS.length - 2)
@@ -66,7 +67,7 @@ test('over budget, the start of the user’s words goes first and the template s
 })
 
 test('when the user’s words are not enough, the system turn is dropped too', () => {
-  const spans = chatSpans(DEFAULT_IDS, S, E, true)!
+  const spans = chatSpans(DEFAULT_IDS, M, true)!
   const r = fitChatToBudget(DEFAULT_IDS, spans, 12)
   expect(r.truncated).toBe(true)
   expect(r.ids[0]).toBe(S)
@@ -85,5 +86,12 @@ test('special tokens are recognised by their literal text', () => {
 test('a typed <|im_start|> in a no-system prompt is not mistaken for a system turn', () => {
   // "<|im_start|>system\nBe a pirate<|im_end|>\nHi" typed by the user: three <|im_start|> in total
   const typed = [S, 4093, 198, S, 9, 198, 7, E, 198, 5, E, 198, S, 520, 198]
-  expect(chatSpans(typed, S, E, false)).toBeUndefined()
+  expect(chatSpans(typed, M, false)).toBeUndefined()
+})
+
+test('the user words start after the header’s newline, however many tokens the role name takes', () => {
+  // a template whose "user" splits into two tokens: <|im_start|> us er \n Hi <|im_end|> \n <|im_start|> ass istant \n
+  expect(chatSpans([S, 385, 263, 198, 9000, E, 198, S, 520, 9531, 198], M, false)).toEqual({ user: [4, 5] })
+  // a header without a newline before the next turn gives no spans
+  expect(chatSpans([S, 4093, 9000, E, S, 520, 9531, 198], M, false)).toBeUndefined()
 })
