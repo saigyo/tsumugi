@@ -1,9 +1,10 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, expect, test, vi } from 'vitest'
 import App from './App'
 import { useTraceStore } from './trace/store'
 import { initialPlayerState } from './player/reducer'
 import { usePlayerStore } from './player/store'
+import { useRealModel } from './viz/realModelRequest'
 
 let constructCount = 0
 let runs: unknown[][] = []
@@ -205,4 +206,15 @@ test('a download started during the start-up cache check is not labelled as from
   await new Promise((r) => setTimeout(r, 0))
   expect(constructCount).toBe(1)
   expect(screen.queryByText(/from the browser’s cache/)).toBeNull()
+})
+
+test('the load request stays the same across renders and still loads the real model', async () => {
+  render(<App />)
+  const first = useRealModel.getState().request
+  fireEvent.click(screen.getByRole('button', { name: 'Close' }))   // re-renders App
+  expect(screen.queryByTestId('sim-banner')).toBeNull()
+  expect(useRealModel.getState().request).toBe(first)
+  act(() => useRealModel.getState().request())
+  expect(constructCount).toBe(1)
+  await waitFor(() => expect(useRealModel.getState().loading).toBe(true))
 })

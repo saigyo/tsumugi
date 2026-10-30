@@ -137,9 +137,12 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  useEffect(() => {
-    useRealModel.setState({ request: () => { void chooseMode('real') }, loading })
-  })
+  // one request for the whole session, so the load buttons do not re-render
+  // with every App render; it calls the latest chooseMode through the ref
+  const chooseModeRef = useRef(chooseMode)
+  useEffect(() => { chooseModeRef.current = chooseMode })
+  useEffect(() => { useRealModel.setState({ request: () => { void chooseModeRef.current('real') } }) }, [])
+  useEffect(() => { useRealModel.setState({ loading }) }, [loading])
 
   const handleGenerate = async (prompt: string, params: GenParams, format: PromptFormat = TEXT_FORMAT) => {
     // the chat example can be clicked while simulated: load the real model first
