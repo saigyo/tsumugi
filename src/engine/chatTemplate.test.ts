@@ -72,8 +72,14 @@ test('when the user’s words are not enough, the system turn is dropped too', (
   expect(r.truncated).toBe(true)
   expect(r.ids[0]).toBe(S)
   expect(r.ids.slice(0, 3)).toEqual([S, 4093, 198])   // the user turn now opens the prompt
-  expect(r.spans.system).toBeUndefined()
-  expect(r.spans.user).toEqual([3, 3])
+  expect(r.spans?.system).toBeUndefined()
+  expect(r.spans?.user).toEqual([3, 3])
+})
+
+test('when even the template does not fit, the last tokens within the budget are kept, without spans', () => {
+  const spans = chatSpans(DEFAULT_IDS, M, true)!
+  const r = fitChatToBudget(DEFAULT_IDS, spans, 5)   // the template without system and words is 9 tokens
+  expect(r).toEqual({ ids: DEFAULT_IDS.slice(-5), spans: undefined, truncated: true })
 })
 
 test('special tokens are recognised by their literal text', () => {

@@ -36,9 +36,10 @@ export function chatSpans(ids: number[], marks: { start: number; end: number; ne
 
 // Fits a chat prompt into the position budget: the start of the user's words
 // goes first, then (if still too long) the whole system turn. The template's
-// markers are never cut.
+// markers are never cut; if they alone exceed the budget, the last tokens that
+// fit are kept without spans (the views then show every position unfolded).
 export function fitChatToBudget(ids: number[], spans: ChatSpans, budget: number):
-  { ids: number[]; spans: ChatSpans; truncated: boolean } {
+  { ids: number[]; spans: ChatSpans | undefined; truncated: boolean } {
   if (ids.length <= budget) return { ids, spans, truncated: false }
   let over = ids.length - budget
   const [u, e] = spans.user
@@ -51,6 +52,7 @@ export function fitChatToBudget(ids: number[], spans: ChatSpans, budget: number)
     out = out.slice(turnEnd)
     next = { user: [next.user[0] - turnEnd, next.user[1] - turnEnd] }
   }
+  if (out.length > budget) return { ids: out.slice(-budget), spans: undefined, truncated: true }
   return { ids: out, spans: next, truncated: true }
 }
 
