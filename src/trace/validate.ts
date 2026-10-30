@@ -1,10 +1,16 @@
 import { unpackFloat32, unpackHalf } from './neuronPack'
-import { READOUT_CELLS, type MlpSteps, type NeuronData, type TraceEvent } from './types'
+import { READOUT_CELLS, type MlpSteps, type NeuronData, type TokenInfo, type TraceEvent } from './types'
 
 export function validateTrace(events: TraceEvent[]): string[] {
   const errs: string[] = []
   if (events[0]?.type !== 'run-start') errs.push('first event must be run-start')
   if (events[1]?.type !== 'tokenize') errs.push('second event must be tokenize')
+  else if (!Array.isArray(events[1].tokens)) errs.push('tokenize tokens is not a list')
+  else events[1].tokens.forEach((t: unknown, i) => {
+    const v = t as Partial<TokenInfo> | null
+    if (typeof v !== 'object' || v === null || !Number.isInteger(v.id) || typeof v.text !== 'string')
+      errs.push(`tokenize token ${i} is not { id, text }`)
+  })
   if (events[events.length - 1]?.type !== 'run-end') errs.push('last event must be run-end')
 
   const CYCLE = ['embed', 'layer', 'logits', 'softmax', 'sample', 'append'] as const

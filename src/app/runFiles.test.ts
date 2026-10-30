@@ -121,3 +121,10 @@ test('a tokenize event with a damaged chat span loads without chat and says so; 
     }
   }
 })
+
+test('a tokenize token without its text is rejected, not loaded', () => {
+  const record = makeRunRecord(1)
+  const events = record.events.map((e) => e.type === 'tokenize' ? { ...e, tokens: [{ id: 5 }, ...e.tokens.slice(1)] } : e)
+  const text = JSON.stringify({ formatVersion: 1, meta: record.meta, events })
+  expect(parseRunFile(text)).toMatchObject({ ok: false, error: 'invalid trace: tokenize token 0 is not { id, text }' })
+})

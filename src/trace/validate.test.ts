@@ -251,3 +251,20 @@ test('whole neuron drops and steps-only drops are counted separately', () => {
   expect(droppedNeurons).toBe(1)
   expect(droppedSteps).toBe(1)
 })
+
+test('tokenize tokens must each be an integer id with a text', () => {
+  const at = (bad: unknown) => {
+    const t = buildFixtureTrace({ chat: true })
+    const k = t.findIndex((e) => e.type === 'tokenize')
+    const e = t[k]
+    if (e.type !== 'tokenize') throw new Error('no tokenize')
+    t[k] = { ...e, tokens: [...e.tokens.slice(0, 3), bad, ...e.tokens.slice(4)] as typeof e.tokens }
+    return validateTrace(t)
+  }
+  expect(at({ id: 7, text: 'x' })).toEqual([])
+  for (const bad of [null, 'x', { id: 7 }, { text: 'x' }, { id: 1.5, text: 'x' }, { id: 7, text: 3 }])
+    expect(at(bad)).toContain('tokenize token 3 is not { id, text }')
+  const t = buildFixtureTrace()
+  t[1] = { type: 'tokenize', tokens: 'abc' as unknown as [] }
+  expect(validateTrace(t)).toContain('tokenize tokens is not a list')
+})
