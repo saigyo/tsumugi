@@ -209,38 +209,27 @@ they are IDs, not positions.
   stacking at 390 px is not asserted. Also (pre-existing): old v5 neuron
   files stay in the Cache Storage. *(#17 final review, 2026-10-21)*
 - [ ] **#23 Chat templating parked minors** — from #8's reviews, sorted by
-  how much a user would notice. The user-visible group, the browser-test
-  locators that could fail at random and the two unit tests that could not
-  fail were fixed on 2026-10-22; what remains, by group:
+  how much a user would notice. Fixed on 2026-10-22: the user-visible group,
+  the browser-test locators that could fail at random and two unit tests that
+  could not fail. Fixed on 2026-10-30: the Edit sizes fold and the matrix's
+  "Show system prompt" box now close for a new run, imports check the token
+  objects, `chatSpans` finds the header's newline, the stock-fallback start
+  is documented, and the code tidying. What remains, by group:
   - *B. Hidden robustness and speed (nothing goes wrong today)*
-    1. `chatSpans` assumes the role name and `↵` follow `<|im_start|>` at a
-       fixed offset of 3; true for SmolLM2's template only.
-    2. `fitChatToBudget` can still overshoot the budget; the worker's final
+    1. `fitChatToBudget` can still overshoot the budget; the worker's final
        `slice(-budget)` catches it.
-    3. Import: `dropBrokenChat` checks the spans but not the token objects.
-    4. Every App render installs a new `request` in `useRealModel`, which
+    2. Every App render installs a new `request` in `useRealModel`, which
        re-renders the load buttons.
-    5. The stock fallback model never auto-starts after a reload; not
-       documented anywhere.
-    6. Not checked: whether the Edit sizes fold and the matrix's "Show system
-       prompt" box also stay open when a new run starts (the token strip and
-       the tokenizer card now close).
   - *C. Tests that check too little*
-    7. Missing tests: shelf titles for a custom and a 60-character-cut system
+    3. Missing tests: shelf titles for a custom and a 60-character-cut system
        prompt; a render count for the memoised matrix cells; LayersDetail and
        CompareView passing the spans on; the fold label disappearing when
        "Show system prompt" is ticked; a chat request while a load is in
        flight (the UI blocks it).
-    8. Test hygiene: the `clientWidth` mock is restored in the test body, not
+    4. Test hygiene: the `clientWidth` mock is restored in the test body, not
        `afterEach`; the DetailPanel test leaves `useRealModel` at
        `loading: true`; a loose `toBeLessThan(19)`.
-    9. The chat-template glossary registry test checks only sections and stage.
-  - *D. Code tidiness*
-    10. `worker.ts` import order; a hand-written `{ kind: 'text' }` instead
-        of `TEXT_FORMAT`.
-    11. `formatOf` is called twice on the same value in `runFiles.ts`.
-    12. `.config-divider` CSS is unused.
-    13. `viz` imports `app/LoadRealButton`, against the usual direction.
+    5. The chat-template glossary registry test checks only sections and stage.
 
   *(#8 reviews and final review, 2026-10-22)*
 - [ ] **#9 Mobile layout** — the app is desktop-first; a narrow-viewport pass
