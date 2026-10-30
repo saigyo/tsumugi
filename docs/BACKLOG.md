@@ -208,30 +208,6 @@ they are IDs, not positions.
   End-to-end: tests select `.controls` by class and duplicate setup; row
   stacking at 390 px is not asserted. Also (pre-existing): old v5 neuron
   files stay in the Cache Storage. *(#17 final review, 2026-10-21)*
-- [ ] **#23 Chat templating parked minors** — from #8's reviews, sorted by
-  how much a user would notice. Fixed on 2026-10-22: the user-visible group,
-  the browser-test locators that could fail at random and two unit tests that
-  could not fail. Fixed on 2026-10-30: the Edit sizes fold and the matrix's
-  "Show system prompt" box now close for a new run, imports check the token
-  objects, `chatSpans` finds the header's newline, the stock-fallback start
-  is documented, and the code tidying. What remains, by group:
-  - *B. Hidden robustness and speed (nothing goes wrong today)*
-    1. `fitChatToBudget` can still overshoot the budget; the worker's final
-       `slice(-budget)` catches it.
-    2. Every App render installs a new `request` in `useRealModel`, which
-       re-renders the load buttons.
-  - *C. Tests that check too little*
-    3. Missing tests: shelf titles for a custom and a 60-character-cut system
-       prompt; a render count for the memoised matrix cells; LayersDetail and
-       CompareView passing the spans on; the fold label disappearing when
-       "Show system prompt" is ticked; a chat request while a load is in
-       flight (the UI blocks it).
-    4. Test hygiene: the `clientWidth` mock is restored in the test body, not
-       `afterEach`; the DetailPanel test leaves `useRealModel` at
-       `loading: true`; a loose `toBeLessThan(19)`.
-    5. The chat-template glossary registry test checks only sections and stage.
-
-  *(#8 reviews and final review, 2026-10-22)*
 - [ ] **#9 Mobile layout** — the app is desktop-first; a narrow-viewport pass
   is substantial design work for an audience that mostly explores on
   laptops. *(v1 spec, out of scope)*
@@ -241,6 +217,7 @@ they are IDs, not positions.
 
 ## Done (for the record)
 
+- [x] Chat templating parked minors: folds per run and across scrubbing, import token check, budget and span robustness, tests *(#23, 2026-10-30)*
 - [x] MLP step by step card, sticky section bar, faithful 8-bit model v6 *(#17, #19, 2026-10-21)*
 - [x] Opening the MLP: edit sizes, per-layer votes; export v4 *(#15, 2026-10-11)*
 - [x] In-app glossary: 12 entries, term links, drawer, "?" index, first-visit hint *(#14, 2026-10-10)*
