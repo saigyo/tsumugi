@@ -193,3 +193,11 @@ test('the simulated note says the real model would show computed weights, with a
   expect(screen.getByTestId('attn-note')).toHaveTextContent('Illustrative pattern (simulated): the real model would show the weights it computed.')
   expect(screen.getByTestId('attn-note').querySelector('[data-testid="load-real"]')).not.toBeNull()
 })
+
+test('a new run starts with the system prompt folded again', () => {
+  const { rerender } = render(<AttentionHeatmap heads={chatAttn.heads} tokens={chatTokens} chat={chat} />)
+  fireEvent.click(screen.getByTestId('attn-show-system'))
+  expect(screen.getByTestId('attn-show-system')).toBeChecked()
+  rerender(<AttentionHeatmap heads={chatAttn.heads} tokens={chatTokens} chat={{ ...chat }} />)
+  expect(screen.getByTestId('attn-show-system')).not.toBeChecked()
+})

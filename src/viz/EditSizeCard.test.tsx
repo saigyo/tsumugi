@@ -167,3 +167,11 @@ test('closing the fold over the selected row selects the last token again', () =
   expect(screen.getAllByTestId('edit-row-label').filter((b) => b.getAttribute('aria-pressed') === 'true')
     .map((b) => b.textContent)).toEqual(['t44'])
 })
+
+test('a new run starts with the fold closed again', () => {
+  const { rerender } = render(<EditSizeCard rows={chatRows(45)} chat={chat} note="unused" />)
+  fireEvent.click(screen.getByTestId('edit-fold'))
+  expect(screen.getAllByTestId('edit-row-label')).toHaveLength(45)
+  rerender(<EditSizeCard rows={chatRows(45)} chat={{ ...chat }} note="unused" />)
+  expect(screen.getAllByTestId('edit-row-label')).toHaveLength(25)
+})

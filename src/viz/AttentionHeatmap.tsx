@@ -43,7 +43,9 @@ export function AttentionHeatmap({ heads, tokens, focus, chat, foldToggle = true
   focus?: { layer: number; head: number; label: AttentionLabel }
 }) {
   const [selected, setSelected] = useState(0)
-  const [showSystem, setShowSystem] = useState(false)
+  // ticked for one run only: a new run's spans fold the system prompt again
+  const [shownFor, setShownFor] = useState<ChatSpans | null>(null)
+  const showSystem = chat !== undefined && shownFor === chat
   const [hoveredRaw, setHovered] = useState<{ r: number; c: number } | null>(null)
   const wrapRef = useRef<HTMLDivElement>(null)
   const [width, setWidth] = useState<number | null>(null)
@@ -108,7 +110,7 @@ export function AttentionHeatmap({ heads, tokens, focus, chat, foldToggle = true
       {chat?.system && foldToggle && (
         <label className="attn-fold-toggle">
           <input type="checkbox" data-testid="attn-show-system" checked={showSystem}
-            onChange={(e) => { setShowSystem(e.target.checked); setHovered(null) }} />
+            onChange={(e) => { setShownFor(e.target.checked ? chat ?? null : null); setHovered(null) }} />
           Show system prompt
         </label>
       )}

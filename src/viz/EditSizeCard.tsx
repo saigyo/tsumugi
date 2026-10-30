@@ -31,7 +31,9 @@ function capItems(items: FoldItem[], max: number): FoldItem[] {
 export function EditSizeCard({ rows: all, note, noteAction, onLayer, chat }: { rows?: EditRows; note: string; noteAction?: ReactNode; onLayer?: (layer: number) => void; chat?: ChatSpans }) {
   const [block, setBlock] = useState<Block>('mlp')
   const [picked, setPicked] = useState<number | null>(null)
-  const [open, setOpen] = useState(false)
+  // the fold's open state belongs to one run: a new run's spans close it again
+  const [openFor, setOpenFor] = useState<ChatSpans | null>(null)
+  const open = chat !== undefined && openFor === chat
   const n = all ? all.tokens.length : 0
   const folded = all ? foldItems(n, chat?.system, open) : []
   const items = capItems(folded, MAX_ROWS)
@@ -59,7 +61,7 @@ export function EditSizeCard({ rows: all, note, noteAction, onLayer, chat }: { r
             </div>
             <div data-testid="edit-legend" className="mlp-legend">0 <span className="mlp-ramp" aria-hidden="true" /> ≥ 1.0</div>
           </div>
-          <EditHeatmap rows={all} items={items} open={open} onToggle={() => setOpen((v) => !v)} block={block} selected={sel} onSelect={setPicked} onLayer={onLayer} />
+          <EditHeatmap rows={all} items={items} open={open} onToggle={() => setOpenFor(open ? null : chat ?? null)} block={block} selected={sel} onSelect={setPicked} onLayer={onLayer} />
           {shown < folded.filter((it) => it.kind === 'token').length && (
             <p data-testid="edit-rows-note" className="mlp-scale-note">
               showing the last {shown} of {n} tokens</p>
