@@ -53,6 +53,9 @@ and underlined words and ⓘ chips in the cards open the matching entry.
   **Chat: a question** example shows the difference. The simulation shows a
   banner offering the real model. After its first use the real model starts
   automatically from the browser cache; nothing is downloaded without a click.
+  This applies to the custom export only: after a fallback to the stock
+  export the app starts simulated again, and loading the real model tries
+  the custom export first once more.
 
 ## One matrix, end to end — the residual stream
 

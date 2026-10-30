@@ -18,6 +18,8 @@ export function writeFlag(key: PrefKey, on: boolean): void {
 
 // transformers.js caches each file under its download URL in the Cache
 // Storage named by env.cacheKey ('transformers-cache').
+// Only the custom export counts: a browser that only has the stock fallback
+// starts simulated, and its next load tries the custom export again.
 export const MODEL_FILE_URL =
   `https://huggingface.co/${ATTN_MODEL_ID}/resolve/${ATTN_MODEL_REVISION}/onnx/model_quantized.onnx`
 
