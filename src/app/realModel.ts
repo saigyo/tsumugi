@@ -1,10 +1,4 @@
-import { create } from 'zustand'
 import { ATTN_MODEL_ID, ATTN_MODEL_REVISION } from '../engine/tokenizer'
-
-// Any card can ask the app to load the real model; the app installs the
-// handler and keeps loading up to date.
-interface RealModelState { request: () => void; loading: boolean }
-export const useRealModel = create<RealModelState>(() => ({ request: () => {}, loading: false }))
 
 export type PrefKey = 'tsumugi.simBannerClosed' | 'tsumugi.realModelUsed'
 

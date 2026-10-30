@@ -1,4 +1,4 @@
-import { useRealModel } from './realModel'
+import { useRealModel } from './realModelRequest'
 
 export function LoadRealButton({ variant = 'button' }: { variant?: 'button' | 'link' }) {
   const request = useRealModel((s) => s.request)

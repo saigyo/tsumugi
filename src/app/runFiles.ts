@@ -1,4 +1,5 @@
 import type { GenParams, PromptFormat, RunEndReason, TraceEvent } from '../trace/types'
+import { TEXT_FORMAT } from '../engine/chatTemplate'
 import { dropBrokenChat, dropBrokenNeurons, validateTrace } from '../trace/validate'
 import type { RunMeta, RunRecord, SealMeta } from './runsStore'
 
@@ -17,7 +18,7 @@ export function serializeRun(record: RunRecord): { filename: string; json: strin
 const formatOf = (f: unknown): PromptFormat | undefined => {
   if (typeof f !== 'object' || f === null) return undefined
   const v = f as { kind?: unknown; system?: unknown }
-  if (v.kind === 'text') return { kind: 'text' }
+  if (v.kind === 'text') return TEXT_FORMAT
   if (v.kind === 'chat' && (v.system === null || typeof v.system === 'string')) return { kind: 'chat', system: v.system }
   return undefined
 }
@@ -44,6 +45,7 @@ export function parseRunFile(text: string): ParsedRunFile {
   const { events: neuronChecked, droppedNeurons, droppedSteps } = dropBrokenNeurons(d.events as TraceEvent[])
   const { events, droppedChats } = dropBrokenChat(neuronChecked)
   const problems = validateTrace(events)
+  const format = formatOf(m.format)
   if (problems.length > 0) return { ok: false, error: `invalid trace: ${problems[0]}` }
   const damaged = (what: string, n: number) => n > 0 ? [`${what} of ${n} cycle${n === 1 ? '' : 's'} was damaged and left out.`] : []
   const note = [...damaged('Neuron data', droppedNeurons), ...damaged('Step-by-step data', droppedSteps), ...damaged('Chat template data', droppedChats)].join(' ') || undefined
@@ -52,7 +54,7 @@ export function parseRunFile(text: string): ParsedRunFile {
     meta: {
       prompt: m.prompt, params: m.params as GenParams, mode: m.mode,
       ...(typeof m.modelId === 'string' ? { modelId: m.modelId } : {}),
-      ...(formatOf(m.format) ? { format: formatOf(m.format) } : {}),
+      ...(format ? { format } : {}),
       endedAt: m.endedAt, reason: m.reason as RunEndReason,
     },
     events,

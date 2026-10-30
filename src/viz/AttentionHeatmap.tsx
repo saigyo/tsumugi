@@ -2,7 +2,7 @@ import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useStat
 import type { AttentionHead, AttentionLabel, ChatSpans, TokenInfo } from '../trace/types'
 import { readableTokenText } from '../engine/tokenBytes'
 import { visibleToken } from './tokenText'
-import { LoadRealButton } from '../app/LoadRealButton'
+import { LoadRealButton } from './LoadRealButton'
 import { foldMatrix, type FoldedMatrix } from './foldMatrix'
 import { cellSize, labelStep } from './heatmapSizing'
 

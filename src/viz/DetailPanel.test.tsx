@@ -7,7 +7,7 @@ import type { AttentionHead } from '../trace/types'
 import { DetailPanel } from './DetailPanel'
 import { STEPS_OLD_NOTE, STEPS_SIM_NOTE } from './details/LayersDetail'
 import { texOf } from '../test/tex'
-import { useRealModel } from '../app/realModel'
+import { useRealModel } from './realModelRequest'
 
 const trace = makeFixtureTrace()  // cursor 1=tokenize, 2=embed, 3..5=layers, 6=attention
 

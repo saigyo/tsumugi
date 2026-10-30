@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { LoadRealButton } from '../../app/LoadRealButton'
+import { LoadRealButton } from '../LoadRealButton'
 import type { AttentionHead, ChatSpans, Mode, TokenInfo, TraceEvent } from '../../trace/types'
 import { AttentionGridExplorer } from '../AttentionGridExplorer'
 import { AttentionHeatmap } from '../AttentionHeatmap'

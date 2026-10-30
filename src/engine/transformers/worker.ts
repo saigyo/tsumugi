@@ -1,8 +1,8 @@
 /// <reference lib="webworker" />
-import type { ChatSpans, GenParams, PromptFormat, LayerVotes, NeuronData, RunEndReason, TokenInfo, TraceEvent } from '../../trace/types'
-import { chatSpans, fitChatToBudget, noSystemChat } from '../chatTemplate'
-import { ATTN_MODEL_ID, ATTN_MODEL_REVISION } from '../tokenizer'
+import type { ChatSpans, GenParams, LayerVotes, NeuronData, PromptFormat, RunEndReason, TokenInfo, TraceEvent } from '../../trace/types'
+import { chatSpans, fitChatToBudget, noSystemChat, TEXT_FORMAT } from '../chatTemplate'
 import { sampleIndex, softmax, topK } from '../math'
+import { ATTN_MODEL_ID, ATTN_MODEL_REVISION } from '../tokenizer'
 import { addAttentionOutput, createAccumulator, type AttnAccumulator } from './attentionAccum'
 import { extractEmbedRows } from './embedRows'
 import { extractReadout, type ReadoutResult } from './readout'
@@ -321,7 +321,7 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
   try {
     const msg = e.data
     if (msg.type === 'prepare') await prepare(msg.modelId)
-    if (msg.type === 'run') await run(msg.runId, msg.prompt, msg.params, msg.format ?? { kind: 'text' })
+    if (msg.type === 'run') await run(msg.runId, msg.prompt, msg.params, msg.format ?? TEXT_FORMAT)
     if (msg.type === 'abort') aborted = true
     if (msg.type === 'head-request') {
       const r = lastRun
