@@ -193,6 +193,22 @@ test('the chat template entry has its five sections and sits in the Tokenizer gr
   expect(getEntry('chat-template')?.stage).toBe('tokenize')
 })
 
+test('the chat template entry shows SmolLM2’s three template lines and links what it builds on', () => {
+  const entry = getEntry('chat-template')!
+  expect(entry.related).toEqual(['token', 'attention', 'modes'])
+  const { container } = render(<>{entry.body()}</>)
+  const lines = [...container.querySelectorAll('.gl-example code')].map((c) => c.textContent)
+  expect(lines).toEqual([
+    '<|im_start|>system↵You are a helpful AI assistant named SmolLM, trained by Hugging Face<|im_end|>↵',
+    '<|im_start|>user↵What is the capital of France?<|im_end|>↵',
+    '<|im_start|>assistant↵',
+  ])
+  const link = (section: string, term: string) =>
+    container.querySelector(`[data-gl-section="${section}"] [data-term="${term}"]`)
+  expect(link('special-tokens', 'token')).not.toBeNull()
+  expect(link('sink', 'attention')).not.toBeNull()
+})
+
 test('the generation settings entry has a section per setting and sits with Sampling', () => {
   expect(sectionsOf('generation-settings')).toEqual(['temperature', 'top-k', 'max-new-tokens'])
   const entry = getEntry('generation-settings')!
