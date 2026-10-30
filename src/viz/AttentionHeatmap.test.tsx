@@ -3,7 +3,8 @@ import { afterEach, expect, test, vi } from 'vitest'
 import { buildFixtureTrace, CHAT_ANSWER_TOKENS, CHAT_PROMPT_TOKENS, makeFixtureTrace } from '../test/fixtures'
 import { AttentionHeatmap } from './AttentionHeatmap'
 
-afterEach(() => cleanup())
+// spies (the card width, Math.round) are restored even when a test fails
+afterEach(() => { cleanup(); vi.restoreAllMocks() })
 
 const trace = makeFixtureTrace()
 const attn = trace.find((e) => e.type === 'attention')
@@ -149,17 +150,18 @@ test('an induction head in a chat run explains that the template’s markers rep
 })
 
 test('a narrow card shrinks the cells and thins the labels; the hovered row and column keep theirs', () => {
-  const resize = vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(400)
+  vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(400)
   render(<AttentionHeatmap heads={chatAttn.heads} tokens={chatTokens} chat={chat} />)
   const cells = screen.getAllByTestId('attn-cell')
-  expect(Number(cells[0].getAttribute('width'))).toBeLessThan(19)
+  // 400 px minus 136 px of label room, shared by the columns left after folding 20 into one
+  const cols = chatAttn.heads[0].matrix.length - 19
+  expect(Number(cells[0].getAttribute('width'))).toBe(Math.floor((400 - 136) / cols) - 1)
   const shown = screen.getAllByTestId('row-label').filter((l) => l.textContent !== '')
   expect(shown.length).toBeLessThan(screen.getAllByTestId('row-label').length)
   const unlabelled = screen.getAllByTestId('row-label').findIndex((l) => l.textContent === '')
   const cell = cells.find((c) => c.getAttribute('data-row') === String(unlabelled))!
   fireEvent.mouseEnter(cell)
   expect(screen.getAllByTestId('row-label')[unlabelled].textContent).not.toBe('')
-  resize.mockRestore()
 })
 
 test('hovering draws one outline on top and leaves the cells untouched', () => {
@@ -209,9 +211,7 @@ test('hovering a cell redraws the readout, not the memoised cells', () => {
   const cells = screen.getAllByTestId('attn-cell')
   // every cell computes its fill with two Math.round calls: a redraw of all cells shows up as hundreds
   const round = vi.spyOn(Math, 'round')
-  try {
-    fireEvent.mouseEnter(cells[cells.length - 1])
-    fireEvent.mouseLeave(cells[cells.length - 1])
-    expect(round.mock.calls.length).toBeLessThan(cells.length)
-  } finally { round.mockRestore() }
+  fireEvent.mouseEnter(cells[cells.length - 1])
+  fireEvent.mouseLeave(cells[cells.length - 1])
+  expect(round.mock.calls.length).toBeLessThan(cells.length)
 })

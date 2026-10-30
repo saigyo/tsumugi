@@ -4,3 +4,5 @@ import { create } from 'zustand'
 // handler and keeps loading up to date.
 interface RealModelState { request: () => void; loading: boolean }
 export const useRealModel = create<RealModelState>(() => ({ request: () => {}, loading: false }))
+
+export const resetRealModelRequest = () => useRealModel.setState({ request: () => {}, loading: false })
