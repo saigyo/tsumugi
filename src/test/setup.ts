@@ -2,6 +2,7 @@ import '@testing-library/jest-dom/vitest'
 import { afterEach, beforeEach, vi } from 'vitest'
 import { resetNeuronCache } from '../neurons/asset'
 import { resetCandidateSelection } from '../viz/candidateSelection'
+import { resetChatFolds } from '../viz/chatFolds'
 import { resetMlpLayer } from '../viz/mlpLayerSelection'
 import { resetNeuronMode } from '../viz/neuronMode'
 
@@ -12,6 +13,7 @@ vi.stubGlobal('fetch', vi.fn(() => Promise.reject(new Error('network disabled in
 // the candidate pick is a global store; tests start from the top candidate
 afterEach(() => {
   resetCandidateSelection()
+  resetChatFolds()
   resetMlpLayer()
   resetNeuronMode()
   resetNeuronCache()

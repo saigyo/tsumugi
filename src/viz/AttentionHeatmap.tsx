@@ -1,5 +1,6 @@
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { AttentionHead, AttentionLabel, ChatSpans, TokenInfo } from '../trace/types'
+import { useChatFold } from './chatFolds'
 import { readableTokenText } from '../engine/tokenBytes'
 import { visibleToken } from './tokenText'
 import { LoadRealButton } from './LoadRealButton'
@@ -43,9 +44,7 @@ export function AttentionHeatmap({ heads, tokens, focus, chat, foldToggle = true
   focus?: { layer: number; head: number; label: AttentionLabel }
 }) {
   const [selected, setSelected] = useState(0)
-  // ticked for one run only: a new run's spans fold the system prompt again
-  const [shownFor, setShownFor] = useState<ChatSpans | null>(null)
-  const showSystem = chat !== undefined && shownFor === chat
+  const [showSystem, setShowSystem] = useChatFold('matrix', chat)
   const [hoveredRaw, setHovered] = useState<{ r: number; c: number } | null>(null)
   const wrapRef = useRef<HTMLDivElement>(null)
   const [width, setWidth] = useState<number | null>(null)
@@ -110,7 +109,7 @@ export function AttentionHeatmap({ heads, tokens, focus, chat, foldToggle = true
       {chat?.system && foldToggle && (
         <label className="attn-fold-toggle">
           <input type="checkbox" data-testid="attn-show-system" checked={showSystem}
-            onChange={(e) => { setShownFor(e.target.checked ? chat ?? null : null); setHovered(null) }} />
+            onChange={(e) => { setShowSystem(e.target.checked); setHovered(null) }} />
           Show system prompt
         </label>
       )}
