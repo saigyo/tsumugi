@@ -11,7 +11,7 @@ import type { NeuronData, TraceEvent } from '../trace/types'
 import { Formula } from './Formula'
 import { GateUpScatter, ProductBars, SiluChart, StepStrip } from './MlpStepCharts'
 import { CHART_W, type Hover } from './stepChartMath'
-import { useMlpLayerControl } from './mlpLayerSelection'
+import { removedLayerNoteFor, useMlpLayerControl } from './mlpLayerSelection'
 import { useNeuronMode } from './neuronMode'
 import type { VotedCandidate } from './selectors'
 import { visibleToken } from './tokenText'
@@ -32,6 +32,7 @@ export function MlpStepsCard({ data, candidates, note, noteAction, run }: {
 }) {
   const ready = data?.steps && candidates && candidates.length > 0
   const { layer, layers, selected, step } = useMlpLayerControl(ready ? candidates : undefined, run)
+  const removed = removedLayerNoteFor(run, layer)
   return (
     <section data-testid="steps-card" className="mlp-card">
       <h4 data-testid="steps-title">The MLP, step by step{layer !== null ? `: layer ${layer}` : ''}{layer !== null && (
@@ -41,7 +42,10 @@ export function MlpStepsCard({ data, candidates, note, noteAction, run }: {
         </span>
       )}{' '}<Term id="mlp" variant="icon" label="About the MLP" testId="steps-info">ⓘ</Term></h4>
       {!ready || layer === null ? <p data-testid="steps-note" className="mlp-note">{note} {noteAction}</p>
-        : <StepsBody data={data} candidates={candidates} selected={selected} layer={layer} />}
+        : <>
+          {removed && <p data-testid="removed-layer-note" className="mlp-note">{removed}</p>}
+          <StepsBody data={data} candidates={candidates} selected={selected} layer={layer} />
+        </>}
     </section>
   )
 }

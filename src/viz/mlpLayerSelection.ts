@@ -43,3 +43,11 @@ export function useMlpLayerControl(candidates: VotedCandidate[] | undefined, run
   const step = (d: number) => { if (run && layer !== null) select(run, Math.min(layers - 1, Math.max(0, layer + d))) }
   return { layer, layers, selected, step }
 }
+
+export const removedLayerNote = (layer: number) =>
+  `MLP ${layer} was removed in this run: its neurons fired as shown, but its edit was discarded.`
+
+// The note for a knockout run's removed layer, or null when `layer` is not it.
+export function removedLayerNoteFor(run: TraceEvent | undefined, layer: number | null): string | null {
+  return run?.type === 'run-start' && run.knockout?.layer === layer && layer !== null ? removedLayerNote(layer) : null
+}

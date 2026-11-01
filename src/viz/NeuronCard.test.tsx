@@ -151,3 +151,23 @@ test('firing most is computed once per layer, not per render', async () => {
   rerender(<NeuronCard data={data} candidates={candidates} note="the note" run={run} />)
   expect(spy.mock.calls.length).toBe(calls)
 })
+
+const koRun = (layer: number): TraceEvent => ({ ...(run as object), knockout: { layer, cycle: 0, sourceId: 's' } }) as TraceEvent
+const NOTE = (l: number) => `MLP ${l} was removed in this run: its neurons fired as shown, but its edit was discarded.`
+
+test('a knockout run notes the removed layer, and only on that layer', () => {
+  const ko = koRun(1)
+  useMlpLayer.getState().select(ko, 1)
+  const { unmount } = card({ run: ko })
+  expect(screen.getByTestId('removed-layer-note')).toHaveTextContent(NOTE(1))
+  unmount()
+  useMlpLayer.getState().select(ko, 0)
+  card({ run: ko })
+  expect(screen.queryByTestId('removed-layer-note')).toBeNull()
+})
+
+test('an ordinary run has no removed-layer note', () => {
+  useMlpLayer.getState().select(run, 1)
+  card()
+  expect(screen.queryByTestId('removed-layer-note')).toBeNull()
+})

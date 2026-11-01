@@ -7,7 +7,7 @@ import { decodeSteps, editRatio, layerSteps } from '../neurons/steps'
 import { buildFixtureTrace } from '../test/fixtures'
 import { fixtureNeuronAsset, fixtureNeuronLayer, NF } from '../test/neuronFixture'
 import { packHalf, unpackHalf } from '../trace/neuronPack'
-import type { NeuronData } from '../trace/types'
+import type { NeuronData, TraceEvent } from '../trace/types'
 import { MlpStepsCard } from './MlpStepsCard'
 import { NeuronCard } from './NeuronCard'
 import { useMlpLayer } from './mlpLayerSelection'
@@ -203,4 +203,24 @@ test('hovering a neuron in one chart rings the same neuron in every step', async
   fireEvent.mouseLeave(dot)
   expect(rings()).toEqual({ 'steps-scatter': null, 'steps-silu': null, 'steps-product': null })
   expect(ringedRows()).toEqual([])
+})
+
+const koRun = (layer: number): TraceEvent => ({ ...(run as object), knockout: { layer, cycle: 0, sourceId: 's' } }) as TraceEvent
+const NOTE = (l: number) => `MLP ${l} was removed in this run: its neurons fired as shown, but its edit was discarded.`
+
+test('a knockout run notes the removed layer, and only on that layer', () => {
+  const ko = koRun(1)
+  useMlpLayer.getState().select(ko, 1)
+  const { unmount } = card({ run: ko })
+  expect(screen.getByTestId('removed-layer-note')).toHaveTextContent(NOTE(1))
+  unmount()
+  useMlpLayer.getState().select(ko, 0)
+  card({ run: ko })
+  expect(screen.queryByTestId('removed-layer-note')).toBeNull()
+})
+
+test('an ordinary run has no removed-layer note', () => {
+  useMlpLayer.getState().select(run, 1)
+  card()
+  expect(screen.queryByTestId('removed-layer-note')).toBeNull()
 })

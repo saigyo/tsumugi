@@ -8,7 +8,7 @@ import { useNeuronLayer } from '../neurons/useNeuronLayer'
 import { unpackFloat32, unpackHalf } from '../trace/neuronPack'
 import type { NeuronData, TraceEvent } from '../trace/types'
 import { useCandidateSelection } from './candidateSelection'
-import { useMlpLayerControl } from './mlpLayerSelection'
+import { removedLayerNoteFor, useMlpLayerControl } from './mlpLayerSelection'
 import { useNeuronMode, type NeuronMode as Mode } from './neuronMode'
 import type { VotedCandidate } from './selectors'
 import { visibleToken } from './tokenText'
@@ -39,6 +39,7 @@ export function NeuronCard({ data, candidates, note, noteAction, run }: {
 }) {
   const ready = data && candidates && candidates.length > 0
   const { layer, layers, selected: sel, step } = useMlpLayerControl(ready ? candidates : undefined, run)
+  const removed = removedLayerNoteFor(run, layer)
   return (
     <section data-testid="neuron-card" className="mlp-card">
       <h4 data-testid="neuron-title">Inside one MLP{layer !== null ? `: layer ${layer}` : ''}{layer !== null && (
@@ -48,7 +49,10 @@ export function NeuronCard({ data, candidates, note, noteAction, run }: {
         </span>
       )}{' '}<Term id="mlp-neuron" variant="icon" label="About MLP neurons" testId="neuron-info">ⓘ</Term></h4>
       {!ready || layer === null ? <p data-testid="neuron-note" className="mlp-note">{note} {noteAction}</p>
-        : <NeuronBody data={data} candidates={candidates} selected={sel} layer={layer} />}
+        : <>
+          {removed && <p data-testid="removed-layer-note" className="mlp-note">{removed}</p>}
+          <NeuronBody data={data} candidates={candidates} selected={sel} layer={layer} />
+        </>}
     </section>
   )
 }
