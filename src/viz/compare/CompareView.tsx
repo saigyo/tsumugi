@@ -119,9 +119,9 @@ function AttnSide({ events, head, pair, name, cycle, lastCycle }: {
   )
 }
 
-export function CompareView({ a, b }: { a: RunRecord; b: RunRecord }) {
+export function CompareView({ a, b, initialCycle }: { a: RunRecord; b: RunRecord; initialCycle?: number }) {
   const aligned = alignRuns(a.events, b.events)
-  const [cycle, setCycle] = useState<number | null>(null)
+  const [cycle, setCycle] = useState<number | null>(initialCycle ?? null)
   const [headKey, setHeadKey] = useState<string | null>(null)
   const [distMode, setDistMode] = useState<'side' | 'combined'>('side')
   const [deltaSort, setDeltaSort] = useState<DeltaSort>('delta')

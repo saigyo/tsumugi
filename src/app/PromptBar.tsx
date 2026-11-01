@@ -21,6 +21,8 @@ export interface PromptBarProps {
   // a run is being computed: Generate shows activity and a Stop button appears
   generating?: boolean
   onStop?(): void
+  // what the activity label says while generating (a knockout sweep says Measuring…)
+  activity?: string
   examples?: PromptExample[]
 }
 
@@ -30,7 +32,7 @@ const clampOrKeep = (raw: string, min: number, max: number, prev: number): numbe
   return Math.min(max, Math.max(min, n))
 }
 
-export function PromptBar({ mode, onModeChange, onGenerate, busy, generating = false, onStop, examples }: PromptBarProps) {
+export function PromptBar({ mode, onModeChange, onGenerate, busy, generating = false, onStop, activity = 'Generating…', examples }: PromptBarProps) {
   const [prompt, setPrompt] = useState('')
   const [temperature, setTemperature] = useState(0.8)
   const [topK, setTopK] = useState(10)
@@ -63,7 +65,7 @@ export function PromptBar({ mode, onModeChange, onGenerate, busy, generating = f
           aria-busy={generating || undefined}
           onClick={() => onGenerate(prompt, { temperature, topK, maxNewTokens }, format)}>
           {generating
-            ? <><span data-testid="generate-activity" className="generate-activity" aria-hidden="true" />Generating…</>
+            ? <><span data-testid="generate-activity" className="generate-activity" aria-hidden="true" />{activity}</>
             : 'Generate'}
         </button>
         {generating && onStop && (

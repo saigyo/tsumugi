@@ -184,3 +184,8 @@ test('two chat runs fold the system prompt in both matrices, without the toggle'
     expect(within(m).getAllByTestId('col-label').map((l) => l.textContent)).toContain('system prompt (20)')
   expect(screen.queryByTestId('attn-show-system')).toBeNull()
 })
+
+test('initialCycle opens with that cycle selected', () => {
+  render(<CompareView a={makeRunRecord(1)} b={divergentB()} initialCycle={1} />)
+  expect(screen.getAllByTestId('cmp-tick')[1].dataset.selected).toBe('true')
+})

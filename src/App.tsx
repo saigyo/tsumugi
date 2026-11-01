@@ -12,15 +12,18 @@ import { TransformersEngine } from './engine/transformers/TransformersEngine'
 import type { PipelineEngine, ProgressInfo, RunHandle } from './engine/types'
 import { usePlaybackTicker, usePlayerStore } from './player/store'
 import { useTraceStore } from './trace/store'
-import type { GenParams, Mode, PromptFormat } from './trace/types'
+import type { GenParams, KnockoutLayer, KnockoutOrigin, Mode, PromptFormat } from './trace/types'
+import type { RunRecord } from './app/runsStore'
+import type { RunOptions } from './engine/types'
 import { TEXT_FORMAT } from './engine/chatTemplate'
 import { CHAT_EXAMPLE } from './app/chatExample'
 import { DetailPanel } from './viz/DetailPanel'
 import { PipelineBand } from './viz/PipelineBand'
+import { useKnockoutRequest } from './viz/knockoutRequest'
 import { useRealModel } from './viz/realModelRequest'
 import { TokenStream } from './viz/TokenStream'
 import { RunShelf } from './app/RunShelf'
-import { archiveImport, archiveRemove, archiveSeal, archiveTogglePin, initArchive } from './app/runArchive'
+import { archiveAddSweep, archiveImport, archiveRemove, archiveSeal, archiveTogglePin, initArchive } from './app/runArchive'
 import { parseRunFile, serializeRun } from './app/runFiles'
 import { createIndexedDbStorage } from './app/runStorage'
 import { useRunsStore } from './app/runsStore'
@@ -49,6 +52,8 @@ export default function App() {
   // a run is being computed (real mode: seconds of silent prefill before the
   // first token) — Generate is disabled and shows activity, Stop appears
   const [generating, setGenerating] = useState(false)
+  const [activity, setActivity] = useState('Generating…')
+  const sweepRef = useRef<{ abort(): void; done: Promise<boolean> } | null>(null)
   const [attn, setAttn] = useState(false)
   const [bannerClosed, setBannerClosed] = useState(() => readFlag('tsumugi.simBannerClosed'))
   const [fromCache, setFromCache] = useState(false)
@@ -56,7 +61,7 @@ export default function App() {
   const records = useRunsStore((s) => s.records)
   const activeId = useRunsStore((s) => s.activeId)
   const persistFailed = useRunsStore((s) => s.persistFailed)
-  const [compare, setCompare] = useState<{ aId: string; bId: string } | null>(null)
+  const [compare, setCompare] = useState<{ aId: string; bId: string; cycle?: number } | null>(null)
   const [compareArmed, setCompareArmed] = useState(false)
   const [importError, setImportError] = useState<string | null>(null)
   const { pins, note: pinNote, pin: handlePin, reset: resetPins } = usePins((layer, head) => {
@@ -144,18 +149,28 @@ export default function App() {
   useEffect(() => { useRealModel.setState({ request: () => { void chooseModeRef.current('real') } }) }, [])
   useEffect(() => { useRealModel.setState({ loading }) }, [loading])
 
-  const handleGenerate = async (prompt: string, params: GenParams, format: PromptFormat = TEXT_FORMAT) => {
+  // stop whatever the engine is computing — a run or a knockout sweep — and wait for it
+  const settleWork = async () => {
+    runRef.current?.abort()
+    sweepRef.current?.abort()
+    await runRef.current?.done
+    await sweepRef.current?.done
+  }
+
+  const startRun = async (
+    prompt: string, params: GenParams, format: PromptFormat,
+    options?: RunOptions, onSealed?: (record: RunRecord) => void,
+  ) => {
     // the chat example can be clicked while simulated: load the real model first
     if (format.kind === 'chat' && (mode !== 'real' || !realEngineRef.current) && !(await chooseMode('real'))) return
-    runRef.current?.abort()
-    await runRef.current?.done
+    await settleWork()
     useTraceStore.getState().clear()
     usePlayerStore.getState().dispatch({ type: 'reset' })
     resetPins()
     setCompare(null)
     setCompareArmed(false)
     const engine: PipelineEngine =
-      (format.kind === 'chat' || mode === 'real') && realEngineRef.current
+      (format.kind === 'chat' || mode === 'real' || options) && realEngineRef.current
         ? realEngineRef.current
         : new SimulatedEngine(tokenizerRef.current)
     try {
@@ -167,17 +182,19 @@ export default function App() {
           const events = useTraceStore.getState().events
           const start = events.find((x) => x.type === 'run-start')
           if (start && start.type === 'run-start') {
-            archiveSeal({
+            const record = archiveSeal({
               prompt: start.prompt, params: start.params, mode: start.mode,
               ...(start.mode === 'real' ? { modelId: start.modelId } : {}),
               ...(start.format ? { format: start.format } : {}),
               ...(start.knockout ? { knockout: start.knockout } : {}),
               endedAt: Date.now(), reason: e.reason,
             }, events)
+            onSealed?.(record)
           }
         }
-      }, format)
+      }, format, options)
       runRef.current = handle
+      setActivity('Generating…')
       setGenerating(true)
       // settles on completion, EOS, abort and error alike
       void handle.done.finally(() => { if (runRef.current === handle) setGenerating(false) })
@@ -187,11 +204,82 @@ export default function App() {
     }
   }
 
-  const handleStop = () => { runRef.current?.abort() }
+  const handleGenerate = (prompt: string, params: GenParams, format: PromptFormat = TEXT_FORMAT) =>
+    startRun(prompt, params, format)
+
+  // the active record's run-start, and the tokens appended before a cycle
+  const activeSource = () => {
+    const { records, activeId } = useRunsStore.getState()
+    const record = records.find((r) => r.id === activeId)
+    const start = record?.events.find((e) => e.type === 'run-start')
+    if (!record || !start || start.type !== 'run-start') return null
+    const appended = (cycle: number) => record.events.flatMap((e) =>
+      e.type === 'append' && e.cycle < cycle ? [e.token.id] : [])
+    return { record, start, appended }
+  }
+
+  const handleMeasure = (cycle: number) => {
+    const engine = realEngineRef.current
+    const source = activeSource()
+    if (!engine || !source || sweepRef.current || generating) return
+    const { record, start, appended } = source
+    const tokenize = record.events.find((e) => e.type === 'tokenize')
+    const sample = record.events.find((e) => e.type === 'sample' && e.cycle === cycle)
+    if (tokenize?.type !== 'tokenize' || sample?.type !== 'sample') return
+    const ids = [...tokenize.tokens.map((t) => t.id), ...appended(cycle)]
+    const store = useKnockoutRequest
+    let baseline: number | null = null
+    const layers: KnockoutLayer[] = []
+    store.setState({ running: { recordId: record.id, cycle, baseline: null, layers: [] } })
+    setActivity('Measuring…')
+    setGenerating(true)
+    const handle = engine.sweep(
+      { ids, params: start.params, chosenId: sample.chosen.id, seed: start.seed ?? 0, cycle },
+      (p) => { baseline = p; store.setState({ running: { recordId: record.id, cycle, baseline, layers: [...layers] } }) },
+      (entry) => { layers.push(entry); store.setState({ running: { recordId: record.id, cycle, baseline, layers: [...layers] } }) },
+    )
+    sweepRef.current = handle
+    void handle.done.then((ok) => {
+      if (sweepRef.current === handle) sweepRef.current = null
+      store.setState({ running: null })
+      setGenerating(false)
+      setActivity('Generating…')
+      if (ok && baseline !== null && useRunsStore.getState().activeId === record.id) {
+        archiveAddSweep(record.id, {
+          cycle, revision: engine.revision ?? '', chosen: sample.chosen, baseline,
+          layers: [...layers].sort((x, y) => x.layer - y.layer),
+        })
+      }
+    })
+  }
+
+  const handleKnockout = (layer: number, cycle: number) => {
+    const source = activeSource()
+    if (!source || sweepRef.current || generating) return
+    const { record, start, appended } = source
+    const origin: KnockoutOrigin = { layer, cycle, sourceId: record.id }
+    void startRun(start.prompt, start.params, start.format ?? TEXT_FORMAT,
+      { knockout: { origin, forced: appended(cycle), seed: start.seed ?? 0 } },
+      (sealed) => setCompare({ aId: record.id, bId: sealed.id, cycle }))
+  }
+
+  // stable handlers for the Knockouts card; they call the latest closures
+  const knockoutRef = useRef({ measure: handleMeasure, runKnockout: handleKnockout })
+  useEffect(() => { knockoutRef.current = { measure: handleMeasure, runKnockout: handleKnockout } })
+  useEffect(() => {
+    if (!realReady) return
+    const engine = realEngineRef.current
+    useKnockoutRequest.setState({
+      model: engine ? { knockout: engine.knockout ?? false, revision: engine.revision ?? '' } : null,
+      measure: (cycle) => knockoutRef.current.measure(cycle),
+      runKnockout: (layer, cycle) => knockoutRef.current.runKnockout(layer, cycle),
+    })
+  }, [realReady])
+
+  const handleStop = () => { runRef.current?.abort(); sweepRef.current?.abort() }
 
   const handleActivate = async (id: string) => {
-    runRef.current?.abort()
-    await runRef.current?.done
+    await settleWork()
     const record = useRunsStore.getState().records.find((r) => r.id === id)
     if (!record) return
     useRunsStore.getState().setActive(id)
@@ -240,7 +328,7 @@ export default function App() {
         <HelpButton />
       </header>
       <PromptBar mode={mode} onModeChange={chooseMode} onGenerate={handleGenerate}
-        busy={mode === 'real' && !realReady} generating={generating} onStop={handleStop}
+        busy={mode === 'real' && !realReady} generating={generating} activity={activity} onStop={handleStop}
         examples={[...CURATED_EXAMPLES, CHAT_EXAMPLE]} />
       <ModelSlot mode={mode} loading={loading} fromCache={fromCache} progress={progress} error={modelError}
         bannerClosed={bannerClosed} onLoad={() => { void chooseMode('real') }}
@@ -251,7 +339,7 @@ export default function App() {
         onActivate={(id) => { void handleActivate(id) }}
         onSelectCompareB={(id) => {
           setCompareArmed(false)
-          setCompare((c) => c ? { ...c, bId: id } : activeId ? { aId: activeId, bId: id } : null)
+          setCompare((c) => c ? { aId: c.aId, bId: id } : activeId ? { aId: activeId, bId: id } : null)
         }}
         onArmCompare={() => setCompareArmed(true)}
         onExitCompare={() => { setCompare(null); setCompareArmed(false) }}
@@ -260,7 +348,7 @@ export default function App() {
       {(() => {
         const cmpA = compare && records.find((r) => r.id === compare.aId)
         const cmpB = compare && records.find((r) => r.id === compare.bId)
-        if (cmpA && cmpB) return <CompareView a={cmpA} b={cmpB} />
+        if (cmpA && cmpB) return <CompareView key={`${cmpA.id}-${cmpB.id}`} a={cmpA} b={cmpB} initialCycle={compare.cycle} />
         return (
           <>
             <TokenStream events={events} cursor={cursor} />
