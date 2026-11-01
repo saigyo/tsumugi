@@ -16,7 +16,7 @@ export const ATTN_MODEL_ID = 'saigyo-hoshi/smollm2-135m-attn-onnx'
 // final_norm_inv_rms) and the neurons/ asset. v6 = weight-only 8-bit model
 // (#19) and the step outputs (mlp_gate, mlp_up, mlp_in, mlp_out); the neurons
 // manifest names its revision.
-export const ATTN_MODEL_REVISION = 'v6'
+export const ATTN_MODEL_REVISION = 'v7'
 
 // Both ids share the same weights, so one geometry asset covers both.
 export const GEOMETRY_MODEL_IDS: readonly string[] = [MODEL_ID, ATTN_MODEL_ID]

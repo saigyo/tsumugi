@@ -132,7 +132,7 @@ test('a manifest built for another revision is refused and evicted', async () =>
   const { cache } = stubCaches()
   const f = encodeNeuronFixture()
   stubFetch((name) => (name === 'manifest.json' ? new Response(JSON.stringify({ ...f.manifest, revision: 'v5' })) : null))
-  await expect(loadNeuronAsset(BASE)).rejects.toThrow('manifest is for v5, the app needs v6')
+  await expect(loadNeuronAsset(BASE)).rejects.toThrow('manifest is for v5, the app needs v7')
   expect(cache.delete).toHaveBeenCalledWith(`${BASE}/manifest.json`)
 })
 

@@ -23,7 +23,7 @@ test('the model counts as cached only when its file is in the transformers cache
     has: async () => has,
     open: async () => ({ match: async (url: string) => (file && url === MODEL_FILE_URL ? new Response('x') : undefined) }),
   }) as unknown as CacheStorage
-  expect(MODEL_FILE_URL).toBe('https://huggingface.co/saigyo-hoshi/smollm2-135m-attn-onnx/resolve/v6/onnx/model_quantized.onnx')
+  expect(MODEL_FILE_URL).toBe('https://huggingface.co/saigyo-hoshi/smollm2-135m-attn-onnx/resolve/v7/onnx/model_quantized.onnx')
   expect(await realModelCached(fake(true, true))).toBe(true)
   expect(await realModelCached(fake(true, false))).toBe(false)
   expect(await realModelCached(fake(false, false))).toBe(false)

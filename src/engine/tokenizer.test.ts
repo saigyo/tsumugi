@@ -27,6 +27,6 @@ test('geometry asset URL is pinned to the model revision', () => {
 })
 
 test('the neuron asset lives next to the model at the pinned tag', () => {
-  expect(ATTN_MODEL_REVISION).toBe('v6')
+  expect(ATTN_MODEL_REVISION).toBe('v7')
   expect(neuronsUrlFor('a/b', 'v6')).toBe('https://huggingface.co/a/b/resolve/v6/neurons')
 })

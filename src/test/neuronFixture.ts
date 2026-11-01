@@ -35,7 +35,7 @@ export function encodeNeuronFixture(): { manifest: NeuronManifest; layers: Array
   files['tokens.json'] = { bytes: 0, sha256: '0'.repeat(64) }
   const manifest: NeuronManifest = {
     modelId: 'fixture', layers: L, neurons: n, dims, vocabSize: NF.vocab, labelsPerSign: k, fractions,
-    labelMethod: 'fixture', layout, revision: 'v6', rmsNormEps: 1e-5, finalNormWeight: Array.from({ length: dims }, (_, d) => fixtureG(d)), files,
+    labelMethod: 'fixture', layout, revision: 'v7', rmsNormEps: 1e-5, finalNormWeight: Array.from({ length: dims }, (_, d) => fixtureG(d)), files,
   }
   return { manifest, layers, tokens }
 }
