@@ -1,4 +1,4 @@
-import type { TraceEvent } from '../trace/types'
+import type { KnockoutSweep, TraceEvent } from '../trace/types'
 import type { RunStorage } from './runStorage'
 import { useRunsStore, type RunRecord, type SealMeta } from './runsStore'
 
@@ -48,7 +48,13 @@ export function archiveRemove(id: string): void {
   mirror((s) => s.delete(id))
 }
 
-export function archiveImport(data: { meta: SealMeta; events: TraceEvent[] }): RunRecord {
+export function archiveAddSweep(id: string, sweep: KnockoutSweep): void {
+  useRunsStore.getState().addSweep(id, sweep)
+  const record = useRunsStore.getState().records.find((r) => r.id === id)
+  if (record) mirror((s) => s.put(record))
+}
+
+export function archiveImport(data: { meta: SealMeta; events: TraceEvent[]; sweeps?: KnockoutSweep[] }): RunRecord {
   const record = useRunsStore.getState().importRecord(data)
   mirror((s) => s.put(record))
   return record

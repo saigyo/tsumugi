@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { GenParams, Mode, PromptFormat, RunEndReason, TraceEvent } from '../trace/types'
+import type { GenParams, KnockoutOrigin, KnockoutSweep, Mode, PromptFormat, RunEndReason, TraceEvent } from '../trace/types'
 
 export interface RunMeta {
   seq: number               // monotonic per-archive counter; never reused, so chip labels
@@ -9,11 +9,13 @@ export interface RunMeta {
   mode: Mode
   modelId?: string          // real mode only
   format?: PromptFormat     // chat runs only; absent = Continue text
+  knockout?: KnockoutOrigin // set when the run is a knockout run (one layer's MLP zeroed)
   endedAt: number           // epoch ms, stamped at seal time
   reason: RunEndReason
   pinned: boolean
 }
-export interface RunRecord { id: string; meta: RunMeta; events: TraceEvent[] }
+// sweeps: one per cycle, kept beside the events (the player indexes events by position)
+export interface RunRecord { id: string; meta: RunMeta; events: TraceEvent[]; sweeps?: KnockoutSweep[] }
 export type SealMeta = Omit<RunMeta, 'seq' | 'pinned'>
 
 export const UNPINNED_CAP = 8
@@ -26,8 +28,9 @@ interface RunsState {
   seal: (meta: SealMeta, events: TraceEvent[]) => { record: RunRecord; evicted: RunRecord[] }
   setActive: (id: string) => void
   togglePin: (id: string) => void
+  addSweep: (id: string, sweep: KnockoutSweep) => void
   remove: (id: string) => void
-  importRecord: (data: { meta: SealMeta; events: TraceEvent[] }) => RunRecord
+  importRecord: (data: { meta: SealMeta; events: TraceEvent[]; sweeps?: KnockoutSweep[] }) => RunRecord
   hydrate: (records: RunRecord[]) => void
   setPersistFailed: () => void
 }
@@ -53,6 +56,11 @@ export const useRunsStore = create<RunsState>()((set, get) => ({
   togglePin: (id) => set((s) => ({
     records: s.records.map((r) => r.id === id ? { ...r, meta: { ...r.meta, pinned: !r.meta.pinned } } : r),
   })),
+  addSweep: (id, sweep) => set((s) => ({
+    records: s.records.map((r) => r.id === id
+      ? { ...r, sweeps: [...(r.sweeps ?? []).filter((x) => x.cycle !== sweep.cycle), sweep].sort((a, b) => a.cycle - b.cycle) }
+      : r),
+  })),
   remove: (id) => set((s) => ({
     records: s.records.filter((r) => r.id !== id),
     activeId: s.activeId === id ? null : s.activeId,
@@ -62,6 +70,7 @@ export const useRunsStore = create<RunsState>()((set, get) => ({
       id: crypto.randomUUID(),
       meta: { ...data.meta, seq: get().nextSeq, pinned: true },   // pinned: imports must not fall off the ring
       events: data.events,
+      ...(data.sweeps?.length ? { sweeps: data.sweeps } : {}),
     }
     set((s) => ({ records: [...s.records, record], nextSeq: s.nextSeq + 1 }))
     return record

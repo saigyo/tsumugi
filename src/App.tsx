@@ -171,6 +171,7 @@ export default function App() {
               prompt: start.prompt, params: start.params, mode: start.mode,
               ...(start.mode === 'real' ? { modelId: start.modelId } : {}),
               ...(start.format ? { format: start.format } : {}),
+              ...(start.knockout ? { knockout: start.knockout } : {}),
               endedAt: Date.now(), reason: e.reason,
             }, events)
           }
@@ -224,7 +225,7 @@ export default function App() {
       const parsed = parseRunFile(text)
       if (!parsed.ok) { setImportError(parsed.error); return }
       try {
-        archiveImport({ meta: parsed.meta, events: parsed.events })
+        archiveImport({ meta: parsed.meta, events: parsed.events, ...(parsed.sweeps ? { sweeps: parsed.sweeps } : {}) })
         setImportError(parsed.note ?? null)
       } catch (err) {
         setImportError(`could not add the run: ${err instanceof Error ? err.message : String(err)}`)

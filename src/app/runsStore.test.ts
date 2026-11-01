@@ -1,5 +1,6 @@
 import { beforeEach, expect, test } from 'vitest'
 import { makeFixtureTrace } from '../test/fixtures'
+import type { KnockoutSweep } from '../trace/types'
 import { UNPINNED_CAP, useRunsStore, type SealMeta } from './runsStore'
 
 const meta = (over: Partial<SealMeta> = {}): SealMeta => ({
@@ -96,4 +97,28 @@ test('hydrate with empty storage keeps sealed records', () => {
   expect(state.records[0].id).toBe(sealed.id)
   expect(state.records[0].meta.seq).toBe(sealed.meta.seq)
   expect(state.activeId).toBe(sealed.id)
+})
+
+const sweepOf = (cycle: number, baseline = 0.5): KnockoutSweep => ({
+  cycle, revision: 'v7', chosen: { id: 1, text: ' a' }, baseline, layers: [],
+})
+
+test('addSweep stores a sweep, replaces the same cycle, and ignores an unknown id', () => {
+  const { record } = useRunsStore.getState().seal(meta(), makeFixtureTrace())
+  const events = record.events
+  useRunsStore.getState().addSweep(record.id, sweepOf(0))
+  useRunsStore.getState().addSweep(record.id, sweepOf(1))
+  useRunsStore.getState().addSweep(record.id, sweepOf(0, 0.9))
+  useRunsStore.getState().addSweep('nope', sweepOf(0))
+  const r = useRunsStore.getState().records[0]
+  expect(r.sweeps?.map((s) => [s.cycle, s.baseline])).toEqual([[0, 0.9], [1, 0.5]])
+  expect(useRunsStore.getState().records).toHaveLength(1)
+  expect(r.events).toBe(events)
+})
+
+test('importRecord carries sweeps and meta.knockout', () => {
+  const knockout = { layer: 15, cycle: 0, sourceId: 'x' }
+  const r = useRunsStore.getState().importRecord({ meta: meta({ knockout }), events: makeFixtureTrace(), sweeps: [sweepOf(0)] })
+  expect(r.sweeps).toHaveLength(1)
+  expect(r.meta.knockout).toEqual(knockout)
 })

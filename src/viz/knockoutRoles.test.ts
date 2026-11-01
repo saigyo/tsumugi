@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { KnockoutSweep } from '../trace/types'
 import { knockoutRoles, MAX_ROLE_CHIPS } from './knockoutRoles'
 
-const tok = { id: 1, text: 'a' } as never
+const tok = { id: 1, text: 'a' } as unknown as KnockoutSweep['chosen']
 // deltas: per-layer change in probability from a 0.5 baseline
 function sweep(deltas: number[], flips: number[] = []): KnockoutSweep {
   return {

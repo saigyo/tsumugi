@@ -212,3 +212,27 @@ export function dropBrokenChat(events: TraceEvent[]): { events: TraceEvent[]; dr
   })
   return { events: out, droppedChats }
 }
+
+const isTokenInfo = (t: unknown): t is { id: number; text: string } =>
+  typeof t === 'object' && t !== null && Number.isInteger((t as { id?: unknown }).id) && typeof (t as { text?: unknown }).text === 'string'
+const isProb = (x: unknown): x is number => typeof x === 'number' && Number.isFinite(x) && x >= 0 && x <= 1
+
+// Shape check of one saved knockout sweep: `layers` entries, one per layer in order.
+export function sweepProblems(s: unknown, layers: number): string[] {
+  if (typeof s !== 'object' || s === null) return ['sweep is not an object']
+  const d = s as Record<string, unknown>
+  const out: string[] = []
+  if (!Number.isInteger(d.cycle) || (d.cycle as number) < 0) out.push('sweep cycle is not a non-negative integer')
+  if (typeof d.revision !== 'string') out.push('sweep revision is not a string')
+  if (!isTokenInfo(d.chosen)) out.push('sweep chosen token is malformed')
+  if (!isProb(d.baseline)) out.push('sweep baseline is not a probability')
+  if (!Array.isArray(d.layers) || d.layers.length !== layers) { out.push(`sweep does not hold ${layers} layers`); return out }
+  d.layers.forEach((l: unknown, i) => {
+    const v = (typeof l === 'object' && l !== null ? l : {}) as Record<string, unknown>
+    if (v.layer !== i) out.push(`sweep layer ${i} has the wrong index`)
+    if (!isProb(v.prob)) out.push(`sweep layer ${i} prob is not a probability`)
+    if (!isTokenInfo(v.top) || !isProb((v.top as { prob?: unknown }).prob)) out.push(`sweep layer ${i} top token is malformed`)
+    if (typeof v.flips !== 'boolean') out.push(`sweep layer ${i} flips is not a boolean`)
+  })
+  return out
+}

@@ -21,7 +21,7 @@ export interface RunShelfProps {
 
 const isChat = (r: RunRecord) => r.meta.format?.kind === 'chat'
 const label = (r: RunRecord) =>
-  `#${r.meta.seq} · ${isChat(r) ? 'Chat · ' : ''}${r.meta.prompt.trim().split(/\s+/).slice(0, 3).join(' ')} · T=${r.meta.params.temperature}`
+  `#${r.meta.seq} · ${isChat(r) ? 'Chat · ' : ''}${r.meta.prompt.trim().split(/\s+/).slice(0, 3).join(' ')} · T=${r.meta.params.temperature}${r.meta.knockout ? ` · MLP ${r.meta.knockout.layer} off` : ''}`
 const systemNote = (r: RunRecord): string => {
   const f = r.meta.format
   if (f?.kind !== 'chat') return ''

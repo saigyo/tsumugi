@@ -128,3 +128,39 @@ test('a tokenize token without its text is rejected, not loaded', () => {
   const text = JSON.stringify({ formatVersion: 1, meta: record.meta, events })
   expect(parseRunFile(text)).toMatchObject({ ok: false, error: 'invalid trace: tokenize token 0 is not { id, text }' })
 })
+
+const goodSweep = (layers: number, cycle = 0) => ({
+  cycle, revision: 'v7', chosen: { id: 1, text: ' a' }, baseline: 0.5,
+  layers: Array.from({ length: layers }, (_, layer) => ({
+    layer, prob: 0.2, top: { id: 2, text: ' b', prob: 0.4 }, flips: true,
+  })),
+})
+const layerCount = (r: ReturnType<typeof makeRunRecord>) => {
+  const l = r.events.find((e) => e.type === 'layer')
+  return l && l.type === 'layer' ? l.total : 0
+}
+
+test('sweeps and meta.knockout round-trip through a run file', () => {
+  const record = makeRunRecord(1)
+  record.meta.knockout = { layer: 15, cycle: 0, sourceId: 'abc' }
+  record.sweeps = [goodSweep(layerCount(record))]
+  const parsed = parseRunFile(serializeRun(record).json)
+  expect(parsed.ok && parsed.sweeps).toEqual(record.sweeps)
+  expect(parsed.ok && parsed.meta.knockout).toEqual(record.meta.knockout)
+  expect(parsed.ok && parsed.note).toBeUndefined()
+})
+
+test('a malformed sweep is dropped with a note; good ones are kept', () => {
+  const record = makeRunRecord(1)
+  const n = layerCount(record)
+  const bad = { ...goodSweep(n, 1), baseline: 3 }
+  const text = JSON.stringify({ formatVersion: 1, meta: record.meta, events: record.events, sweeps: [goodSweep(n), bad] })
+  const parsed = parseRunFile(text)
+  expect(parsed.ok && parsed.sweeps).toEqual([goodSweep(n)])
+  expect(parsed.ok && parsed.note).toBe('Knockout data of 1 cycle was damaged and left out.')
+})
+
+test('a file without sweeps has none', () => {
+  const parsed = parseRunFile(serializeRun(makeRunRecord(1)).json)
+  expect(parsed.ok && parsed.sweeps).toBeUndefined()
+})

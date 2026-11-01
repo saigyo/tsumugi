@@ -122,3 +122,10 @@ test('a custom system prompt is named in the title; one longer than 60 character
   expect(titles[1]).toContain(` · system: ${'x'.repeat(60)}… · ended:`)
   expect(titles[2]).toContain(` · system: ${'y'.repeat(60)} · ended:`)
 })
+
+test('a knockout run chip label ends with the zeroed layer', () => {
+  const r = makeRunRecord(3)
+  r.meta.knockout = { layer: 15, cycle: 0, sourceId: 'run-1' }
+  render(<RunShelf {...props({ records: [r] })} />)
+  expect(screen.getByTestId('run-chip-main')).toHaveTextContent(/· MLP 15 off$/)
+})
