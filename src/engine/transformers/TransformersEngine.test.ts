@@ -123,3 +123,41 @@ test('run without options posts no knockout', () => {
   engine.run('Hi', { temperature: 1, topK: 10, maxNewTokens: 2 }, () => {})
   expect((worker.sent.at(-1) as { knockout?: unknown }).knockout).toBeUndefined()
 })
+
+const sweepReq = { ids: [1, 2], params: { temperature: 1, topK: 10, maxNewTokens: 2 }, chosenId: 2, seed: 5, cycle: 1 }
+const entry = { layer: 0, prob: 0.5, top: { id: 2, text: 'a', prob: 0.5 }, flips: false }
+
+test('sweep posts the request and forwards only its own sweepId', async () => {
+  const { worker, engine } = make()
+  const base = vi.fn(), layer = vi.fn()
+  const h = engine.sweep(sweepReq, base, layer)
+  const sent = worker.sent.at(-1) as Extract<WorkerRequest, { type: 'sweep-request' }>
+  expect(sent).toMatchObject({ type: 'sweep-request', ...sweepReq })
+  const id = sent.sweepId
+  worker.respond({ type: 'sweep-baseline', sweepId: id + 9, prob: 0.1 })
+  worker.respond({ type: 'sweep-baseline', sweepId: id, prob: 0.7 })
+  worker.respond({ type: 'sweep-layer', sweepId: id + 9, entry })
+  worker.respond({ type: 'sweep-layer', sweepId: id, entry })
+  worker.respond({ type: 'sweep-done', sweepId: id, aborted: false })
+  expect(await h.done).toBe(true)
+  expect(base).toHaveBeenCalledOnce()
+  expect(base).toHaveBeenCalledWith(0.7)
+  expect(layer).toHaveBeenCalledOnce()
+})
+
+test('sweep done resolves false when aborted, and abort posts abort', async () => {
+  const { worker, engine } = make()
+  const h = engine.sweep(sweepReq, () => {}, () => {})
+  const id = (worker.sent.at(-1) as Extract<WorkerRequest, { type: 'sweep-request' }>).sweepId
+  h.abort()
+  expect(worker.sent.at(-1)).toEqual({ type: 'abort' })
+  worker.respond({ type: 'sweep-done', sweepId: id, aborted: true })
+  expect(await h.done).toBe(false)
+})
+
+test('fatal during a sweep resolves done with false', async () => {
+  const { worker, engine } = make()
+  const h = engine.sweep(sweepReq, () => {}, () => {})
+  worker.respond({ type: 'fatal', message: 'boom' })
+  expect(await h.done).toBe(false)
+})

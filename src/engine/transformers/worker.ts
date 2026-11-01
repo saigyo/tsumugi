@@ -1,7 +1,7 @@
 /// <reference lib="webworker" />
-import type { ChatSpans, GenParams, LayerVotes, NeuronData, PromptFormat, RunEndReason, TokenInfo, TraceEvent } from '../../trace/types'
+import type { ChatSpans, GenParams, KnockoutLayer, LayerVotes, NeuronData, PromptFormat, RunEndReason, TokenInfo, TraceEvent } from '../../trace/types'
 import { chatSpans, fitChatToBudget, noSystemChat, TEXT_FORMAT } from '../chatTemplate'
-import { forcedToken, mlpScale } from '../knockout'
+import { forcedToken, mlpScale, sweepEntry } from '../knockout'
 import { cycleDraw } from '../prng'
 import { sampleIndex, softmax, topK } from '../math'
 import { ATTN_MODEL_ID, ATTN_MODEL_REVISION } from '../tokenizer'
@@ -334,12 +334,50 @@ async function run(runId: number, prompt: string, params: GenParams, format: Pro
   post({ type: 'done', runId })
 }
 
+// Knockout sweep: one baseline pass, then one pass per layer with that layer's MLP removed,
+// each over the full `ids` without the KV cache. Never-fail: a session without mlp_scale
+// answers aborted.
+async function sweep(msg: Extract<WorkerRequest, { type: 'sweep-request' }>) {
+  aborted = false
+  const { sweepId } = msg
+  if (!hasScale) { post({ type: 'sweep-done', sweepId, aborted: true }); return }
+  const { Tensor } = await import('@huggingface/transformers')
+  const numLayers: number = model.config.num_hidden_layers ?? 12
+  const draw = cycleDraw(msg.seed, msg.cycle)
+  const n = msg.ids.length
+  const input_ids = new Tensor('int64', BigInt64Array.from(msg.ids.map(BigInt)), [1, n])
+  const attention_mask = new Tensor('int64', BigInt64Array.from(msg.ids.map(() => 1n)), [1, n])
+  let stopped = false
+  // off = -1 is the baseline (all ones)
+  for (let off = -1; off < numLayers; off++) {
+    if (aborted) { stopped = true; break }
+    const mlp_scale = new Tensor('float32', mlpScale(numLayers, off < 0 ? null : off), [numLayers])
+    const out = await model({ input_ids, attention_mask, mlp_scale })
+    try {
+      const [, seq, vocab] = out.logits.dims as [number, number, number]
+      const last: Float32Array = out.logits.data.slice((seq - 1) * vocab, seq * vocab)
+      const e = sweepEntry(last, msg.params, msg.chosenId, draw)
+      if (off < 0) post({ type: 'sweep-baseline', sweepId, prob: e.prob })
+      else {
+        const entry: KnockoutLayer = { layer: off, prob: e.prob,
+          top: { ...tokenInfo(e.topId), prob: e.topProb }, flips: e.flips }
+        post({ type: 'sweep-layer', sweepId, entry })
+      }
+    } finally {
+      // free this pass's output tensors (GPU buffers) so 31 passes do not accumulate
+      for (const k in out) (out[k] as any)?.dispose?.()
+    }
+  }
+  post({ type: 'sweep-done', sweepId, aborted: stopped })
+}
+
 self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
   try {
     const msg = e.data
     if (msg.type === 'prepare') await prepare(msg.modelId)
     if (msg.type === 'run') await run(msg.runId, msg.prompt, msg.params, msg.format ?? TEXT_FORMAT, msg.knockout)
     if (msg.type === 'abort') aborted = true
+    if (msg.type === 'sweep-request') await sweep(msg)
     if (msg.type === 'head-request') {
       const r = lastRun
       const ok = r !== null

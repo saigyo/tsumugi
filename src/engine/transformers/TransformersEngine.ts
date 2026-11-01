@@ -1,4 +1,4 @@
-import type { AttentionLabel, GenParams, PromptFormat, TraceEvent } from '../../trace/types'
+import type { AttentionLabel, GenParams, KnockoutLayer, PromptFormat, TraceEvent } from '../../trace/types'
 import { TEXT_FORMAT } from '../chatTemplate'
 import { MODEL_ID } from '../tokenizer'
 import type { PipelineEngine, ProgressInfo, RunHandle, RunOptions } from '../types'
@@ -15,6 +15,7 @@ export interface HeadData {
 export class TransformersEngine implements PipelineEngine {
   private worker: Worker
   private nextRunId = 1
+  private nextSweepId = 1
   device: 'webgpu' | 'wasm' | null = null
   attentions: boolean | null = null
   knockout: boolean | null = null
@@ -71,5 +72,21 @@ export class TransformersEngine implements PipelineEngine {
       this.listeners.add(listener)
       this.post({ type: 'head-request', layer, head })
     })
+  }
+
+  sweep(req: Omit<Extract<WorkerRequest, { type: 'sweep-request' }>, 'type' | 'sweepId'>,
+    onBaseline: (p: number) => void, onLayer: (e: KnockoutLayer) => void): { abort(): void; done: Promise<boolean> } {
+    const sweepId = this.nextSweepId++
+    const done = new Promise<boolean>((resolve) => {
+      const listener = (msg: WorkerResponse) => {
+        if (msg.type === 'sweep-baseline' && msg.sweepId === sweepId) onBaseline(msg.prob)
+        if (msg.type === 'sweep-layer' && msg.sweepId === sweepId) onLayer(msg.entry)
+        if (msg.type === 'sweep-done' && msg.sweepId === sweepId) { this.listeners.delete(listener); resolve(!msg.aborted) }
+        if (msg.type === 'fatal') { this.listeners.delete(listener); resolve(false) }
+      }
+      this.listeners.add(listener)
+      this.post({ type: 'sweep-request', sweepId, ...req })
+    })
+    return { abort: () => this.post({ type: 'abort' }), done }
   }
 }
