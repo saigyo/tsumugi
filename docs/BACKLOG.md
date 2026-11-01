@@ -93,8 +93,16 @@ they are IDs, not positions.
   runs grow by about 340 KB per generated token, and runs without step
   data (recorded before v6, or step data damaged on import) say so.
   *(#15 follow-up)*
-- [ ] **#18 MLP knockout runs** — re-run a prompt with one layer's MLP
-  zeroed and open the pair in the Compare view. *(#15 follow-up)*
+- [x] **#18 MLP knockout runs** — shipped as the "Knockouts" card in the
+  Layers detail (spec
+  `docs/superpowers/specs/2026-11-01-mlp-knockouts-design.md`): one sweep
+  removes each layer's MLP in turn and shows the change in the chosen
+  token's probability next to the direct vote, with role chips; clicking a
+  layer runs the prompt with that MLP off (same prefix and random draws) and
+  opens the pair in Compare. Sweeps are saved and exported with the run;
+  export v7. Thresholds calibrated in
+  `docs/research/2026-11-01-knockout-roles-spike.md`. *(#15 follow-up,
+  2026-11-01)*
 
 ## Pipeline pedagogy
 

@@ -26,6 +26,13 @@ function card(props: Partial<React.ComponentProps<typeof KnockoutCard>> = {}) {
 }
 const note = () => screen.getByTestId('knockout-note').textContent
 
+test('the title carries an info link to the knockout glossary entry', () => {
+  card()
+  const info = screen.getByTestId('knockout-info')
+  expect(info.dataset.term).toBe('knockout')
+  expect(info.closest('h4')).not.toBeNull()
+})
+
 test('title is exact', () => {
   card()
   expect(screen.getByRole('heading', { name: /Which layers the chosen token depends on/ })).toBeInTheDocument()

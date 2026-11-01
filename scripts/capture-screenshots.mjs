@@ -39,7 +39,7 @@ const context = await chromium.launchPersistentContext(PROFILE, {
   headless: false,
   viewport: { width: 1380, height: 940 },
 })
-// Scenes can be selected: `npm run screenshots -- glossary pipeline attention compare embeddings logits mlp neurons`
+// Scenes can be selected: `npm run screenshots -- glossary pipeline attention compare embeddings logits mlp neurons knockouts`
 // (mlp also writes mlp-steps.png)
 // (default: all). Skipping a scene preserves its existing images — useful when
 // a previous capture caught a specimen worth keeping (e.g. a great fork).
@@ -72,7 +72,7 @@ try {
   }
 
   // real mode serves the remaining scenes
-  if (want('pipeline') || want('attention') || want('compare') || want('embeddings') || want('logits') || want('mlp') || want('neurons')) {
+  if (want('pipeline') || want('attention') || want('compare') || want('embeddings') || want('logits') || want('mlp') || want('neurons') || want('knockouts')) {
     await $('mode-real').click()
     await $('mode-badge').filter({ hasText: 'attn' }).waitFor({ timeout: 300000 })  // first run downloads the model
   }
@@ -205,6 +205,32 @@ try {
     await page.setViewportSize({ width: 1380, height: 940 })
     await $('maxtok-input').fill('20')
     console.log('logits-softmax.png')
+  }
+
+  // ---- knockouts.png: real mode, Layers stage — one sweep, one layer picked
+  if (want('knockouts')) {
+    await $('temp-input').fill('0')                                 // greedy, so the answer token is stable
+    await $('prompt-input').fill('The farmer bought a horse and rode it home.')
+    await $('maxtok-input').fill('1')
+    const before = await $('run-chip').count()
+    await $('btn-generate').click()
+    await $('run-chip').nth(before).waitFor({ timeout: 120000 })
+    await $('btn-live').click()
+    await $('stage-card').nth(2).click()                            // Layers
+    await $('knockout-card').waitFor({ timeout: 10000 })
+    await page.getByRole('button', { name: 'Measure all 30 layers' }).click()
+    await page.waitForFunction(() => document.querySelectorAll('[data-testid="knockout-bar"]').length === 30, null, { timeout: 120000 })
+    await $('knockout-chip').first().waitFor({ timeout: 10000 })
+    await $('knockout-chip').nth(1).click()                         // not layer 0 (breaks the model): detail line + run button
+    await $('knockout-detail').waitFor({ timeout: 5000 })
+    const unstick = await page.addStyleTag({ content: '.controls, .layers-nav { position: static !important; }' })
+    await $('knockout-card').scrollIntoViewIfNeeded()
+    await page.waitForTimeout(300)
+    await $('knockout-card').screenshot({ path: `${DIR}/knockouts.png` })
+    await unstick.evaluate((el) => el.remove())
+    await $('temp-input').fill('0.8')
+    await $('maxtok-input').fill('20')
+    console.log('knockouts.png')
   }
 
   // ---- mlp.png: real mode, Layers stage — edit sizes and per-layer votes

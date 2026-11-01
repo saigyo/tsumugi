@@ -6,7 +6,7 @@ import type { GenParams, Mode, RunEndReason, TokenInfo } from '../trace/types'
 // circular. The registry test checks one entry per id.
 export const GLOSSARY_IDS = [
   'how-to-read', 'token', 'chat-template', 'embedding', 'residual-stream', 'edit', 'layer',
-  'attention', 'mlp', 'votes', 'mlp-neuron', 'logit', 'softmax', 'sampling', 'generation-settings', 'modes',
+  'attention', 'mlp', 'votes', 'knockout', 'mlp-neuron', 'logit', 'softmax', 'sampling', 'generation-settings', 'modes',
 ] as const
 export type GlossaryId = typeof GLOSSARY_IDS[number]
 

@@ -296,9 +296,42 @@ grow by about 340 KB per generated token.
 ![The MLP, step by step: norm, gate and up, SiLU, product and down for layer 27, with the neurons from Inside one MLP marked](docs/screenshots/mlp-steps.png)
 
 A sticky section bar at the top of the Layers detail, just below the
-playback controls, links to Overview, Attention, Edit sizes, Votes, Inside
+playback controls, links to Overview, Attention, Edit sizes, Votes, Knockouts, Inside
 one MLP and Step by step, highlights the section on screen, and holds the
 shared "MLP layer N" stepper.
+
+## Knocking out a layer
+
+The votes card says what a layer pushed toward a token, not whether the
+model would have chosen that token without it. In a real run, the
+**Knockouts** card in the Layers detail (after Votes) asks that directly.
+"Measure all 30 layers" removes one layer's MLP at a time (its edit is
+multiplied by zero at every position) and asks the model again for the token
+chosen at the current cycle: 31 passes, about two seconds on a graphics card.
+Each bar is the change in that token's probability in percentage points (red
+drops, blue rises), outlined when the run without the layer would pick a
+different token. Below the bars is the layer's direct vote from the votes
+card, so you can compare the direct effect with the total one, which
+includes what later layers do with the edit. Up to five chips name layers
+that stand out: decisive (the top token changes, at most three shown),
+preparatory (small direct vote, drop of 10 points or more), compensated
+(large direct vote, little change) and dampening (rise of 10 points or
+more). The thresholds were set on real sweeps; see
+`docs/research/2026-11-01-knockout-roles-spike.md`.
+
+![The Knockouts card after a sweep, with MLP 11 selected](docs/screenshots/knockouts.png)
+
+Clicking a bar or chip offers **Run with MLP N off and compare**. That run
+copies the original's tokens up to the cycle and reuses its random draws,
+so the first difference in the Compare view is the effect of the removed
+layer. Sweeps are saved with the run and exported with it. Only runs
+recorded with model v7 or later on a seed can be measured.
+
+Read the results as a case study. Zeroing an output the model never produces
+can do damage of its own (research often uses mean ablation instead), one
+prompt says little about a layer in general, and in a 135M model removing one
+MLP often changes the top token when its lead is small. Removing layer 0
+breaks the model.
 
 ## The glossary
 

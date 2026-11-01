@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react'
 import type { KnockoutLayer, KnockoutSweep, TokenInfo, TraceEvent } from '../trace/types'
+import { Term } from '../glossary/Term'
 import { knockoutEligibility, type Ineligible } from './knockoutEligibility'
 import { knockoutRoles } from './knockoutRoles'
 import { useKnockoutRequest } from './knockoutRequest'
@@ -55,8 +56,8 @@ export function KnockoutCard({ run, cycle, seqLen, chosen, votes, sweep, running
   const runKnockout = useKnockoutRequest((s) => s.runKnockout)
   const select = useMlpLayer((s) => s.select)
   const [picked, setPicked] = useState<number | null>(null)
-  // TODO(Task 11): link a glossary ⓘ (id `knockout`) beside the title once the entry exists
-  const title = <h4>Which layers the chosen token depends on</h4>
+  const title = <h4>Which layers the chosen token depends on{' '}
+    <Term id="knockout" variant="icon" label="About knockouts" testId="knockout-info">ⓘ</Term></h4>
 
   const eligible = knockoutEligibility(run, seqLen, model)
   if (!eligible.ok) {
