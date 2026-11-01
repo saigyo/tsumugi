@@ -8,6 +8,8 @@ import { DetailPanel } from './DetailPanel'
 import { STEPS_OLD_NOTE, STEPS_SIM_NOTE } from './details/LayersDetail'
 import { texOf } from '../test/tex'
 import { useRealModel } from './realModelRequest'
+import { useRunsStore } from '../app/runsStore'
+import { useKnockoutRequest } from './knockoutRequest'
 
 const trace = makeFixtureTrace()  // cursor 1=tokenize, 2=embed, 3..5=layers, 6=attention
 
@@ -258,7 +260,7 @@ test('real mode: the Layers detail shows the neuron card under the two MLP cards
   const at = real.findIndex((e) => e.type === 'layer')
   const { unmount } = render(<DetailPanel events={real} cursor={at} mode="real" />)
   const cards = screen.getByTestId('mlp-cards').querySelectorAll('section')
-  expect([...cards].map((s) => s.dataset.testid)).toEqual(['edit-size-card', 'votes-card', 'neuron-card', 'steps-card'])
+  expect([...cards].map((s) => s.dataset.testid)).toEqual(['edit-size-card', 'votes-card', 'knockout-card', 'neuron-card', 'steps-card'])
   unmount()
   render(<DetailPanel events={real} cursor={at} mode="sim" />)
   expect(screen.getByTestId('neuron-note')).toHaveTextContent('Real model only: simulated runs have no neurons to show.')
@@ -321,4 +323,23 @@ test('the Layers folds stay as set while scrubbing through the run, and close fo
   rerender(<DetailPanel events={next} cursor={attnAt[1]} mode="real" />)
   expect(screen.getByTestId('attn-show-system')).not.toBeChecked()
   expect(screen.getByTestId('edit-fold')).toHaveAttribute('aria-expanded', 'false')
+})
+
+test('the Knockouts card reads the active record\'s sweep for the viewed cycle, and only for that run', () => {
+  const real = buildFixtureTrace({ mode: 'real', mlp: true, neurons: true })
+  real[0] = { ...real[0], seed: 1, revision: 'v7' } as typeof real[0]
+  const chosen = { id: 100, text: ' sat' }
+  const sweep = { cycle: 0, revision: 'v7', chosen: chosen, baseline: 0.7,
+    layers: Array.from({ length: 30 }, (_, l) => ({ layer: l, prob: 0.5, top: { ...chosen, prob: 0.5 }, flips: false })) }
+  const meta = { prompt: '', params: real[0].type === 'run-start' ? real[0].params : undefined, mode: 'real', endedAt: 0, reason: 'max-tokens', pinned: false, seq: 1 }
+  useRunsStore.setState({ activeId: 'r', records: [{ id: 'r', meta: meta as never, events: real, sweeps: [sweep] }] })
+  useKnockoutRequest.setState({ model: { knockout: true, revision: 'v7' } })
+  const at = real.findIndex((e) => e.type === 'layer')
+  const { unmount } = render(<DetailPanel events={real} cursor={at} mode="real" />)
+  expect(screen.getAllByTestId('knockout-bar')).toHaveLength(30)
+  unmount()
+  // another run (its own run-start object) does not pick up the record's sweep
+  render(<DetailPanel events={[{ ...real[0] }, ...real.slice(1)]} cursor={at} mode="real" />)
+  expect(screen.queryAllByTestId('knockout-bar')).toHaveLength(0)
+  useRunsStore.setState({ activeId: null, records: [] })
 })

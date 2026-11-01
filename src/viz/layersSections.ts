@@ -3,6 +3,7 @@ export const LAYER_SECTIONS = [
   { id: 'layers-attention', label: 'Attention' },
   { id: 'layers-edits', label: 'Edit sizes' },
   { id: 'layers-votes', label: 'Votes' },
+  { id: 'layers-knockouts', label: 'Knockouts' },
   { id: 'layers-neurons', label: 'Inside one MLP' },
   { id: 'layers-steps', label: 'Step by step' },
 ]

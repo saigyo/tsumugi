@@ -3,6 +3,7 @@ import { afterEach, beforeEach, vi } from 'vitest'
 import { resetNeuronCache } from '../neurons/asset'
 import { resetCandidateSelection } from '../viz/candidateSelection'
 import { resetChatFolds } from '../viz/chatFolds'
+import { resetKnockoutRequest } from '../viz/knockoutRequest'
 import { resetMlpLayer } from '../viz/mlpLayerSelection'
 import { resetNeuronMode } from '../viz/neuronMode'
 import { resetRealModelRequest } from '../viz/realModelRequest'
@@ -19,6 +20,7 @@ afterEach(() => {
   resetNeuronMode()
   resetNeuronCache()
   resetRealModelRequest()
+  resetKnockoutRequest()
 })
 
 // Node 26 defines its own global localStorage (undefined without

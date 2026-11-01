@@ -8,10 +8,13 @@ import { Term } from '../../glossary/Term'
 import { EditSizeCard } from '../EditSizeCard'
 import { LayersNav } from '../LayersNav'
 import { LayerVotesCard } from '../LayerVotesCard'
+import { KnockoutCard } from '../KnockoutCard'
+import { useKnockoutRequest } from '../knockoutRequest'
+import { useRunsStore } from '../../app/runsStore'
 import { MlpStepsCard } from '../MlpStepsCard'
 import { NeuronCard } from '../NeuronCard'
 import { useMlpLayer } from '../mlpLayerSelection'
-import type { CycleNeurons, CycleVotes, EditRows } from '../selectors'
+import type { CycleChoice, CycleNeurons, CycleVotes, EditRows } from '../selectors'
 
 const SIM_NOTE = 'Real model only: simulated runs have no MLP to measure.'
 const OLD_NOTE = 'This run was recorded before MLP data was exported.'
@@ -22,7 +25,7 @@ export const STEPS_SIM_NOTE = 'Real model only: simulated runs don’t compute a
 export const STEPS_OLD_NOTE = 'This run has no step-by-step data (recorded before it existed, or left out because it was damaged).'
 const EDITS_PENDING_NOTE = 'Edit sizes appear once this cycle’s layers are measured.'
 
-export function LayersDetail({ event, mode, attention, attentionInRun, tokens, streamShape, grid, pinnedHeads, onPin, pinNote, edits, votes, neurons, run, chat }: {
+export function LayersDetail({ event, mode, attention, attentionInRun, tokens, streamShape, grid, pinnedHeads, onPin, pinNote, edits, votes, neurons, choice, run, chat }: {
   event: Extract<TraceEvent, { type: 'layer' }>
   mode: Mode
   attention?: Extract<TraceEvent, { type: 'attention' }>
@@ -36,6 +39,7 @@ export function LayersDetail({ event, mode, attention, attentionInRun, tokens, s
   edits?: EditRows
   votes?: CycleVotes
   neurons?: CycleNeurons
+  choice?: CycleChoice
   run?: TraceEvent
   chat?: ChatSpans
 }) {
@@ -43,6 +47,12 @@ export function LayersDetail({ event, mode, attention, attentionInRun, tokens, s
   const onLayer = run ? (l: number) => selectLayer(run, l) : undefined
   const [explore, setExplore] = useState(false)
   const noteAction = mode === 'sim' ? <LoadRealButton /> : undefined
+  const record = useRunsStore((s) => s.records.find((r) => r.id === s.activeId))
+  const model = useKnockoutRequest((s) => s.model)
+  const running = useKnockoutRequest((s) => s.running)
+  // a sweep belongs to the record whose events this is (sealing and activating keep the event objects)
+  const own = record && run && record.events[0] === run ? record : undefined
+  const chosenVotes = votes?.status === 'ok' ? votes.candidates.find((c) => c.id === choice?.chosen?.id)?.votes.mlp : undefined
   const cycleHeads = attention?.heads ?? []
   // a pinned head that is also this cycle's showcase head under the same
   // label would duplicate its chip (and its React key) — show it once
@@ -91,6 +101,14 @@ export function LayersDetail({ event, mode, attention, attentionInRun, tokens, s
           onLayer={onLayer}
           candidates={mode === 'real' && votes?.status === 'ok' ? votes.candidates : undefined}
           note={mode === 'sim' ? SIM_NOTE : votes?.status === 'pending' ? PENDING_NOTE : OLD_NOTE} />
+        </div>
+        <div id="layers-knockouts" className="layers-section">
+          {run?.type === 'run-start' && choice && (
+            <KnockoutCard key={choice.cycle} run={run} cycle={choice.cycle} seqLen={choice.seqLen}
+              chosen={choice.chosen} votes={chosenVotes} recordId={own?.id}
+              sweep={own?.sweeps?.find((s) => s.cycle === choice.cycle)}
+              running={running} model={model} noteAction={<LoadRealButton />} />
+          )}
         </div>
         <div id="layers-neurons" className="layers-section">
           <NeuronCard

@@ -190,3 +190,19 @@ export function chatLayout(events: TraceEvent[]): ChatSpans | undefined {
   for (const e of events) if (e.type === 'tokenize') return e.chat
   return undefined
 }
+
+export interface CycleChoice { cycle: number; seqLen: number; chosen?: TokenInfo }
+
+// What the Knockouts card needs about the viewed cycle: the token the sampler
+// chose (a look ahead, like cycleVotes; absent while the run has not got there)
+// and how many tokens the model read: the prompt plus those appended before.
+export function cycleChoice(events: TraceEvent[], cursor: number): CycleChoice {
+  const cycle = viewedCycle(events, cursor)
+  let prompt = 0, appended = 0, chosen: TokenInfo | undefined
+  for (const e of events) {
+    if (e.type === 'tokenize') prompt = e.tokens.length
+    else if (e.type === 'append' && e.cycle < cycle) appended++
+    else if (e.type === 'sample' && e.cycle === cycle) chosen = e.chosen
+  }
+  return { cycle, seqLen: prompt + appended, chosen }
+}

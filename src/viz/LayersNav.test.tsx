@@ -22,15 +22,15 @@ function page(tops: number[]) {
 beforeEach(() => { Element.prototype.scrollIntoView = vi.fn() })
 afterEach(() => { cleanup(); vi.useRealTimers() })
 
-test('six links in pipeline order, in a labelled nav landmark', () => {
-  page([0, 500, 1000, 1500, 2000, 2500])
+test('seven links in pipeline order, in a labelled nav landmark', () => {
+  page([0, 500, 1000, 1500, 2000, 2500, 3000])
   expect(screen.getByRole('navigation', { name: 'Layers sections' })).toBeInTheDocument()
-  expect(screen.getAllByTestId('nav-link').map((l) => l.textContent)).toEqual(['Overview', 'Attention', 'Edit sizes', 'Votes', 'Inside one MLP', 'Step by step'])
+  expect(screen.getAllByTestId('nav-link').map((l) => l.textContent)).toEqual(['Overview', 'Attention', 'Edit sizes', 'Votes', 'Knockouts', 'Inside one MLP', 'Step by step'])
 })
 
 test('a click scrolls its section into view', () => {
-  page([0, 500, 1000, 1500, 2000, 2500])
-  fireEvent.click(screen.getAllByTestId('nav-link')[5])
+  page([0, 500, 1000, 1500, 2000, 2500, 3000])
+  fireEvent.click(screen.getAllByTestId('nav-link')[6])
   expect(Element.prototype.scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth', block: 'start' })
 })
 
@@ -38,7 +38,7 @@ test('with reduced motion requested, a click jumps without smooth scrolling', ()
   const original = window.matchMedia
   window.matchMedia = vi.fn((q: string) => ({ matches: q === '(prefers-reduced-motion: reduce)', media: q } as MediaQueryList))
   try {
-    page([0, 500, 1000, 1500, 2000, 2500])
+    page([0, 500, 1000, 1500, 2000, 2500, 3000])
     fireEvent.click(screen.getAllByTestId('nav-link')[2])
     expect(Element.prototype.scrollIntoView).toHaveBeenCalledWith({ behavior: 'auto', block: 'start' })
   } finally { window.matchMedia = original }
@@ -46,7 +46,7 @@ test('with reduced motion requested, a click jumps without smooth scrolling', ()
 
 test('the section whose top has passed under the bar is current', () => {
   vi.useFakeTimers()
-  page([-1200, -700, -200, -10, 600, 1100])
+  page([-1200, -700, -200, -10, 300, 600, 1100])
   act(() => { window.dispatchEvent(new Event('scroll')); vi.advanceTimersByTime(50) })
   const current = screen.getAllByTestId('nav-link').filter((l) => l.getAttribute('aria-current') === 'true')
   expect(current.map((l) => l.textContent)).toEqual(['Votes'])
@@ -54,7 +54,7 @@ test('the section whose top has passed under the bar is current', () => {
 
 test('the stepper shows and moves the shared MLP layer', () => {
   useMlpLayer.getState().select(run, 1)
-  page([0, 1, 2, 3, 4, 5])
+  page([0, 1, 2, 3, 4, 5, 6])
   expect(screen.getByTestId('nav-layer')).toHaveTextContent('MLP layer 1')
   fireEvent.click(screen.getByTestId('nav-next'))
   expect(screen.getByTestId('nav-layer')).toHaveTextContent('MLP layer 2')
@@ -63,19 +63,19 @@ test('the stepper shows and moves the shared MLP layer', () => {
 test('without MLP data the stepper is hidden and the links stay', () => {
   render(<LayersNav run={run} showStepper={false} />)
   expect(screen.queryByTestId('nav-layer')).toBeNull()
-  expect(screen.getAllByTestId('nav-link')).toHaveLength(6)
+  expect(screen.getAllByTestId('nav-link')).toHaveLength(7)
 })
 
 test('a section that a jump left a few pixels lower than its scroll margin still counts as reached', () => {
   vi.useFakeTimers()
   // jsdom's bar ends at 0; the scroll margin puts a jumped-to section 6 px below it,
   // and fonts or rounding on another machine can leave it a little lower
-  page([-3000, -2500, -2000, -1500, -1000, 20])
+  page([-3500, -3000, -2500, -2000, -1500, -1000, 20])
   act(() => { window.dispatchEvent(new Event('scroll')); vi.advanceTimersByTime(50) })
   const current = () => screen.getAllByTestId('nav-link').filter((l) => l.getAttribute('aria-current') === 'true').map((l) => l.textContent)
   expect(current()).toEqual(['Step by step'])
   cleanup()
-  page([-3000, -2500, -2000, -1500, -1000, 120])
+  page([-3500, -3000, -2500, -2000, -1500, -1000, 120])
   act(() => { window.dispatchEvent(new Event('scroll')); vi.advanceTimersByTime(50) })
   expect(current()).toEqual(['Inside one MLP'])
 })

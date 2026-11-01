@@ -658,3 +658,28 @@ math { font-family: 'Latin Modern Math', math, 'STIX Two Math', 'Cambria Math', 
 .link-button { border: 0; background: none; color: var(--ai); text-decoration: underline; padding: 0; font-size: .85rem; cursor: pointer; }
 .example-chip-tag { font-size: .68rem; color: var(--ai); border: 1px solid var(--ai-soft); border-radius: 3px;
   padding: 0 .2rem; margin-right: .3rem; background: var(--card); }
+
+/* Knockouts card — after mockup A: bars and vote row on the votes card's 30 columns, filling the width */
+.knockout-grid { display: grid; gap: 3px; min-width: 0; }
+.knockout-row { display: grid; grid-template-columns: 7rem minmax(0, 1fr); gap: 0 .5rem; align-items: end; min-width: 0; }
+.knockout-label { font-size: .72rem; color: var(--ink-soft); text-align: right; align-self: center; }
+.knockout-cells { display: grid; gap: 2px; min-width: 0; }
+.knockout-bars-row { height: 70px; }
+.knockout-bars-row .knockout-cells { height: 100%; }
+.knockout-col { display: flex; align-items: flex-end; height: 100%; min-width: 0; }
+.knockout-bar { display: block; width: 100%; padding: 0; border: 0; border-radius: 2px 2px 0 0; cursor: pointer; }
+.knockout-bar-drop { background: var(--shu); }
+.knockout-bar-rise { background: var(--ai); }
+.knockout-bar-flips { outline: 2px solid var(--ink); }
+.knockout-bar[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--card), 0 0 0 3px var(--ink); }
+.knockout-votes > div { height: 16px; border-radius: 2px; }
+.knockout-chips { display: flex; flex-wrap: wrap; gap: .4rem; }
+.knockout-chip { font: inherit; font-size: .72rem; border-radius: 12px; padding: .1rem .6rem; background: var(--card); cursor: pointer;
+  border: 1px solid var(--shu); color: var(--shu); }
+.knockout-chip-compensated { border-color: var(--ai); color: var(--ai); }
+.knockout-chip-dampening { border-color: var(--ink-faint); color: var(--ink-soft); }
+.knockout-tip { font-size: .8rem; background: var(--card); border: 1px solid var(--line); border-radius: 6px; padding: .4rem .6rem; justify-self: start; }
+.knockout-measure, .knockout-run { font: inherit; font-size: .8rem; border-radius: 4px; padding: .3rem .65rem; cursor: pointer; }
+.knockout-measure { background: var(--ai); color: var(--on-ai); border: 0; }
+.knockout-run { background: transparent; color: var(--ai); border: 1px solid var(--ai); }
+.knockout-measure:disabled, .knockout-run:disabled { opacity: .5; cursor: default; }
