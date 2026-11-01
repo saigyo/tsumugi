@@ -139,25 +139,33 @@ test('sweep posts the request and forwards only its own sweepId', async () => {
   worker.respond({ type: 'sweep-layer', sweepId: id + 9, entry })
   worker.respond({ type: 'sweep-layer', sweepId: id, entry })
   worker.respond({ type: 'sweep-done', sweepId: id, aborted: false })
-  expect(await h.done).toBe(true)
+  expect(await h.done).toEqual({ ok: true })
   expect(base).toHaveBeenCalledOnce()
   expect(base).toHaveBeenCalledWith(0.7)
   expect(layer).toHaveBeenCalledOnce()
 })
 
-test('sweep done resolves false when aborted, and abort posts abort', async () => {
+test('sweep done resolves not ok when aborted, and abort posts abort', async () => {
   const { worker, engine } = make()
   const h = engine.sweep(sweepReq, () => {}, () => {})
   const id = (worker.sent.at(-1) as Extract<WorkerRequest, { type: 'sweep-request' }>).sweepId
   h.abort()
   expect(worker.sent.at(-1)).toEqual({ type: 'abort' })
   worker.respond({ type: 'sweep-done', sweepId: id, aborted: true })
-  expect(await h.done).toBe(false)
+  expect(await h.done).toEqual({ ok: false })
 })
 
-test('fatal during a sweep resolves done with false', async () => {
+test('a sweep-done with an error forwards the message', async () => {
+  const { worker, engine } = make()
+  const h = engine.sweep(sweepReq, () => {}, () => {})
+  const id = (worker.sent.at(-1) as Extract<WorkerRequest, { type: 'sweep-request' }>).sweepId
+  worker.respond({ type: 'sweep-done', sweepId: id, aborted: true, error: 'out of memory' })
+  expect(await h.done).toEqual({ ok: false, error: 'out of memory' })
+})
+
+test('fatal during a sweep resolves done with the message', async () => {
   const { worker, engine } = make()
   const h = engine.sweep(sweepReq, () => {}, () => {})
   worker.respond({ type: 'fatal', message: 'boom' })
-  expect(await h.done).toBe(false)
+  expect(await h.done).toEqual({ ok: false, error: 'boom' })
 })

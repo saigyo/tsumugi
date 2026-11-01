@@ -307,7 +307,7 @@ model would have chosen that token without it. In a real run, the
 **Knockouts** card in the Layers detail (after Votes) asks that directly.
 "Measure all 30 layers" removes one layer's MLP at a time (its edit is
 multiplied by zero at every position) and asks the model again for the token
-chosen at the current cycle: 31 passes, about two seconds on a graphics card.
+chosen at the current cycle: 31 passes, about two seconds for a short text on a graphics card.
 Each bar is the change in that token's probability in percentage points (red
 drops, blue rises), outlined when the run without the layer would pick a
 different token. Below the bars is the layer's direct vote from the votes

@@ -221,7 +221,7 @@ try {
     await page.getByRole('button', { name: 'Measure all 30 layers' }).click()
     await page.waitForFunction(() => document.querySelectorAll('[data-testid="knockout-bar"]').length === 30, null, { timeout: 120000 })
     await $('knockout-chip').first().waitFor({ timeout: 10000 })
-    await $('knockout-chip').nth(1).click()                         // not layer 0 (breaks the model): detail line + run button
+    await $('knockout-chip').first().click()                        // layer 0 (breaks the model) sorts last: detail line + run button
     await $('knockout-detail').waitFor({ timeout: 5000 })
     const unstick = await page.addStyleTag({ content: '.controls, .layers-nav { position: static !important; }' })
     await $('knockout-card').scrollIntoViewIfNeeded()

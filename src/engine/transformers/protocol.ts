@@ -19,7 +19,7 @@ export type WorkerResponse =
   | { type: 'done'; runId: number }
   | { type: 'sweep-baseline'; sweepId: number; prob: number }
   | { type: 'sweep-layer'; sweepId: number; entry: KnockoutLayer }
-  | { type: 'sweep-done'; sweepId: number; aborted: boolean }
+  | { type: 'sweep-done'; sweepId: number; aborted: boolean; error?: string }
   | { type: 'fatal'; message: string }
   | { type: 'head-response'; layer: number; head: number
       matrix: number[][]                // exact accumulated ragged matrix; [] if unavailable

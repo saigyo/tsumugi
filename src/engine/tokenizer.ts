@@ -15,7 +15,8 @@ export const ATTN_MODEL_ID = 'saigyo-hoshi/smollm2-135m-attn-onnx'
 // (edit_ratios, stream_parts). v5 = neuron outputs (mlp_activations,
 // final_norm_inv_rms) and the neurons/ asset. v6 = weight-only 8-bit model
 // (#19) and the step outputs (mlp_gate, mlp_up, mlp_in, mlp_out); the neurons
-// manifest names its revision.
+// manifest names its revision. v7 = the mlp_scale input, which knockouts use to
+// remove one layer's MLP (#18).
 export const ATTN_MODEL_REVISION = 'v7'
 
 // Both ids share the same weights, so one geometry asset covers both.

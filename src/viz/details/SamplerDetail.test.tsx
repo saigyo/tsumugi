@@ -21,3 +21,14 @@ test('the token popover shows whitespace tokens as glyphs', () => {
   expect(screen.getAllByTestId('popover-row').map((r) => r.querySelector('.popover-token')!.textContent))
     .toEqual(['↵', '␣ran', '␣was'])
 })
+
+test('a forced sample says it was copied, not drawn', () => {
+  render(<SamplerDetail softmax={softmax} sample={{ ...sample, method: 'forced' }} />)
+  expect(screen.getByTestId('detail-sampler')).toHaveTextContent('Copied from the original run (knockout replay): no draw.')
+  expect(screen.getByTestId('detail-sampler')).not.toHaveTextContent('A weighted draw')
+})
+
+test('a drawn sample keeps the weighted-draw sentence', () => {
+  render(<SamplerDetail softmax={softmax} sample={sample} />)
+  expect(screen.getByTestId('detail-sampler')).toHaveTextContent('A weighted draw across the probability strip')
+})

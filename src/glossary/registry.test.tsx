@@ -231,3 +231,20 @@ test('generation settings in this run: the run’s own values, how many tokens i
   render(<>{inRun(sampleRun({ generated: 2, ended: 'aborted' }))}</>)
   expect(document.body.textContent).toContain('It wrote 2 and was stopped by hand.')
 })
+
+test('the knockout In this run block names the token, the flips, the largest drop and rise', () => {
+  const inRun = getEntry('knockout')!.inRun!
+  const { container } = render(<>{inRun(sampleRun())}</>)
+  expect(container.textContent).toContain('“␣sat” had 70%')
+  expect(container.textContent).toContain('4 of 30 layers')
+  expect(container.textContent).toContain('Largest drop: MLP 15, 58 points.')
+  expect(container.textContent).toContain('Largest rise: MLP 29, 2 points.')
+  cleanup()
+  const none = render(<>{inRun(sampleRun({ knockout: undefined }))}</>)
+  expect(none.container.textContent).toBe('')
+})
+
+test('the knockout entry warns about the pass without the key-value cache', () => {
+  const { container } = render(<>{getEntry('knockout')!.body()}</>)
+  expect(container.textContent).toMatch(/without the key-value cache/)
+})

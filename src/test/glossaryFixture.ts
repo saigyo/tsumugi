@@ -10,6 +10,8 @@ export function sampleRun(over: Partial<RunSummary> = {}): RunSummary {
     vocabSize: 49152,
     edits: { token: { id: 2368, text: ' cat' }, layer: 29, ratio: 1.42 },
     votes: { candidate: { id: 3290, text: ' sat' }, layer: 27, value: 2.31 },
+    knockout: { chosen: { id: 3290, text: ' sat' }, baseline: 0.7, layers: 30, flipped: 4,
+      drop: { layer: 15, delta: 0.58 }, rise: { layer: 29, delta: 0.02 } },
     softmax: { temperature: 0.8, top: [
       { id: 3290, text: ' sat', logit: 9.1, prob: 0.7 }, { id: 5113, text: ' ran', logit: 7.2, prob: 0.2 }, { id: 436, text: ' was', logit: 5.0, prob: 0.1 },
     ] },

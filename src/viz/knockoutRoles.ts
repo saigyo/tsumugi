@@ -35,7 +35,9 @@ export function knockoutRoles(
     if (role) out.push({ layer: l.layer, role, mag: Math.abs(dp) })
   }
   const byMag = (a: { mag: number }, b: { mag: number }) => b.mag - a.mag
-  const decisive = out.filter((x) => x.role === 'decisive').sort(byMag)
+  // removing layer 0 always breaks the model, so it says least: it sorts last among the decisive layers
+  const decisive = out.filter((x) => x.role === 'decisive')
+    .sort((a, b) => (a.layer === 0 ? 1 : 0) - (b.layer === 0 ? 1 : 0) || byMag(a, b))
   const others = out.filter((x) => x.role !== 'decisive').sort(byMag)
   // up to 3 decisive plus the other roles; unused slots go back to further decisive layers
   const nDecisive = Math.min(decisive.length, Math.max(MAX_DECISIVE_CHIPS, MAX_ROLE_CHIPS - others.length))

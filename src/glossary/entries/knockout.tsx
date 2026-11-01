@@ -1,3 +1,4 @@
+import { visibleToken } from '../../viz/tokenText'
 import { Term } from '../Term'
 import type { GlossaryEntry } from '../types'
 
@@ -17,7 +18,7 @@ export const knockout: GlossaryEntry = {
           The attention of that layer and every other layer is left alone.</li>
         <li><strong>Asking again.</strong> The model reads the whole text so far once more and gives a probability
           for the token that was chosen at this cycle. “Measure all 30 layers” does this once per layer: 31 passes
-          including the unchanged one, about two seconds with a graphics card.</li>
+          including the unchanged one, about two seconds for a short text with a graphics card.</li>
         <li><strong>Direct versus total effect.</strong> A vote is the direct effect: how far the layer’s own edit
           points toward the token. A knockout is the total effect: it also includes what every later layer did with
           that edit. A layer can have a large vote and no total effect if later layers make up for it, and a small
@@ -39,6 +40,26 @@ export const knockout: GlossaryEntry = {
         replaces the output with its average over many prompts instead (mean ablation), which is gentler. With a model
         as small as this one, removing a single MLP often changes the top token whenever its lead is small, so many
         layers come out decisive. Removing layer 0 breaks the model altogether.</p>
+      <p className="gl-aside">The outlined bar’s prediction comes from a pass without the key-value cache, while the
+        run with the layer off uses it. When the top two tokens are nearly tied, the run can rarely fork differently
+        from what the bar promised.</p>
     </>
   ),
+  inRun: (run) => {
+    const k = run.knockout
+    if (!k) return null
+    const pts = (d: number) => `${Math.round(d * 100)} points`
+    return (
+      <>
+        <p>Cycle {run.cycle + 1}: “{visibleToken(k.chosen)}” had {Math.round(k.baseline * 100)}% with every layer in
+          place. Removing the MLP of {k.flipped === 0 ? 'no layer' : k.flipped === 1 ? 'one layer' : `${k.flipped} of ${k.layers} layers`}{' '}
+          changes the top token.</p>
+        {(k.drop || k.rise) && (
+          <p>{k.drop && `Largest drop: MLP ${k.drop.layer}, ${pts(k.drop.delta)}.`}
+            {k.drop && k.rise && ' '}
+            {k.rise && `Largest rise: MLP ${k.rise.layer}, ${pts(k.rise.delta)}.`}</p>
+        )}
+      </>
+    )
+  },
 }

@@ -28,6 +28,9 @@ export interface RunSummary {
   softmax?: { temperature: number; top: Array<{ id: number; text: string; logit?: number; prob: number }> }
   edits?: { token: TokenInfo; layer: number; ratio: number }      // largest MLP edit of the last visible token
   votes?: { candidate: TokenInfo; layer: number; value: number }  // MLP layer adding most to the top candidate
+  // the saved knockout sweep for the viewed cycle; drop and rise are probability changes in 0..1
+  knockout?: { chosen: TokenInfo; baseline: number; layers: number; flipped: number
+    drop?: { layer: number; delta: number }; rise?: { layer: number; delta: number } }
 }
 
 export interface GlossaryEntry {

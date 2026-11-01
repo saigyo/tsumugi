@@ -8,7 +8,7 @@ import { usePins } from './app/usePins'
 import { CURATED_EXAMPLES } from './engine/simulated/examples'
 import { SimulatedEngine } from './engine/simulated/SimulatedEngine'
 import { fallbackTokenizer, loadTokenizer, type Tokenizer } from './engine/tokenizer'
-import { TransformersEngine } from './engine/transformers/TransformersEngine'
+import { TransformersEngine, type SweepResult } from './engine/transformers/TransformersEngine'
 import type { PipelineEngine, ProgressInfo, RunHandle } from './engine/types'
 import { usePlaybackTicker, usePlayerStore } from './player/store'
 import { useTraceStore } from './trace/store'
@@ -36,7 +36,11 @@ export default function App() {
   usePlaybackTicker()
   const events = useTraceStore((s) => s.events)
   const cursor = usePlayerStore((s) => s.cursor)
-  const glossaryRun = useMemo(() => runSummary(events, cursor), [events, cursor])
+  const activeSweeps = useRunsStore((s) => {
+    const r = s.records.find((x) => x.id === s.activeId)
+    return r && r.events[0] === events[0] ? r.sweeps : undefined   // only when the trace is that record
+  })
+  const glossaryRun = useMemo(() => runSummary(events, cursor, activeSweeps), [events, cursor, activeSweeps])
   const [mode, setMode] = useState<Mode>('sim')
   // An archived run is shown as recorded: a real run keeps its MLP cards even
   // while the app itself is in sim mode, and vice versa.
@@ -53,7 +57,7 @@ export default function App() {
   // first token) — Generate is disabled and shows activity, Stop appears
   const [generating, setGenerating] = useState(false)
   const [activity, setActivity] = useState('Generating…')
-  const sweepRef = useRef<{ abort(): void; done: Promise<boolean> } | null>(null)
+  const sweepRef = useRef<{ abort(): void; done: Promise<SweepResult> } | null>(null)
   const [attn, setAttn] = useState(false)
   const [bannerClosed, setBannerClosed] = useState(() => readFlag('tsumugi.simBannerClosed'))
   const [fromCache, setFromCache] = useState(false)
@@ -78,6 +82,8 @@ export default function App() {
   }, [])
 
   useEffect(() => { void initArchive(createIndexedDbStorage()) }, [])
+  // a failed measurement belongs to the run it was made on
+  useEffect(() => { useKnockoutRequest.setState({ error: null }) }, [activeId])
 
   // trace growth → player
   useEffect(() => {
@@ -154,7 +160,7 @@ export default function App() {
     runRef.current?.abort()
     sweepRef.current?.abort()
     await runRef.current?.done
-    await sweepRef.current?.done.catch(() => false)
+    await sweepRef.current?.done.catch(() => ({ ok: false }))
   }
 
   const startRun = async (
@@ -163,6 +169,8 @@ export default function App() {
   ) => {
     // the chat example can be clicked while simulated: load the real model first
     if (format.kind === 'chat' && (mode !== 'real' || !realEngineRef.current) && !(await chooseMode('real'))) return
+    // a knockout run never falls back to the simulation: it would be recorded as a knockout
+    if (options?.knockout && !realEngineRef.current) return
     await settleWork()
     useTraceStore.getState().clear()
     usePlayerStore.getState().dispatch({ type: 'reset' })
@@ -231,7 +239,8 @@ export default function App() {
     let baseline: number | null = null
     const layers: KnockoutLayer[] = []
     const publish = () => store.setState({ running: { recordId: record.id, cycle, baseline, layers: [...layers] } })
-    let handle: { abort(): void; done: Promise<boolean> }
+    let handle: { abort(): void; done: Promise<SweepResult> }
+    store.setState({ error: null })
     try {
       handle = engine.sweep(
         { ids, params: start.params, chosenId: sample.chosen.id, seed: start.seed ?? 0, cycle },
@@ -239,16 +248,16 @@ export default function App() {
         (entry) => { layers.push(entry); publish() },
       )
     } catch (err) {
-      setModelError(err instanceof Error ? err.message : String(err))
+      store.setState({ error: { recordId: record.id, cycle, message: err instanceof Error ? err.message : String(err) } })
       return
     }
     publish()
     setActivity('Measuring…')
     setGenerating(true)
     sweepRef.current = handle
-    void handle.done.then((ok) => ok, () => false).then((ok) => {
+    void handle.done.catch((err): SweepResult => ({ ok: false, error: err instanceof Error ? err.message : String(err) })).then(({ ok, error }) => {
       if (sweepRef.current === handle) sweepRef.current = null
-      store.setState({ running: null })
+      store.setState({ running: null, ...(error !== undefined ? { error: { recordId: record.id, cycle, message: error } } : {}) })
       setGenerating(false)
       setActivity('Generating…')
       if (ok && baseline !== null && useRunsStore.getState().activeId === record.id) {
@@ -267,7 +276,7 @@ export default function App() {
     const origin: KnockoutOrigin = { layer, cycle, sourceId: record.id }
     void startRun(start.prompt, start.params, start.format ?? TEXT_FORMAT,
       { knockout: { origin, forced: appended(cycle), seed: start.seed ?? 0 } },
-      (sealed, reason) => { if (reason !== 'aborted') setCompare({ aId: record.id, bId: sealed.id, cycle }) })
+      (sealed, reason) => { if (reason === 'eos' || reason === 'max-tokens') setCompare({ aId: record.id, bId: sealed.id, cycle }) })
   }
 
   // stable handlers for the Knockouts card; they call the latest closures

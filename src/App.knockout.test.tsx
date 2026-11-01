@@ -13,12 +13,13 @@ interface FakeSweep {
   req: { ids: number[]; chosenId: number; cycle: number; seed: number }
   onBaseline: (p: number) => void
   onLayer: (e: KnockoutLayer) => void
-  finish: (ok: boolean) => void
+  finish: (ok: boolean, error?: string) => void
   aborted: boolean
 }
 let sweeps: FakeSweep[] = []
 let runs: Array<{ args: unknown[]; emit: (e: TraceEvent) => void }> = []
 let sweepMode: 'ok' | 'throw' | 'reject' = 'ok'
+let knockoutCapable = true
 let prepare: { resolve: () => void } | null = null
 
 vi.mock('./engine/tokenizer', async (importOriginal) => {
@@ -29,7 +30,7 @@ vi.mock('./engine/tokenizer', async (importOriginal) => {
 vi.mock('./engine/transformers/TransformersEngine', () => {
   class FakeTransformersEngine {
     device = 'wasm' as const
-    knockout = true
+    get knockout() { return knockoutCapable }
     revision = 'rev-1'
     prepare() { return new Promise<void>((resolve) => { prepare = { resolve } }) }
     run(...args: unknown[]) {
@@ -38,9 +39,10 @@ vi.mock('./engine/transformers/TransformersEngine', () => {
     }
     sweep(req: FakeSweep['req'], onBaseline: FakeSweep['onBaseline'], onLayer: FakeSweep['onLayer']) {
       if (sweepMode === 'throw') throw new Error('sweep failed')
-      let finish!: (ok: boolean) => void
+      let settle!: (r: { ok: boolean; error?: string }) => void
       let fail!: (e: Error) => void
-      const done = new Promise<boolean>((r, j) => { finish = r; fail = j })
+      const done = new Promise<{ ok: boolean; error?: string }>((r, j) => { settle = r; fail = j })
+      const finish = (ok: boolean, error?: string) => settle({ ok, ...(error !== undefined ? { error } : {}) })
       if (sweepMode === 'reject') queueMicrotask(() => fail(new Error('worker died')))
       const s: FakeSweep = { req, onBaseline, onLayer, finish, aborted: false }
       sweeps.push(s)
@@ -67,7 +69,7 @@ async function ready() {
 }
 
 beforeEach(() => {
-  sweeps = []; runs = []; prepare = null; sweepMode = 'ok'
+  sweeps = []; runs = []; prepare = null; sweepMode = 'ok'; knockoutCapable = true
   localStorage.clear()
   useTraceStore.getState().clear()
   usePlayerStore.setState({ ...initialPlayerState })
@@ -219,5 +221,65 @@ test('stopping a knockout run keeps the sealed record but does not open Compare'
   })
   await waitFor(() => expect(useRunsStore.getState().records).toHaveLength(3))
   expect(useRunsStore.getState().records.at(-1)!.meta.reason).toBe('aborted')
+  expect(screen.queryAllByTestId('cmp-tick')).toHaveLength(0)
+})
+
+test('a failed sweep stores the message, saves nothing and leaves Measure usable', async () => {
+  const { a } = seedRecords()
+  await ready()
+  fireEvent.change(screen.getByTestId('prompt-input'), { target: { value: 'hi' } })
+  act(() => useKnockoutRequest.getState().measure!(1))
+  act(() => { sweeps[0].onBaseline(0.7); sweeps[0].onLayer(layer(0)) })
+  await act(async () => { sweeps[0].finish(false, 'out of memory') })
+  expect(useKnockoutRequest.getState().error).toEqual({ recordId: a.id, cycle: 1, message: 'out of memory' })
+  expect(useKnockoutRequest.getState().running).toBeNull()
+  expect(useRunsStore.getState().records.find((r) => r.id === a.id)!.sweeps).toBeUndefined()
+  expect(screen.getByTestId('btn-generate')).not.toBeDisabled()
+  // a new measurement clears the message
+  act(() => useKnockoutRequest.getState().measure!(1))
+  expect(sweeps).toHaveLength(2)
+  expect(useKnockoutRequest.getState().error).toBeNull()
+})
+
+test('an aborted sweep sets no error', async () => {
+  seedRecords()
+  await ready()
+  act(() => useKnockoutRequest.getState().measure!(0))
+  await act(async () => { fireEvent.click(screen.getByTestId('btn-stop')) })
+  expect(useKnockoutRequest.getState().error).toBeNull()
+})
+
+test('activating another run clears a sweep error', async () => {
+  const { b } = seedRecords()
+  await ready()
+  act(() => useKnockoutRequest.getState().measure!(0))
+  await act(async () => { sweeps[0].finish(false, 'boom') })
+  expect(useKnockoutRequest.getState().error).not.toBeNull()
+  fireEvent.click(screen.getAllByTestId('run-chip-main')[1])
+  await waitFor(() => expect(useRunsStore.getState().activeId).toBe(b.id))
+  expect(useKnockoutRequest.getState().error).toBeNull()
+})
+
+test('a synchronous sweep throw goes to the card error, not the model banner', async () => {
+  const { a } = seedRecords()
+  await ready()
+  sweepMode = 'throw'
+  act(() => useKnockoutRequest.getState().measure!(0))
+  expect(useKnockoutRequest.getState().error).toEqual({ recordId: a.id, cycle: 0, message: 'sweep failed' })
+  expect(screen.queryByTestId('model-error')).toBeNull()
+})
+
+test('a knockout run that ends in an error does not open Compare', async () => {
+  const { a } = seedRecords()
+  await ready()
+  act(() => useKnockoutRequest.getState().runKnockout!(3, 0))
+  await waitFor(() => expect(runs).toHaveLength(1))
+  const trace = buildFixtureTrace({ mode: 'real', cycles: 1, reason: 'error' })
+  act(() => {
+    trace.forEach((e, i) => runs[0].emit(i === 0 && e.type === 'run-start'
+      ? { ...e, knockout: { layer: 3, cycle: 0, sourceId: a.id } } : e))
+  })
+  await waitFor(() => expect(useRunsStore.getState().records).toHaveLength(3))
+  expect(useRunsStore.getState().records.at(-1)!.meta.reason).toBe('error')
   expect(screen.queryAllByTestId('cmp-tick')).toHaveLength(0)
 })

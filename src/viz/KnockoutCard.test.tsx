@@ -150,3 +150,24 @@ test('the detail wording follows the top token, not flips', () => {
   fireEvent.click(screen.getAllByTestId('knockout-bar')[4])
   expect(screen.getByTestId('knockout-detail')).toHaveTextContent('98% → 50%, top token unchanged')
 })
+
+test('the caption names the passes and the time for a short text', () => {
+  card()
+  expect(document.querySelector('.mlp-caption')!.textContent).toContain('31 passes')
+  expect(document.querySelector('.mlp-caption')!.textContent).toContain('about two seconds for a short text')
+})
+
+test('a failed measurement for this record and cycle shows a note above the button', () => {
+  useKnockoutRequest.setState({ measure: vi.fn(), error: { recordId: 'r1', cycle: 2, message: 'out of memory' } })
+  card()
+  const err = screen.getByTestId('knockout-error')
+  expect(err).toHaveTextContent('Measuring failed: out of memory')
+  expect(err).toHaveClass('mlp-note')
+  expect(screen.getByRole('button', { name: 'Measure all 30 layers' })).not.toBeDisabled()
+})
+
+test.each([[{ recordId: 'other', cycle: 2 }], [{ recordId: 'r1', cycle: 3 }]])('a failure for another record or cycle is not shown (%#)', (where) => {
+  useKnockoutRequest.setState({ error: { ...where, message: 'x' } })
+  card()
+  expect(screen.queryByTestId('knockout-error')).toBeNull()
+})

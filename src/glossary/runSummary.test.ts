@@ -1,5 +1,6 @@
 import { expect, test } from 'vitest'
 import { buildFixtureTrace, makeFixtureTrace } from '../test/fixtures'
+import type { KnockoutSweep } from '../trace/types'
 import { runSummary } from './runSummary'
 
 // makeFixtureTrace(): 0 run-start, 1 tokenize, cycle 0 = 2..10 (embed 2, layers 3-5,
@@ -61,4 +62,28 @@ test('a run still in flight has no stop reason yet', () => {
   const r = runSummary(events, events.length - 1)!
   expect(r.ended).toBeUndefined()
   expect(r.generated).toBe(2)
+})
+
+const lay = (layer: number, prob: number, flips = false) => ({ layer, prob, top: { id: 1, text: 'x', prob }, flips })
+const sweepAt = (cycle: number): KnockoutSweep => ({ cycle, revision: 'v7', chosen: { id: 100, text: ' sat' }, baseline: 0.7,
+  layers: [lay(0, 0.01, true), lay(1, 0.69), lay(2, 0.2), lay(3, 0.75), lay(4, 0.1, true)] })
+
+test('without sweeps, or none for the viewed cycle, there is no knockout summary', () => {
+  expect(runSummary(makeFixtureTrace(), 8)!.knockout).toBeUndefined()
+  expect(runSummary(makeFixtureTrace(), 8, [sweepAt(1)])!.knockout).toBeUndefined()
+})
+
+test('the sweep of the viewed cycle is summarised: flips, largest drop and largest rise', () => {
+  const k = runSummary(makeFixtureTrace(), 8, [sweepAt(1), sweepAt(0)])!.knockout!
+  expect(k).toMatchObject({ chosen: { id: 100 }, baseline: 0.7, layers: 5, flipped: 2, drop: { layer: 0 } })
+  expect(k.drop!.delta).toBeCloseTo(0.69)
+  expect(k.rise!.layer).toBe(3)
+  expect(k.rise!.delta).toBeCloseTo(0.05)
+})
+
+test('a sweep with no rise has no rise entry', () => {
+  const sw = { ...sweepAt(0), layers: [lay(0, 0.2), lay(1, 0.7)] }
+  const k = runSummary(makeFixtureTrace(), 8, [sw])!.knockout!
+  expect(k.rise).toBeUndefined()
+  expect(k.drop).toMatchObject({ layer: 0 })
 })

@@ -4,6 +4,9 @@ import { MODEL_ID } from '../tokenizer'
 import type { PipelineEngine, ProgressInfo, RunHandle, RunOptions } from '../types'
 import type { WorkerRequest, WorkerResponse } from './protocol'
 
+// ok: the sweep ran to the end; not ok without an error: aborted; with an error: failed
+export interface SweepResult { ok: boolean; error?: string }
+
 export interface HeadData {
   layer: number
   head: number
@@ -75,14 +78,14 @@ export class TransformersEngine implements PipelineEngine {
   }
 
   sweep(req: Omit<Extract<WorkerRequest, { type: 'sweep-request' }>, 'type' | 'sweepId'>,
-    onBaseline: (p: number) => void, onLayer: (e: KnockoutLayer) => void): { abort(): void; done: Promise<boolean> } {
+    onBaseline: (p: number) => void, onLayer: (e: KnockoutLayer) => void): { abort(): void; done: Promise<SweepResult> } {
     const sweepId = this.nextSweepId++
-    const done = new Promise<boolean>((resolve) => {
+    const done = new Promise<SweepResult>((resolve) => {
       const listener = (msg: WorkerResponse) => {
         if (msg.type === 'sweep-baseline' && msg.sweepId === sweepId) onBaseline(msg.prob)
         if (msg.type === 'sweep-layer' && msg.sweepId === sweepId) onLayer(msg.entry)
-        if (msg.type === 'sweep-done' && msg.sweepId === sweepId) { this.listeners.delete(listener); resolve(!msg.aborted) }
-        if (msg.type === 'fatal') { this.listeners.delete(listener); resolve(false) }
+        if (msg.type === 'sweep-done' && msg.sweepId === sweepId) { this.listeners.delete(listener); resolve(msg.error !== undefined ? { ok: false, error: msg.error } : { ok: !msg.aborted }) }
+        if (msg.type === 'fatal') { this.listeners.delete(listener); resolve({ ok: false, error: msg.message }) }
       }
       this.listeners.add(listener)
       this.post({ type: 'sweep-request', sweepId, ...req })

@@ -54,6 +54,7 @@ export function KnockoutCard({ run, cycle, seqLen, chosen, votes, sweep, running
 }) {
   const measure = useKnockoutRequest((s) => s.measure)
   const runKnockout = useKnockoutRequest((s) => s.runKnockout)
+  const failure = useKnockoutRequest((s) => s.error)
   const select = useMlpLayer((s) => s.select)
   const [picked, setPicked] = useState<number | null>(null)
   const title = <h4>Which layers the chosen token depends on{' '}
@@ -88,7 +89,10 @@ export function KnockoutCard({ run, cycle, seqLen, chosen, votes, sweep, running
     <section data-testid="knockout-card" className="mlp-card">
       {title}
       <p className="mlp-caption">Removes one layer’s MLP at a time and asks the model again for this cycle’s next
-        token: {LAYERS} passes over the whole text, a few seconds on a graphics card.</p>
+        token: {LAYERS + 1} passes over the whole text, about two seconds for a short text on a graphics card.</p>
+      {failure && failure.recordId === recordId && failure.cycle === cycle && (
+        <p data-testid="knockout-error" className="mlp-note">Measuring failed: {failure.message}</p>
+      )}
       {(!sweep || runningHere) && (
         <div><button type="button" className="knockout-measure" disabled={busy || !measure}
           onClick={() => measure?.(cycle)}>Measure all 30 layers</button></div>

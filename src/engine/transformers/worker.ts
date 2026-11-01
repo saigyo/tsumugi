@@ -115,6 +115,14 @@ async function run(runId: number, prompt: string, params: GenParams, format: Pro
   const emit = (event: TraceEvent) => post({ type: 'trace', runId, event })
   const { Tensor, DynamicCache } = await import('@huggingface/transformers')
 
+  // a knockout run on a session that cannot remove a layer would be recorded as a knockout
+  // while running unmodified: refuse it
+  if (knockout && !hasScale) {
+    emit({ type: 'run-end', reason: 'error', message: 'This model cannot remove a layer’s MLP, so the knockout run was not started.' })
+    post({ type: 'done', runId })
+    return
+  }
+
   const seed = knockout?.seed ?? crypto.getRandomValues(new Uint32Array(1))[0]
   emit({ type: 'run-start', prompt, mode: 'real', modelId: loadedModelId, params, seed,
     ...(loadedModelId === ATTN_MODEL_ID ? { revision: ATTN_MODEL_REVISION } : {}),
@@ -348,25 +356,30 @@ async function sweep(msg: Extract<WorkerRequest, { type: 'sweep-request' }>) {
   const input_ids = new Tensor('int64', BigInt64Array.from(msg.ids.map(BigInt)), [1, n])
   const attention_mask = new Tensor('int64', BigInt64Array.from(msg.ids.map(() => 1n)), [1, n])
   let stopped = false
-  // off = -1 is the baseline (all ones)
-  for (let off = -1; off < numLayers; off++) {
-    if (aborted) { stopped = true; break }
-    const mlp_scale = new Tensor('float32', mlpScale(numLayers, off < 0 ? null : off), [numLayers])
-    const out = await model({ input_ids, attention_mask, mlp_scale })
-    try {
-      const [, seq, vocab] = out.logits.dims as [number, number, number]
-      const last: Float32Array = out.logits.data.slice((seq - 1) * vocab, seq * vocab)
-      const e = sweepEntry(last, msg.params, msg.chosenId, draw)
-      if (off < 0) post({ type: 'sweep-baseline', sweepId, prob: e.prob })
-      else {
-        const entry: KnockoutLayer = { layer: off, prob: e.prob,
-          top: { ...tokenInfo(e.topId), prob: e.topProb }, flips: e.flips }
-        post({ type: 'sweep-layer', sweepId, entry })
+  try {
+    // off = -1 is the baseline (all ones)
+    for (let off = -1; off < numLayers; off++) {
+      if (aborted) { stopped = true; break }
+      const mlp_scale = new Tensor('float32', mlpScale(numLayers, off < 0 ? null : off), [numLayers])
+      const out = await model({ input_ids, attention_mask, mlp_scale })
+      try {
+        const [, seq, vocab] = out.logits.dims as [number, number, number]
+        const last: Float32Array = out.logits.data.slice((seq - 1) * vocab, seq * vocab)
+        const e = sweepEntry(last, msg.params, msg.chosenId, draw)
+        if (off < 0) post({ type: 'sweep-baseline', sweepId, prob: e.prob })
+        else {
+          const entry: KnockoutLayer = { layer: off, prob: e.prob,
+            top: { ...tokenInfo(e.topId), prob: e.topProb }, flips: e.flips }
+          post({ type: 'sweep-layer', sweepId, entry })
+        }
+      } finally {
+        // free this pass's output tensors (GPU buffers) so 31 passes do not accumulate
+        for (const k in out) (out[k] as any)?.dispose?.()
       }
-    } finally {
-      // free this pass's output tensors (GPU buffers) so 31 passes do not accumulate
-      for (const k in out) (out[k] as any)?.dispose?.()
     }
+  } catch (err) {
+    post({ type: 'sweep-done', sweepId, aborted: true, error: err instanceof Error ? err.message : String(err) })
+    return
   }
   post({ type: 'sweep-done', sweepId, aborted: stopped })
 }

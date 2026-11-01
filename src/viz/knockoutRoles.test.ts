@@ -65,7 +65,7 @@ describe('knockoutRoles', () => {
     const v = votes(30, 0); v[29] = 5
     const r = knockoutRoles(sweep(d, flips), v)
     expect(r.filter((x) => x.role === 'decisive')).toHaveLength(MAX_DECISIVE_CHIPS)
-    expect(r.map((x) => x.layer)).toEqual([0, 1, 2, 12, 10])
+    expect(r.map((x) => x.layer)).toEqual([1, 2, 3, 12, 10])
   })
   it('10 flips and nothing else -> 5 decisive', () => {
     const d = flat(); const flips = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
@@ -79,5 +79,13 @@ describe('knockoutRoles', () => {
     flips.forEach((l) => { d[l] = -0.5 }); d[12] = 0.4
     const r = knockoutRoles(sweep(d, flips), votes(30, 0))
     expect(r.map((x) => x.role)).toEqual(['decisive', 'decisive', 'decisive', 'decisive', 'dampening'])
+  })
+  it('layer 0 sorts last among the decisive layers whatever its drop', () => {
+    const d = flat(); d[0] = -0.9; d[4] = -0.2; d[9] = -0.3
+    expect(knockoutRoles(sweep(d, [0, 4, 9]), votes(30, 0)).map((x) => x.layer)).toEqual([9, 4, 0])
+  })
+  it('layer 0 is the first to be cut when more than three layers are decisive', () => {
+    const d = flat(); d[0] = -0.9; d[1] = -0.2; d[2] = -0.3; d[3] = -0.4; d[4] = -0.1
+    expect(knockoutRoles(sweep(d, [0, 1, 2, 3, 4]), votes(30, 0)).map((x) => x.layer)).toEqual([3, 2, 1, 4, 0])
   })
 })
