@@ -216,6 +216,16 @@ they are IDs, not positions.
   End-to-end: tests select `.controls` by class and duplicate setup; row
   stacking at 390 px is not asserted. Also (pre-existing): old v5 neuron
   files stay in the Cache Storage. *(#17 final review, 2026-10-21)*
+- [ ] **#24 Cycle buttons land on the Sampler's append event** — the
+  previous/next cycle buttons move to the append event of the Sampler
+  stage, so after clicking Layers, "next cycle" lands on the same cycle
+  again instead of the following one. Pre-existing; found while checking
+  the Knockouts card. *(#18, 2026-11-01)*
+- [ ] **#25 Time a knockout sweep on a long prompt** — the card says a
+  sweep takes "about two seconds for a short text", but its 31 passes run
+  without the KV cache over the whole text, so a prompt near 500 tokens
+  may be far slower. Measure it; if so, make the caption depend on the
+  length. *(#18 follow-up, 2026-11-01)*
 - [ ] **#9 Mobile layout** — the app is desktop-first; a narrow-viewport pass
   is substantial design work for an audience that mostly explores on
   laptops. *(v1 spec, out of scope)*
