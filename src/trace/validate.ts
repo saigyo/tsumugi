@@ -92,6 +92,8 @@ export function validateTrace(events: TraceEvent[]): string[] {
   }
 
   for (const e of events) {
+    if (e.type === 'sample' && !['greedy', 'top-k', 'forced'].includes(e.method))
+      errs.push(`sample cycle ${e.cycle} has unknown method ${String(e.method)}`)
     if (e.type === 'softmax') {
       const sum = e.topK.reduce((a, c) => a + c.prob, 0)
       if (Math.abs(sum - 1) > 1e-4) errs.push(`softmax probs sum to ${sum}`)

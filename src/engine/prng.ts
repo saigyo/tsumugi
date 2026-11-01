@@ -17,3 +17,8 @@ export function seedFromTokens(ids: number[]): number {
   }
   return h >>> 0
 }
+
+// One uniform draw per generation cycle, reproducible from the run's seed.
+export function cycleDraw(seed: number, cycle: number): number {
+  return mulberry32(seedFromTokens([seed, cycle]))()
+}

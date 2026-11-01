@@ -80,10 +80,25 @@ export interface NeuronData {
   steps?: MlpSteps                                  // v6 export: the step-by-step card's data; absent in older runs
 }
 
+// Where a knockout replay came from: the source run, its cycle and the knocked-out layer
+export interface KnockoutOrigin { layer: number; cycle: number; sourceId: string }
+
+// One layer's MLP-zeroed result at a cycle: the chosen token's probability, the new top token, and whether it differs
+export interface KnockoutLayer { layer: number; prob: number; top: TokenInfo & { prob: number }; flips: boolean }
+
+// A per-layer knockout sweep at one cycle; baseline is the chosen token's unedited probability
+export interface KnockoutSweep { cycle: number; revision: string; chosen: TokenInfo; baseline: number; layers: KnockoutLayer[] }
+
 export type TraceEvent =
   | { type: 'run-start'; prompt: string; mode: Mode; modelId: string; params: GenParams; vocabSize?: number
       // chat runs only; absent = Continue text (and every run recorded before chat mode)
-      format?: PromptFormat }
+      format?: PromptFormat
+      // seeds the run's per-cycle sampling draws; absent in runs recorded before seeded sampling
+      seed?: number
+      // custom attention-model revision that produced the run; absent for stock/simulated runs
+      revision?: string
+      // set when this run is a replay of another run with one layer's MLP knocked out
+      knockout?: KnockoutOrigin }
   | { type: 'tokenize'; tokens: TokenInfo[]; truncated?: boolean; chat?: ChatSpans }
   | { type: 'embed'; cycle: number; seqLen: number; dims: number; source: EmbedSource; rows?: number[][] }
   | { type: 'layer'; cycle: number; index: number; total: number; activationNorm?: number }
@@ -93,7 +108,7 @@ export type TraceEvent =
   | { type: 'edits'; cycle: number; start: number; attn: number[][]; mlp: number[][]; neurons?: NeuronData }
   | { type: 'logits'; cycle: number; topK: LogitCandidate[]; lastHidden?: number[] }
   | { type: 'softmax'; cycle: number; temperature: number; topK: Array<TokenInfo & { prob: number }> }
-  | { type: 'sample'; cycle: number; chosen: TokenInfo; method: 'greedy' | 'top-k' }
+  | { type: 'sample'; cycle: number; chosen: TokenInfo; method: 'greedy' | 'top-k' | 'forced' }
   | { type: 'append'; cycle: number; token: TokenInfo }
   | { type: 'attention-grid'; layers: number; heads: number; cells: AttentionGridCell[] }
   | { type: 'run-end'; reason: RunEndReason; message?: string }

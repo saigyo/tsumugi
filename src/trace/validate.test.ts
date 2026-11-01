@@ -268,3 +268,13 @@ test('tokenize tokens must each be an integer id with a text', () => {
   t[1] = { type: 'tokenize', tokens: 'abc' as unknown as [] }
   expect(validateTrace(t)).toContain('tokenize tokens is not a list')
 })
+
+test('validateTrace accepts a forced sample and rejects an unknown method', () => {
+  const t = makeFixtureTrace()
+  const e = t.find((x) => x.type === 'sample')
+  if (e?.type !== 'sample') throw new Error('no sample event')
+  e.method = 'forced'
+  expect(validateTrace(t)).toEqual([])
+  ;(e as { method: string }).method = 'bogus'
+  expect(validateTrace(t).some((v) => v.includes('sample') && v.includes('method'))).toBe(true)
+})

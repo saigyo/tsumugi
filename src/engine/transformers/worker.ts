@@ -1,6 +1,7 @@
 /// <reference lib="webworker" />
 import type { ChatSpans, GenParams, LayerVotes, NeuronData, PromptFormat, RunEndReason, TokenInfo, TraceEvent } from '../../trace/types'
 import { chatSpans, fitChatToBudget, noSystemChat, TEXT_FORMAT } from '../chatTemplate'
+import { cycleDraw } from '../prng'
 import { sampleIndex, softmax, topK } from '../math'
 import { ATTN_MODEL_ID, ATTN_MODEL_REVISION } from '../tokenizer'
 import { addAttentionOutput, createAccumulator, type AttnAccumulator } from './attentionAccum'
@@ -107,7 +108,9 @@ async function run(runId: number, prompt: string, params: GenParams, format: Pro
   const emit = (event: TraceEvent) => post({ type: 'trace', runId, event })
   const { Tensor, DynamicCache } = await import('@huggingface/transformers')
 
-  emit({ type: 'run-start', prompt, mode: 'real', modelId: loadedModelId, params,
+  const seed = crypto.getRandomValues(new Uint32Array(1))[0]
+  emit({ type: 'run-start', prompt, mode: 'real', modelId: loadedModelId, params, seed,
+    ...(loadedModelId === ATTN_MODEL_ID ? { revision: ATTN_MODEL_REVISION } : {}),
     ...(format.kind === 'chat' ? { format } : {}),
     ...(model.config.vocab_size ? { vocabSize: model.config.vocab_size } : {}) })
   const maxCtx: number = model.config.max_position_embeddings ?? 2048
@@ -297,7 +300,7 @@ async function run(runId: number, prompt: string, params: GenParams, format: Pro
         topK: top.map((c, i) => ({ id: c.id, text: c.text, prob: probs[i] })) })
 
       const method = params.temperature === 0 ? 'greedy' : 'top-k'
-      const idx = method === 'greedy' ? 0 : sampleIndex(probs, Math.random)
+      const idx = method === 'greedy' ? 0 : sampleIndex(probs, () => cycleDraw(seed, cycle))
       const chosen = { id: top[idx].id, text: top[idx].text }
       emit({ type: 'sample', cycle, chosen, method })
       emit({ type: 'append', cycle, token: chosen })
