@@ -196,7 +196,7 @@ test('a sweep whose done rejects clears the state, saves nothing and does not bl
   await waitFor(() => expect(runs).toHaveLength(1))
 })
 
-test('Generate during a sweep is impossible, but starting a run through the shelf path aborts it', async () => {
+test('during a sweep Generate is disabled, a knockout request is ignored, and Stop saves nothing', async () => {
   const { a } = seedRecords()
   await ready()
   act(() => useKnockoutRequest.getState().measure!(0))
