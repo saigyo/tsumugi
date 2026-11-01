@@ -1,7 +1,7 @@
 import type { AttentionLabel, GenParams, PromptFormat, TraceEvent } from '../../trace/types'
 import { TEXT_FORMAT } from '../chatTemplate'
 import { MODEL_ID } from '../tokenizer'
-import type { PipelineEngine, ProgressInfo, RunHandle } from '../types'
+import type { PipelineEngine, ProgressInfo, RunHandle, RunOptions } from '../types'
 import type { WorkerRequest, WorkerResponse } from './protocol'
 
 export interface HeadData {
@@ -17,6 +17,8 @@ export class TransformersEngine implements PipelineEngine {
   private nextRunId = 1
   device: 'webgpu' | 'wasm' | null = null
   attentions: boolean | null = null
+  knockout: boolean | null = null
+  revision: string | null = null
   private listeners = new Set<(msg: WorkerResponse) => void>()
 
   constructor(workerFactory: () => Worker = () =>
@@ -33,7 +35,7 @@ export class TransformersEngine implements PipelineEngine {
     return new Promise((resolve, reject) => {
       const listener = (msg: WorkerResponse) => {
         if (msg.type === 'progress') onProgress?.(msg.info)
-        if (msg.type === 'ready') { this.device = msg.device; this.attentions = msg.attentions; this.listeners.delete(listener); resolve() }
+        if (msg.type === 'ready') { this.device = msg.device; this.attentions = msg.attentions; this.knockout = msg.knockout; this.revision = msg.revision ?? null; this.listeners.delete(listener); resolve() }
         if (msg.type === 'fatal') { this.listeners.delete(listener); reject(new Error(msg.message)) }
       }
       this.listeners.add(listener)
@@ -41,7 +43,7 @@ export class TransformersEngine implements PipelineEngine {
     })
   }
 
-  run(prompt: string, params: GenParams, emit: (e: TraceEvent) => void, format: PromptFormat = TEXT_FORMAT): RunHandle {
+  run(prompt: string, params: GenParams, emit: (e: TraceEvent) => void, format: PromptFormat = TEXT_FORMAT, options?: RunOptions): RunHandle {
     const runId = this.nextRunId++
     const done = new Promise<void>((resolve) => {
       const listener = (msg: WorkerResponse) => {
@@ -53,7 +55,7 @@ export class TransformersEngine implements PipelineEngine {
         }
       }
       this.listeners.add(listener)
-      this.post({ type: 'run', runId, prompt, params, format })
+      this.post({ type: 'run', runId, prompt, params, format, ...(options?.knockout ? { knockout: options.knockout } : {}) })
     })
     return { abort: () => this.post({ type: 'abort' }), done }
   }

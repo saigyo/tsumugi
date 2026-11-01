@@ -1,6 +1,7 @@
 /// <reference lib="webworker" />
 import type { ChatSpans, GenParams, LayerVotes, NeuronData, PromptFormat, RunEndReason, TokenInfo, TraceEvent } from '../../trace/types'
 import { chatSpans, fitChatToBudget, noSystemChat, TEXT_FORMAT } from '../chatTemplate'
+import { forcedToken, mlpScale } from '../knockout'
 import { cycleDraw } from '../prng'
 import { sampleIndex, softmax, topK } from '../math'
 import { ATTN_MODEL_ID, ATTN_MODEL_REVISION } from '../tokenizer'
@@ -9,6 +10,7 @@ import { extractEmbedRows } from './embedRows'
 import { extractReadout, type ReadoutResult } from './readout'
 import { computeVotes, extractEdits } from './mlpData'
 import { extractNeurons, extractSteps } from './neuronData'
+import type { RunOptions } from '../types'
 import type { WorkerRequest, WorkerResponse } from './protocol'
 import { headStats, resolveHeadLabel, selectShowcaseHeads, type HeadStats, type ShowcasePrev } from './attentionStats'
 import { buildGridCells } from './attentionThumbs'
@@ -33,6 +35,8 @@ let tokenizer: any = null
 let model: any = null
 let loadedModelId = 'unknown'
 let hasAttentions = false
+// v7 export: the graph has the required mlp_scale input (absent on v6 sessions)
+let hasScale = false
 let aborted = false
 // finished run kept for the head-request side channel until the next run
 // starts (memory already bounded by ATTN_MAX_SEQ)
@@ -77,7 +81,10 @@ async function prepare(modelId: string) {
       hasAttentions = false
     }
   }
-  post({ type: 'ready', device, attentions: hasAttentions })
+  // Guarded like the other export features: a missing sessions/inputNames means no knockout.
+  try { hasScale = model.sessions.model.inputNames.includes('mlp_scale') } catch { hasScale = false }
+  post({ type: 'ready', device, attentions: hasAttentions, knockout: hasScale,
+    ...(loadedModelId === ATTN_MODEL_ID ? { revision: ATTN_MODEL_REVISION } : {}) })
 }
 
 const tokenInfo = (id: number): TokenInfo => ({ id, text: tokenizer.decode([id]) })
@@ -102,16 +109,17 @@ function updateCache(DynamicCacheCtor: any, output: any, prevCache: any): any {
   return cache
 }
 
-async function run(runId: number, prompt: string, params: GenParams, format: PromptFormat) {
+async function run(runId: number, prompt: string, params: GenParams, format: PromptFormat, knockout?: RunOptions['knockout']) {
   aborted = false
   lastRun = null
   const emit = (event: TraceEvent) => post({ type: 'trace', runId, event })
   const { Tensor, DynamicCache } = await import('@huggingface/transformers')
 
-  const seed = crypto.getRandomValues(new Uint32Array(1))[0]
+  const seed = knockout?.seed ?? crypto.getRandomValues(new Uint32Array(1))[0]
   emit({ type: 'run-start', prompt, mode: 'real', modelId: loadedModelId, params, seed,
     ...(loadedModelId === ATTN_MODEL_ID ? { revision: ATTN_MODEL_REVISION } : {}),
     ...(format.kind === 'chat' ? { format } : {}),
+    ...(knockout ? { knockout: knockout.origin } : {}),
     ...(model.config.vocab_size ? { vocabSize: model.config.vocab_size } : {}) })
   const maxCtx: number = model.config.max_position_embeddings ?? 2048
   const budget = Math.max(1, maxCtx - params.maxNewTokens)
@@ -193,7 +201,9 @@ async function run(runId: number, prompt: string, params: GenParams, format: Pro
 
       const input_ids = new Tensor('int64', BigInt64Array.from(nextInputIds.map(BigInt)), [1, nextInputIds.length])
       const attention_mask = new Tensor('int64', BigInt64Array.from(allIds.map(() => 1n)), [1, allIds.length])
-      const out = await model({ input_ids, attention_mask, past_key_values: pastKeyValues })
+      const inputs: Record<string, unknown> = { input_ids, attention_mask, past_key_values: pastKeyValues }
+      if (hasScale) inputs.mlp_scale = new Tensor('float32', mlpScale(numLayers, knockout?.origin.layer ?? null), [numLayers])
+      const out = await model(inputs)
       pastKeyValues = updateCache(DynamicCache, out, pastKeyValues)
 
       // Real embedding rows for the tokens fed this cycle (whole prompt at cycle 0,
@@ -299,9 +309,13 @@ async function run(runId: number, prompt: string, params: GenParams, format: Pro
       emit({ type: 'softmax', cycle, temperature: params.temperature,
         topK: top.map((c, i) => ({ id: c.id, text: c.text, prob: probs[i] })) })
 
-      const method = params.temperature === 0 ? 'greedy' : 'top-k'
-      const idx = method === 'greedy' ? 0 : sampleIndex(probs, () => cycleDraw(seed, cycle))
-      const chosen = { id: top[idx].id, text: top[idx].text }
+      // Knockout runs replay the original run's tokens for the copied prefix.
+      const forcedId = knockout ? forcedToken(knockout.forced, cycle) : null
+      const method = forcedId !== null ? 'forced' : params.temperature === 0 ? 'greedy' : 'top-k'
+      const idx = method === 'top-k' ? sampleIndex(probs, () => cycleDraw(seed, cycle)) : 0
+      const chosen = forcedId !== null
+        ? tokenInfo(forcedId)
+        : { id: top[idx].id, text: top[idx].text }
       emit({ type: 'sample', cycle, chosen, method })
       emit({ type: 'append', cycle, token: chosen })
 
@@ -324,7 +338,7 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
   try {
     const msg = e.data
     if (msg.type === 'prepare') await prepare(msg.modelId)
-    if (msg.type === 'run') await run(msg.runId, msg.prompt, msg.params, msg.format ?? TEXT_FORMAT)
+    if (msg.type === 'run') await run(msg.runId, msg.prompt, msg.params, msg.format ?? TEXT_FORMAT, msg.knockout)
     if (msg.type === 'abort') aborted = true
     if (msg.type === 'head-request') {
       const r = lastRun

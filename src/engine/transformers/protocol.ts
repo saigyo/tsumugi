@@ -1,16 +1,18 @@
 import type { AttentionLabel, GenParams, PromptFormat, TraceEvent } from '../../trace/types'
-import type { ProgressInfo } from '../types'
+import type { ProgressInfo, RunOptions } from '../types'
 
 export type WorkerRequest =
   | { type: 'prepare'; modelId: string }
-  | { type: 'run'; runId: number; prompt: string; params: GenParams; format: PromptFormat }
+  | { type: 'run'; runId: number; prompt: string; params: GenParams; format: PromptFormat
+      knockout?: RunOptions['knockout'] }
   | { type: 'abort' }
   // pin-exactness side channel — the one data path beside the trace;
   // must not grow other uses without a new design
   | { type: 'head-request'; layer: number; head: number }
 export type WorkerResponse =
   | { type: 'progress'; info: ProgressInfo }
-  | { type: 'ready'; device: 'webgpu' | 'wasm'; attentions: boolean }
+  | { type: 'ready'; device: 'webgpu' | 'wasm'; attentions: boolean
+      knockout: boolean; revision?: string }
   | { type: 'trace'; runId: number; event: TraceEvent }
   | { type: 'done'; runId: number }
   | { type: 'fatal'; message: string }

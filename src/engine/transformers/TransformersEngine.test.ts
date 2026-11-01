@@ -22,7 +22,7 @@ test('prepare resolves on ready and records device', async () => {
   const onProgress = vi.fn()
   const p = engine.prepare(onProgress)
   worker.respond({ type: 'progress', info: { file: 'model.onnx', loaded: 1, total: 2 } })
-  worker.respond({ type: 'ready', device: 'wasm', attentions: false })
+  worker.respond({ type: 'ready', device: 'wasm', attentions: false, knockout: false })
   await p
   expect(onProgress).toHaveBeenCalledOnce()
   expect(engine.device).toBe('wasm')
@@ -67,7 +67,7 @@ test('abort posts abort message', () => {
 test('ready records the attentions capability', async () => {
   const { worker, engine } = make()
   const p = engine.prepare()
-  worker.respond({ type: 'ready', device: 'webgpu', attentions: true })
+  worker.respond({ type: 'ready', device: 'webgpu', attentions: true, knockout: false })
   await p
   expect(engine.attentions).toBe(true)
 })
@@ -99,4 +99,27 @@ test('run sends the prompt format to the worker; plain text when none is given',
   engine.run('Hi', { temperature: 0, topK: 1, maxNewTokens: 1 }, () => {})
   expect(worker.sent[0]).toMatchObject({ type: 'run', format: { kind: 'chat', system: null } })
   expect(worker.sent[1]).toMatchObject({ type: 'run', format: { kind: 'text' } })
+})
+
+test('ready records the knockout capability and revision', async () => {
+  const { worker, engine } = make()
+  expect(engine.knockout).toBeNull()
+  const p = engine.prepare()
+  worker.respond({ type: 'ready', device: 'webgpu', attentions: true, knockout: true, revision: 'v7' })
+  await p
+  expect(engine.knockout).toBe(true)
+  expect(engine.revision).toBe('v7')
+})
+
+test('run posts the knockout options in the run request', () => {
+  const { worker, engine } = make()
+  const knockout = { origin: { layer: 3, cycle: 1, sourceId: 'r1' }, forced: [4, 5], seed: 77 }
+  engine.run('Hi', { temperature: 1, topK: 10, maxNewTokens: 2 }, () => {}, undefined, { knockout })
+  expect(worker.sent.at(-1)).toMatchObject({ type: 'run', knockout })
+})
+
+test('run without options posts no knockout', () => {
+  const { worker, engine } = make()
+  engine.run('Hi', { temperature: 1, topK: 10, maxNewTokens: 2 }, () => {})
+  expect((worker.sent.at(-1) as { knockout?: unknown }).knockout).toBeUndefined()
 })
