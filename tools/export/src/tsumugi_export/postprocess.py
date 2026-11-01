@@ -10,7 +10,10 @@ position's logits plus a Gather of those candidates' rows from the lm_head's
 own fp32 weight, as `topk_ids` / `topk_embeds`. We also add `edit_ratios` and
 `stream_parts` for the MLP cards, built from each layer's residual Add nodes and
 the final norm's own 1/rms tensor (see expose_mlp_internals). We also add `mlp_activations` and `final_norm_inv_rms`
-for the neuron card (see expose_neurons). The tensors already in the
+for the neuron card (see expose_neurons). The graph input `mlp_scale [layers]`
+multiplies each layer's MLP edit before the residual Add (see add_mlp_scale), so
+the browser can knock out a layer's MLP; every tap of that edit shows the scaled
+edit, while `mlp_activations` (the down_proj input) stays unscaled. The tensors already in the
 graph stay; only the output list and a handful of tiny nodes change, so this
 costs nothing measurable at inference time."""
 from pathlib import Path
@@ -362,6 +365,46 @@ def expose_mlp_steps(model: onnx.ModelProto) -> onnx.ModelProto:
     return model
 
 
+MLP_SCALE_INPUT = "mlp_scale"
+
+
+def add_mlp_scale(model: onnx.ModelProto) -> onnx.ModelProto:
+    """Graph input mlp_scale [layers]: per layer, Mul(MLP edit, mlp_scale[l])
+    before the residual Add. Every other reader of the raw edit (the residual
+    Add and the edit_ratios / stream_parts / mlp_out taps added earlier) is
+    rewired to the scaled tensor, so ones reproduce the unscaled graph and a
+    zero removes that layer's MLP from the stream and from every output.
+    mlp_activations read the down_proj input, which stays unscaled. Run after
+    the passes that locate the edit by name, since the raw edit then has the
+    Mul as its only reader."""
+    graph = model.graph
+    blocks = find_blocks(graph)
+    layers = len(blocks)
+    graph.input.append(helper.make_tensor_value_info(MLP_SCALE_INPUT, TensorProto.FLOAT, [layers]))
+    graph.initializer.extend([helper.make_tensor(f"tsumugi_mlp{l}_index", TensorProto.INT64, [], [l])
+                              for l in range(layers)])
+    new_nodes: dict[str, list[onnx.NodeProto]] = {}   # after which MatMul
+    for l, (_, _, edit, _) in enumerate(blocks):
+        scaled = f"tsumugi_mlp{l}_scaled"
+        for node in graph.node:
+            for i, name in enumerate(node.input):
+                if name == edit:
+                    node.input[i] = scaled
+        new_nodes[MLP_MATMUL.format(l=l)] = [
+            helper.make_node("Gather", [MLP_SCALE_INPUT, f"tsumugi_mlp{l}_index"], [f"tsumugi_mlp_scale{l}"],
+                             name=f"tsumugi_mlp{l}_scale_gather", axis=0),
+            helper.make_node("Mul", [edit, f"tsumugi_mlp_scale{l}"], [scaled], name=f"tsumugi_mlp{l}_scale_mul"),
+        ]
+    # the ONNX checker wants topological order: each Mul goes right behind its MatMul
+    ordered: list[onnx.NodeProto] = []
+    for node in graph.node:
+        ordered.append(node)
+        ordered += new_nodes.get(node.name, [])
+    del graph.node[:]
+    graph.node.extend(ordered)
+    return model
+
+
 def expose_inputs_embeds(model: onnx.ModelProto) -> onnx.ModelProto:
     outputs = list(model.graph.output)
     source = next((o for o in outputs if o.name == SOURCE_OUTPUT), None)
@@ -380,9 +423,10 @@ def expose_inputs_embeds(model: onnx.ModelProto) -> onnx.ModelProto:
 
 def postprocess_graph(model: onnx.ModelProto, k: int = TOPK) -> onnx.ModelProto:
     """Readout, MLP internals, neuron outputs and step outputs (all derived from
-    graph structure, independent of the output list), then the inputs_embeds
-    rename, which drops every hidden_states.* output."""
-    return expose_inputs_embeds(expose_mlp_steps(expose_neurons(expose_mlp_internals(expose_readout(model, k)))))
+    graph structure, independent of the output list), the mlp_scale input, then
+    the inputs_embeds rename, which drops every hidden_states.* output."""
+    model = expose_mlp_steps(expose_neurons(expose_mlp_internals(expose_readout(model, k))))
+    return expose_inputs_embeds(add_mlp_scale(model))
 
 def postprocess_file(path: Path) -> None:
     """Rewrite `path` in place. onnx.load pulls any external data into the

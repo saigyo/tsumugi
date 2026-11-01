@@ -110,7 +110,10 @@ def test_postprocess_graph_combines_readout_and_inputs_embeds():
     assert names == ["logits", LAST_HIDDEN_OUTPUT, TOPK_IDS_OUTPUT, TOPK_EMBEDS_OUTPUT,
                      "edit_ratios", "stream_parts", "mlp_activations", "final_norm_inv_rms",
                      "mlp_gate", "mlp_up", "mlp_in", "mlp_out", "inputs_embeds"]
-    out = _run(model, np.array([[0, 6]], dtype=np.int64))
+    import onnxruntime as ort
+    sess = ort.InferenceSession(model.SerializeToString(), providers=["CPUExecutionProvider"])
+    feeds = {"input_ids": np.array([[0, 6]], dtype=np.int64), "mlp_scale": np.ones(2, dtype=np.float32)}
+    out = dict(zip([o.name for o in sess.get_outputs()], sess.run(None, feeds)))
     np.testing.assert_allclose(out["inputs_embeds"][0], LAYERED_TABLE[[0, 6]], atol=1e-6)
 
 
