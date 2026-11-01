@@ -97,8 +97,8 @@ test('a saved sweep shows 30 bars, drop values, flips, vote row and role chips',
   expect(screen.getAllByTestId('knockout-vote')).toHaveLength(30)
   expect(screen.queryByText('Measure all 30 layers')).toBeNull()
   const chips = screen.getAllByTestId('knockout-chip').map((c) => c.textContent)
-  expect(chips[0]).toBe('MLP 0 · decisive')
-  expect(chips).toContain('MLP 15 · preparatory')
+  expect(chips[0]).toBe('MLP 0 · decisive · “␣Paris” → “␣the”')
+  expect(chips).toContain('MLP 15 · preparatory · −58 pts')
 })
 
 test('clicking a bar shows the detail line, the action, and sets the shared layer', () => {
@@ -124,4 +124,22 @@ test('the action is disabled while a sweep runs', () => {
   card({ sweep: undefined, running: useKnockoutRequest.getState().running })
   fireEvent.click(screen.getAllByTestId('knockout-bar')[15])
   expect(screen.getByRole('button', { name: 'Run with MLP 15 off and compare' })).toBeDisabled()
+})
+
+test('chips show the change in points: rises with a plus, compensated too', () => {
+  const layers = sweep.layers.map((l) => l.layer === 27 ? layer(27, 0.89) : l.layer === 28 ? layer(28, 1) : layer(l.layer, 0.9))
+  card({ sweep: { ...sweep, baseline: 0.9, layers } })
+  const chips = screen.getAllByTestId('knockout-chip').map((c) => c.textContent)
+  expect(chips).toContain('MLP 27 · compensated · −1 pts')
+  expect(chips).toContain('MLP 28 · dampening · +10 pts')
+})
+
+test('the detail wording follows the top token, not flips', () => {
+  const layers = sweep.layers.map((l) => l.layer === 3 ? { ...layer(3, 0.5), top: { ...the, prob: 0.6 } }
+    : l.layer === 4 ? { ...layer(4, 0.5), flips: true } : l)
+  card({ sweep: { ...sweep, layers } })
+  fireEvent.click(screen.getAllByTestId('knockout-bar')[3])
+  expect(screen.getByTestId('knockout-detail')).toHaveTextContent('top token becomes “␣the”')
+  fireEvent.click(screen.getAllByTestId('knockout-bar')[4])
+  expect(screen.getByTestId('knockout-detail')).toHaveTextContent('98% → 50%, top token unchanged')
 })

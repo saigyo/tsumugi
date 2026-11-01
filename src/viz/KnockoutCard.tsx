@@ -25,6 +25,15 @@ function noteFor(reason: Ineligible, run: Run): { text: string; action: boolean 
   }
 }
 
+const points = (d: number) => { const n = Math.round(d * 100); return `${n < 0 ? '−' : '+'}${Math.abs(n)} pts` }
+
+// "MLP 15 · preparatory · −58 pts"; a decisive layer names the token change instead
+function chipText(r: { layer: number; role: string }, e: KnockoutLayer | undefined, baseline: number | null, chosen: TokenInfo): string {
+  const head = `MLP ${r.layer} · ${r.role}`
+  if (!e || baseline === null) return head
+  return r.role === 'decisive' ? `${head} · ${quoted(chosen)} → ${quoted(e.top)}` : `${head} · ${points(e.prob - baseline)}`
+}
+
 const pct = (p: number) => `${Math.round(p * 100)}%`
 const quoted = (t: TokenInfo) => `“${visibleToken(t)}”`
 
@@ -129,14 +138,14 @@ export function KnockoutCard({ run, cycle, seqLen, chosen, votes, sweep, running
           {roles.map((r) => (
             <button key={r.layer} type="button" data-testid="knockout-chip" data-role={r.role}
               className={`knockout-chip knockout-chip-${r.role}`} onClick={() => pick(r.layer)}>
-              MLP {r.layer} · {r.role}</button>
+              {chipText(r, byLayer.get(r.layer), baseline, chosen)}</button>
           ))}
         </div>
       )}
       {entry && baseline !== null && picked !== null && (
         <div className="knockout-tip">
           <span data-testid="knockout-detail">MLP {picked} — {quoted(chosen)} {pct(baseline)} → {pct(entry.prob)},{' '}
-            {entry.flips ? `top token becomes ${quoted(entry.top)}` : 'top token unchanged'}</span>{' '}
+            {entry.top.id !== chosen.id ? `top token becomes ${quoted(entry.top)}` : 'top token unchanged'}</span>{' '}
           <button type="button" className="knockout-run" disabled={busy || !runKnockout}
             onClick={() => runKnockout?.(picked, cycle)}>Run with MLP {picked} off and compare</button>
         </div>
