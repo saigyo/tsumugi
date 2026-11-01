@@ -28,10 +28,22 @@ describe('knockoutRoles', () => {
     const v = votes(30, 0); v[7] = 5
     expect(knockoutRoles(sweep(d), v)).toEqual([{ layer: 7, role: 'compensated' }])
   })
-  it('rise of 0.1 -> dampening', () => {
-    const d = flat(); d[2] = 0.1
+  it('rise of 0.15 -> dampening, rise of 0.08 -> nothing', () => {
+    const d = flat(); d[2] = 0.15; d[3] = 0.08
     const v = votes(30, 0); v[9] = 5
-    expect(knockoutRoles(sweep(d), v)).toContainEqual({ layer: 2, role: 'dampening' })
+    expect(knockoutRoles(sweep(d), v)).toEqual([{ layer: 2, role: 'dampening' }, { layer: 9, role: 'compensated' }])
+  })
+  it('a vote at 60% of the largest with no change is compensated, at 40% it is not', () => {
+    const d = flat()
+    const v = votes(30, 0); v[1] = 5; v[7] = 3; v[8] = 2
+    expect(knockoutRoles(sweep(d), v)).toEqual([{ layer: 1, role: 'compensated' }, { layer: 7, role: 'compensated' }])
+  })
+  it('a 0.12 drop with a small vote is preparatory, with a large vote it is not', () => {
+    const d = flat(); d[4] = -0.12; d[5] = -0.12
+    const v = votes(30, 0); v[0] = 4; v[4] = 0.5; v[5] = 3
+    const r = knockoutRoles(sweep(d), v)
+    expect(r).toContainEqual({ layer: 4, role: 'preparatory' })
+    expect(r.map((x) => x.layer)).not.toContain(5)
   })
   it('no votes at all: nothing is compensated, small votes can be preparatory', () => {
     const d = flat(); d[1] = 0.01; d[2] = -0.4

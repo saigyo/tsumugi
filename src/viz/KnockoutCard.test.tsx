@@ -127,11 +127,11 @@ test('the action is disabled while a sweep runs', () => {
 })
 
 test('chips show the change in points: rises with a plus, compensated too', () => {
-  const layers = sweep.layers.map((l) => l.layer === 27 ? layer(27, 0.89) : l.layer === 28 ? layer(28, 1) : layer(l.layer, 0.9))
-  card({ sweep: { ...sweep, baseline: 0.9, layers } })
+  const layers = sweep.layers.map((l) => l.layer === 27 ? layer(27, 0.84) : l.layer === 28 ? layer(28, 1) : layer(l.layer, 0.85))
+  card({ sweep: { ...sweep, baseline: 0.85, layers } })
   const chips = screen.getAllByTestId('knockout-chip').map((c) => c.textContent)
   expect(chips).toContain('MLP 27 · compensated · −1 pts')
-  expect(chips).toContain('MLP 28 · dampening · +10 pts')
+  expect(chips).toContain('MLP 28 · dampening · +15 pts')
 })
 
 test('the detail wording follows the top token, not flips', () => {

@@ -9,8 +9,8 @@ export interface RoleThresholds {
   largeVote: number // fraction of the largest |vote| at or above which a vote is large
 }
 
-// Provisional values; calibrated against real sweeps later
-export const ROLE_THRESHOLDS: RoleThresholds = { drop: 0.15, rise: 0.05, smallVote: 0.25, largeVote: 1.0 }
+// Calibrated on ten real SmolLM2-135M v7 sweeps, see docs/research/2026-11-01-knockout-roles-spike.md
+export const ROLE_THRESHOLDS: RoleThresholds = { drop: 0.10, rise: 0.10, smallVote: 0.25, largeVote: 0.5 }
 
 export const MAX_ROLE_CHIPS = 5
 
