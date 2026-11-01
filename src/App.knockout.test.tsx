@@ -18,6 +18,7 @@ interface FakeSweep {
 }
 let sweeps: FakeSweep[] = []
 let runs: Array<{ args: unknown[]; emit: (e: TraceEvent) => void }> = []
+let sweepMode: 'ok' | 'throw' | 'reject' = 'ok'
 let prepare: { resolve: () => void } | null = null
 
 vi.mock('./engine/tokenizer', async (importOriginal) => {
@@ -36,8 +37,11 @@ vi.mock('./engine/transformers/TransformersEngine', () => {
       return { abort() {}, done: Promise.resolve() }
     }
     sweep(req: FakeSweep['req'], onBaseline: FakeSweep['onBaseline'], onLayer: FakeSweep['onLayer']) {
+      if (sweepMode === 'throw') throw new Error('sweep failed')
       let finish!: (ok: boolean) => void
-      const done = new Promise<boolean>((r) => { finish = r })
+      let fail!: (e: Error) => void
+      const done = new Promise<boolean>((r, j) => { finish = r; fail = j })
+      if (sweepMode === 'reject') queueMicrotask(() => fail(new Error('worker died')))
       const s: FakeSweep = { req, onBaseline, onLayer, finish, aborted: false }
       sweeps.push(s)
       return { abort: () => { s.aborted = true; finish(false) }, done }
@@ -63,7 +67,7 @@ async function ready() {
 }
 
 beforeEach(() => {
-  sweeps = []; runs = []; prepare = null
+  sweeps = []; runs = []; prepare = null; sweepMode = 'ok'
   localStorage.clear()
   useTraceStore.getState().clear()
   usePlayerStore.setState({ ...initialPlayerState })
@@ -167,4 +171,53 @@ test('a knockout at a later cycle forces the earlier appended tokens', async () 
   await waitFor(() => expect(runs).toHaveLength(1))
   const options = runs[0].args[4] as { knockout: { forced: number[]; seed: number } }
   expect(options.knockout.forced).toEqual([100, 101])
+})
+
+test('a sweep that throws leaves Generate usable and saves nothing', async () => {
+  const { a } = seedRecords()
+  await ready()
+  sweepMode = 'throw'
+  act(() => useKnockoutRequest.getState().measure!(0))
+  expect(useKnockoutRequest.getState().running).toBeNull()
+  expect(screen.getByTestId('btn-generate')).not.toHaveTextContent('Measuring…')
+  expect(useRunsStore.getState().records.find((r) => r.id === a.id)!.sweeps).toBeUndefined()
+})
+
+test('a sweep whose done rejects clears the state, saves nothing and does not block Generate', async () => {
+  const { a } = seedRecords()
+  await ready()
+  sweepMode = 'reject'
+  fireEvent.change(screen.getByTestId('prompt-input'), { target: { value: 'hi' } })
+  act(() => useKnockoutRequest.getState().measure!(0))
+  await waitFor(() => expect(useKnockoutRequest.getState().running).toBeNull())
+  expect(screen.getByTestId('btn-generate')).not.toBeDisabled()
+  expect(useRunsStore.getState().records.find((r) => r.id === a.id)!.sweeps).toBeUndefined()
+  fireEvent.click(screen.getByTestId('btn-generate'))
+  await waitFor(() => expect(runs).toHaveLength(1))
+})
+
+test('Generate during a sweep is impossible, but starting a run through the shelf path aborts it', async () => {
+  const { a } = seedRecords()
+  await ready()
+  act(() => useKnockoutRequest.getState().measure!(0))
+  expect(screen.getByTestId('btn-generate')).toBeDisabled()
+  act(() => useKnockoutRequest.getState().runKnockout!(1, 0))   // ignored while measuring
+  expect(runs).toHaveLength(0)
+  await act(async () => { fireEvent.click(screen.getByTestId('btn-stop')) })
+  expect(useRunsStore.getState().records.find((r) => r.id === a.id)!.sweeps).toBeUndefined()
+})
+
+test('stopping a knockout run keeps the sealed record but does not open Compare', async () => {
+  const { a } = seedRecords()
+  await ready()
+  act(() => useKnockoutRequest.getState().runKnockout!(3, 0))
+  await waitFor(() => expect(runs).toHaveLength(1))
+  const trace = buildFixtureTrace({ mode: 'real', cycles: 1, reason: 'aborted' })
+  act(() => {
+    trace.forEach((e, i) => runs[0].emit(i === 0 && e.type === 'run-start'
+      ? { ...e, knockout: { layer: 3, cycle: 0, sourceId: a.id } } : e))
+  })
+  await waitFor(() => expect(useRunsStore.getState().records).toHaveLength(3))
+  expect(useRunsStore.getState().records.at(-1)!.meta.reason).toBe('aborted')
+  expect(screen.queryAllByTestId('cmp-tick')).toHaveLength(0)
 })

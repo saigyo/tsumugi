@@ -12,7 +12,7 @@ import { TransformersEngine } from './engine/transformers/TransformersEngine'
 import type { PipelineEngine, ProgressInfo, RunHandle } from './engine/types'
 import { usePlaybackTicker, usePlayerStore } from './player/store'
 import { useTraceStore } from './trace/store'
-import type { GenParams, KnockoutLayer, KnockoutOrigin, Mode, PromptFormat } from './trace/types'
+import type { GenParams, KnockoutLayer, KnockoutOrigin, Mode, PromptFormat, RunEndReason } from './trace/types'
 import type { RunRecord } from './app/runsStore'
 import type { RunOptions } from './engine/types'
 import { TEXT_FORMAT } from './engine/chatTemplate'
@@ -154,12 +154,12 @@ export default function App() {
     runRef.current?.abort()
     sweepRef.current?.abort()
     await runRef.current?.done
-    await sweepRef.current?.done
+    await sweepRef.current?.done.catch(() => false)
   }
 
   const startRun = async (
     prompt: string, params: GenParams, format: PromptFormat,
-    options?: RunOptions, onSealed?: (record: RunRecord) => void,
+    options?: RunOptions, onSealed?: (record: RunRecord, reason: RunEndReason) => void,
   ) => {
     // the chat example can be clicked while simulated: load the real model first
     if (format.kind === 'chat' && (mode !== 'real' || !realEngineRef.current) && !(await chooseMode('real'))) return
@@ -189,7 +189,7 @@ export default function App() {
               ...(start.knockout ? { knockout: start.knockout } : {}),
               endedAt: Date.now(), reason: e.reason,
             }, events)
-            onSealed?.(record)
+            onSealed?.(record, e.reason)
           }
         }
       }, format, options)
@@ -230,16 +230,23 @@ export default function App() {
     const store = useKnockoutRequest
     let baseline: number | null = null
     const layers: KnockoutLayer[] = []
-    store.setState({ running: { recordId: record.id, cycle, baseline: null, layers: [] } })
+    const publish = () => store.setState({ running: { recordId: record.id, cycle, baseline, layers: [...layers] } })
+    let handle: { abort(): void; done: Promise<boolean> }
+    try {
+      handle = engine.sweep(
+        { ids, params: start.params, chosenId: sample.chosen.id, seed: start.seed ?? 0, cycle },
+        (p) => { baseline = p; publish() },
+        (entry) => { layers.push(entry); publish() },
+      )
+    } catch (err) {
+      setModelError(err instanceof Error ? err.message : String(err))
+      return
+    }
+    publish()
     setActivity('Measuring…')
     setGenerating(true)
-    const handle = engine.sweep(
-      { ids, params: start.params, chosenId: sample.chosen.id, seed: start.seed ?? 0, cycle },
-      (p) => { baseline = p; store.setState({ running: { recordId: record.id, cycle, baseline, layers: [...layers] } }) },
-      (entry) => { layers.push(entry); store.setState({ running: { recordId: record.id, cycle, baseline, layers: [...layers] } }) },
-    )
     sweepRef.current = handle
-    void handle.done.then((ok) => {
+    void handle.done.then((ok) => ok, () => false).then((ok) => {
       if (sweepRef.current === handle) sweepRef.current = null
       store.setState({ running: null })
       setGenerating(false)
@@ -260,7 +267,7 @@ export default function App() {
     const origin: KnockoutOrigin = { layer, cycle, sourceId: record.id }
     void startRun(start.prompt, start.params, start.format ?? TEXT_FORMAT,
       { knockout: { origin, forced: appended(cycle), seed: start.seed ?? 0 } },
-      (sealed) => setCompare({ aId: record.id, bId: sealed.id, cycle }))
+      (sealed, reason) => { if (reason !== 'aborted') setCompare({ aId: record.id, bId: sealed.id, cycle }) })
   }
 
   // stable handlers for the Knockouts card; they call the latest closures
