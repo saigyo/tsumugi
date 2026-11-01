@@ -17,6 +17,9 @@
     votes from neurons/ add up to the MLP votes; neurons/ matches its manifest
 12. argmax parity under browser semantics; mlp_gate/up/in/out match PyTorch
     hooks and SiLU(gate)·up = mlp_activations
+13. knockout parity: with mlp_scale zero at one layer, last-position logits
+    match a PyTorch forward hook that zeroes that layer's MLP output
+    (every other check feeds mlp_scale = ones, i.e. the unedited model)
 Writes validation-report.json with artifact hashes; publish refuses to
 upload without a passing report."""
 import functools
@@ -27,6 +30,7 @@ from pathlib import Path
 import numpy as np
 
 from tsumugi_export import STOCK_MODEL_ID, TOPK
+from tsumugi_export.postprocess import MLP_SCALE_INPUT
 
 PROMPTS = [
     "The cat sat on the mat because it was tired",
@@ -62,7 +66,20 @@ def _tokenize(model_dir: Path, prompt: str) -> np.ndarray:
     return np.array([tok.encode(prompt)], dtype=np.int64)
 
 
-def _feeds(sess, input_ids: np.ndarray) -> dict:
+def _mlp_scale_feed(sess, zero_layer: int | None = None) -> dict:
+    """mlp_scale input (ones, or zero at `zero_layer`) when the graph has it;
+    older models without the input get nothing."""
+    for i in sess.get_inputs():
+        if i.name == MLP_SCALE_INPUT:
+            n = i.shape[0] if isinstance(i.shape[0], int) else 30
+            scale = np.ones(n, dtype=np.float32)
+            if zero_layer is not None:
+                scale[zero_layer] = 0.0
+            return {MLP_SCALE_INPUT: scale}
+    return {}
+
+
+def _feeds(sess, input_ids: np.ndarray, zero_layer: int | None = None) -> dict:
     names = {i.name for i in sess.get_inputs()}
     feeds = {"input_ids": input_ids,
              "attention_mask": np.ones_like(input_ids)}
@@ -74,6 +91,7 @@ def _feeds(sess, input_ids: np.ndarray) -> dict:
             shape = [d if isinstance(d, int) else (1 if "batch" in str(d) else 0)
                      for d in i.shape]
             feeds[i.name] = np.zeros(shape, dtype=np.float32)
+    feeds.update(_mlp_scale_feed(sess, zero_layer))
     return feeds
 
 
@@ -121,6 +139,7 @@ def _drive_cached_stepwise(sess, ids: np.ndarray) -> list[dict]:
         if "position_ids" in in_names:
             feeds["position_ids"] = np.array([[t]], dtype=np.int64)
         feeds.update(past_feeds)
+        feeds.update(_mlp_scale_feed(sess))
 
         outputs = dict(zip(out_names, sess.run(None, feeds)))
         steps.append(outputs)
@@ -404,6 +423,51 @@ def check_edit_cache_parity(single: dict, steps: list[dict], tol: float, clip: f
                for t, s in enumerate(steps))
     capped = f", clipped at {clip}" if clip is not None else ""
     return {"passed": diff <= tol, "detail": f"max|Δratio| step-by-step vs single-shot={diff:.2e} (atol {tol}{capped})"}
+
+
+KNOCKOUT_LAYERS = (0, 13, 29)
+
+
+def check_knockout_parity(ours: dict, ref: dict, k: int, logit_tol: float,
+                          tie_margin: float) -> dict:
+    """Last-position logits per knocked-out layer (layer -> [vocab]): ours
+    (mlp_scale zero at that layer) against the PyTorch reference with that
+    layer's MLP output zeroed. The reference's top token must be ours, or
+    within tie_margin of the reference's top under the reference's own
+    scores; and the reference's top-k logits must agree within logit_tol."""
+    if set(ours) != set(ref) or not ref:
+        return {"passed": False, "detail": f"knocked-out layers differ: ours {sorted(ours)}, reference {sorted(ref)}"}
+    worst = 0.0
+    for l in sorted(ref):
+        o, r = ours[l], ref[l]
+        if o.shape != r.shape:
+            return {"passed": False, "detail": f"layer {l}: logits shape {o.shape}, expected {r.shape}"}
+        gap = float(np.max(r)) - float(r[int(np.argmax(o))])
+        if gap > tie_margin:
+            return {"passed": False, "detail": f"layer {l}: argmax differs (reference scores ours {gap:.3f} below its top, tie margin {tie_margin})"}
+        top = np.argsort(r)[::-1][:k]
+        diff = float(np.max(np.abs(o[top] - r[top])))
+        if diff > logit_tol:
+            return {"passed": False, "detail": f"layer {l}: top-{k} logit off by {diff:.3e} (tol {logit_tol})"}
+        worst = max(worst, diff)
+    return {"passed": True, "detail": f"layers {sorted(ref)}: top-{k} logits within {worst:.2e} (tol {logit_tol}), argmax within tie margin {tie_margin}"}
+
+
+def torch_knockout_reference(ids: np.ndarray, layers=KNOCKOUT_LAYERS) -> dict:
+    """Last-position logits per layer from the stock PyTorch model with that
+    layer's MLP output replaced by zeros (forward hook)."""
+    import torch
+    model = _stock_torch_model()
+    out = {}
+    for l in layers:
+        h = model.model.layers[l].mlp.register_forward_hook(
+            lambda mod, args, output: torch.zeros_like(output))
+        try:
+            with torch.no_grad():
+                out[l] = model(torch.tensor(ids)).logits[0, -1].numpy().astype(np.float32)
+        finally:
+            h.remove()
+    return out
 
 
 def torch_edit_ratios(ids: np.ndarray) -> np.ndarray:
@@ -701,6 +765,7 @@ def run(args) -> int:
     ref_ratios = torch_edit_ratios(ref_ids)
     ref_acts, ref_inv = torch_neuron_reference(ref_ids)
     ref_steps = torch_step_reference(ref_ids)
+    ref_knock = torch_knockout_reference(ref_ids)
     write_browser_reference(model_dir.parent / "browser-ref.json", model_dir, stock)
 
     for variant in ["model.onnx", "model_quantized.onnx", "model_q4.onnx", "model_fp16.onnx"]:
@@ -796,6 +861,13 @@ def run(args) -> int:
         step_abs, step_rel = (1e-3, 1e-3) if fp32 else (0.5, 0.25)
         checks[f"{variant}:steps-parity"] = check_steps_parity(ro_out, ref_steps, step_abs, step_rel)
         checks[f"{variant}:silu-product"] = check_silu_product(ro_out)
+        if MLP_SCALE_INPUT in {i.name for i in sess.get_inputs()}:
+            # fp32 proves the wiring tightly; q8 only has to catch gross errors
+            ko_tol = 1e-3 if fp32 else 0.5
+            ko_ours = {l: sess.run(["logits"], _feeds(sess, ro_ids, zero_layer=l))[0][0, -1]
+                       for l in KNOCKOUT_LAYERS}
+            checks[f"{variant}:knockout-parity"] = check_knockout_parity(
+                ko_ours, ref_knock, TOPK, ko_tol, TIE_MARGIN)
         if (model_dir / "neurons" / "manifest.json").exists():
             # v6 computes on fp32 activations (weight-only 8-bit), so neuron votes from the
             # int8 asset must add up to the MLP votes here too (#19)

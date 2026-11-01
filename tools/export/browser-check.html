@@ -23,11 +23,15 @@ async function check() {
   for (const device of ['webgpu', 'wasm']) {
     if (device === 'webgpu' && !('gpu' in navigator)) { lines.push('webgpu: not available in this browser — FAIL (use a WebGPU-capable browser)'); ok = false; continue }
     const model = await AutoModelForCausalLM.from_pretrained('model', { dtype: 'q8', device })
+    // v7 graphs require mlp_scale (one factor per layer); ones = the unedited model
+    const layers = model.config.num_hidden_layers
+    const mlp_scale = () => new Tensor('float32', new Float32Array(layers).fill(1), [layers])
     for (const c of ref.cases) {
       const n = c.ids.length
       const out = await model({
         input_ids: new Tensor('int64', BigInt64Array.from(c.ids.map(BigInt)), [1, n]),
         attention_mask: new Tensor('int64', new BigInt64Array(n).fill(1n), [1, n]),
+        mlp_scale: mlp_scale(),
       })
       const V = c.logits.length
       const last = out.logits.data.subarray((n - 1) * V, n * V)
