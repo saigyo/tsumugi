@@ -69,6 +69,4 @@ character). Two further limits: when a flip is the only criterion, a layer that
 barely moves a near-tie counts as decisive; and ties (free prompt, five layers at
 −0.72, the model collapses without them) are ordered by layer number.
 
-Possible follow-up, not done here: cap the decisive chips at three so the other
-roles have room. On these sweeps that turns, for example, the Japan chips into
-three decisive, two preparatory, and adds a dampening chip to most of the others.
+Follow-up, done: `knockoutRoles` shows at most three decisive chips (`MAX_DECISIVE_CHIPS`); free slots go back to further decisive layers.

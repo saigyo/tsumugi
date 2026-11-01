@@ -13,6 +13,8 @@ export interface RoleThresholds {
 export const ROLE_THRESHOLDS: RoleThresholds = { drop: 0.10, rise: 0.10, smallVote: 0.25, largeVote: 0.5 }
 
 export const MAX_ROLE_CHIPS = 5
+// decisive layers are common on a small model; keep room for the other roles
+export const MAX_DECISIVE_CHIPS = 3
 
 export function knockoutRoles(
   sweep: KnockoutSweep,
@@ -32,6 +34,11 @@ export function knockoutRoles(
     else if (large && Math.abs(dp) < t.rise) role = 'compensated'
     if (role) out.push({ layer: l.layer, role, mag: Math.abs(dp) })
   }
-  out.sort((a, b) => Number(b.role === 'decisive') - Number(a.role === 'decisive') || b.mag - a.mag)
-  return out.slice(0, MAX_ROLE_CHIPS).map(({ layer, role }) => ({ layer, role }))
+  const byMag = (a: { mag: number }, b: { mag: number }) => b.mag - a.mag
+  const decisive = out.filter((x) => x.role === 'decisive').sort(byMag)
+  const others = out.filter((x) => x.role !== 'decisive').sort(byMag)
+  // up to 3 decisive plus the other roles; unused slots go back to further decisive layers
+  const nDecisive = Math.min(decisive.length, Math.max(MAX_DECISIVE_CHIPS, MAX_ROLE_CHIPS - others.length))
+  const nOthers = Math.min(others.length, MAX_ROLE_CHIPS - nDecisive)
+  return [...decisive.slice(0, nDecisive), ...others.slice(0, nOthers)].map(({ layer, role }) => ({ layer, role }))
 }
