@@ -90,6 +90,10 @@ export function KnockoutCard({ run, cycle, seqLen, chosen, votes, sweep, running
       {title}
       <p className="mlp-caption">Removes one layer’s MLP at a time and asks the model again for this cycle’s next
         token: {LAYERS + 1} passes over the whole text, about two seconds for a short text on a graphics card.</p>
+      {run.params.temperature === 0 && (
+        <p data-testid="knockout-greedy-note" className="mlp-scale-note">This run uses temperature 0, which always
+          picks the top token at 100%. To show how sure the model is, the percentages here are taken at temperature 1.</p>
+      )}
       {failure && failure.recordId === recordId && failure.cycle === cycle && (
         <p data-testid="knockout-error" className="mlp-note">Measuring failed: {failure.message}</p>
       )}

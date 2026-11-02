@@ -53,6 +53,14 @@ test.each([
   expect(screen.queryByText('Measure all 30 layers')).toBeNull()
 })
 
+test('a temperature-0 run explains that percentages are taken at temperature 1', () => {
+  card({ run: { ...base, params: { ...base.params, temperature: 0 } } })
+  expect(screen.getByTestId('knockout-greedy-note').textContent).toContain('taken at temperature 1')
+  cleanup()
+  card()
+  expect(screen.queryByTestId('knockout-greedy-note')).toBeNull()
+})
+
 test('the load-real action appears for sim and no-model notes only', () => {
   card({ model: null, noteAction: <button data-testid="act">go</button> })
   expect(screen.getByTestId('act')).toBeInTheDocument()
