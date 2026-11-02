@@ -1,6 +1,8 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, expect, test, vi } from 'vitest'
 import { makeRunRecord } from '../test/fixtures'
+import type { RunEndReason } from '../trace/types'
+import type { RunRecord } from './runsStore'
 import { RunShelf, type RunShelfProps } from './RunShelf'
 
 afterEach(() => cleanup())
@@ -128,4 +130,62 @@ test('a knockout run chip label ends with the zeroed layer', () => {
   r.meta.knockout = { layer: 15, cycle: 0, sourceId: 'run-1' }
   render(<RunShelf {...props({ records: [r] })} />)
   expect(screen.getByTestId('run-chip-main')).toHaveTextContent(/· MLP 15 off$/)
+})
+
+// the fixture has no seed option: a real, seeded, ended run is built by patching run-start
+const seeded = (seq: number, patch: Record<string, unknown> = {}, reason: RunEndReason = 'max-tokens'): RunRecord => {
+  const r = makeRunRecord(seq, { mode: 'real', reason })
+  return { ...r, events: r.events.map((e) => (e.type === 'run-start' ? { ...e, seed: 7, ...patch } : e)) }
+}
+
+const stubClipboard = (writeText: (t: string) => Promise<void>) =>
+  Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true })
+
+test("a shareable run's chip has a share button between pin and download", async () => {
+  const writeText = vi.fn().mockResolvedValue(undefined)
+  stubClipboard(writeText)
+  render(<RunShelf {...props({ records: [seeded(1)], activeId: 'run-1' })} />)
+  const share = screen.getByTestId('btn-chip-share')
+  const order = [...screen.getByTestId('run-chip').querySelectorAll('button')] as HTMLElement[]
+  expect(order.indexOf(share)).toBe(order.indexOf(screen.getByTestId('btn-chip-pin')) + 1)
+  expect(order.indexOf(screen.getByTestId('btn-chip-export'))).toBe(order.indexOf(share) + 1)
+  await act(async () => { fireEvent.click(share) })
+  expect(writeText).toHaveBeenCalledTimes(1)
+  expect(writeText.mock.calls[0][0]).toContain('seed=')
+  expect(screen.getByText('Link copied')).toBeInTheDocument()
+})
+
+test('no share button for sim, seedless, knockout or unfinished runs', () => {
+  const sim = makeRunRecord(1)
+  const seedless = seeded(2, { seed: undefined })
+  const knockout = seeded(3, { knockout: { layer: 1 } })
+  const aborted = seeded(4, {}, 'aborted')
+  render(<RunShelf {...props({ records: [sim, seedless, knockout, aborted], activeId: null })} />)
+  expect(screen.queryByTestId('btn-chip-share')).toBeNull()
+})
+
+test('a failed copy shows the link in a readonly field', async () => {
+  stubClipboard(vi.fn().mockRejectedValue(new Error('denied')))
+  render(<RunShelf {...props({ records: [seeded(1)], activeId: 'run-1' })} />)
+  await act(async () => { fireEvent.click(screen.getByTestId('btn-chip-share')) })
+  const field = screen.getByTestId('share-link-text') as HTMLInputElement
+  expect(field.readOnly).toBe(true)
+  expect(field.value).toContain('seed=')
+})
+
+test('"Link copied" goes away when the run is removed within the 2 s window, and after 2 s', async () => {
+  vi.useFakeTimers()
+  try {
+    stubClipboard(vi.fn().mockResolvedValue(undefined))
+    const a = seeded(1), b = seeded(2)
+    const { rerender } = render(<RunShelf {...props({ records: [a, b], activeId: 'run-1' })} />)
+    await act(async () => { fireEvent.click(screen.getAllByTestId('btn-chip-share')[1]) })
+    expect(screen.getByText('Link copied')).toBeInTheDocument()
+    rerender(<RunShelf {...props({ records: [a], activeId: 'run-1' })} />)
+    expect(screen.queryByText('Link copied')).toBeNull()
+    await act(async () => { fireEvent.click(screen.getByTestId('btn-chip-share')) })
+    expect(screen.getByText('Link copied')).toBeInTheDocument()
+    await act(async () => { vi.advanceTimersByTime(2100) })
+    expect(screen.queryByText('Link copied')).toBeNull()
+  } finally { vi.useRealTimers() }
 })

@@ -1,6 +1,8 @@
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import { DEFAULT_SYSTEM_PROMPT } from '../engine/chatTemplate'
+import { ShareLinkButton, type ShareFeedback } from '../viz/ShareLinkButton'
 import type { RunRecord } from './runsStore'
+import { shareableRun } from './shareLink'
 
 export interface RunShelfProps {
   records: RunRecord[]
@@ -32,6 +34,7 @@ const systemNote = (r: RunRecord): string => {
 
 export function RunShelf(p: RunShelfProps) {
   const fileRef = useRef<HTMLInputElement>(null)
+  const [share, setShare] = useState<{ runId: string; feedback: ShareFeedback } | null>(null)
   if (p.records.length === 0) return null
   const selecting = p.armed || p.compare !== null
   const aId = p.compare?.aId ?? (p.armed ? p.activeId : null)
@@ -39,6 +42,8 @@ export function RunShelf(p: RunShelfProps) {
     if (selecting) { if (id !== aId) p.onSelectCompareB(id); return }
     p.onActivate(id)
   }
+  // feedback belongs to the run it came from: it disappears with that run
+  const shown = share && p.records.some((r) => r.id === share.runId) ? share.feedback : null
   const role = (id: string) => (id === aId ? 'a' : id === p.compare?.bId ? 'b' : '')
   return (
     <div data-testid="run-shelf" className="run-shelf">
@@ -54,6 +59,15 @@ export function RunShelf(p: RunShelfProps) {
             data-pinned={String(r.meta.pinned)} aria-pressed={r.meta.pinned}
             aria-label={r.meta.pinned ? 'unpin run' : 'pin run'}
             title={r.meta.pinned ? 'unpin' : 'pin — never evicted'} onClick={() => p.onTogglePin(r.id)}>📌</button>
+          {(() => {
+            const settings = shareableRun(r.events)
+            return settings && (
+              <ShareLinkButton compact settings={settings}
+                onFeedback={(feedback) => setShare((cur) => feedback
+                  ? { runId: r.id, feedback }
+                  : cur?.runId === r.id ? null : cur)} />
+            )
+          })()}
           <button data-testid="btn-chip-export" className="run-chip-action"
             title="download run as JSON" onClick={() => p.onExport(r.id)}>⇩</button>
           <button data-testid="btn-chip-remove" className="run-chip-action"
@@ -71,6 +85,11 @@ export function RunShelf(p: RunShelfProps) {
           onChange={(e) => { const f = e.target.files?.[0]; if (f) p.onImportFile(f); e.target.value = '' }} />
       </span>
       {p.importError && <span data-testid="import-error" className="run-shelf-note">{p.importError}</span>}
+      {shown?.kind === 'copied' && <span role="status" data-testid="share-copied" className="run-shelf-note">Link copied</span>}
+      {shown?.kind === 'failed' && (
+        <input readOnly data-testid="share-link-text" className="share-link-text" value={shown.link}
+          aria-label="Share link" onFocus={(e) => e.currentTarget.select()} />
+      )}
       {p.persistFailed && <span data-testid="shelf-note" className="run-shelf-note">archive not persisted in this browser</span>}
     </div>
   )
