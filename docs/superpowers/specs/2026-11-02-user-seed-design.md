@@ -80,6 +80,14 @@ For a real-model run whose `run-start` has a `seed`:
   and errored runs: no seed text, no buttons. Knockout runs: no buttons (my
   call: replaying one needs the removed layer, which a link does not carry).
 
+### Run shelf
+
+- Each shelf chip of a run that qualifies for Copy link (same rule as in the
+  run-end detail) gets a link button beside pin, download and remove: icon 🔗,
+  title "copy share link". It copies the same link. "Link copied" and the
+  clipboard-failure text field appear in the shelf, the way import errors do.
+- The run-end detail keeps its own Copy link button, next to Continue.
+
 ### Share link
 
 - Format: the current page's address (`location.origin + location.pathname`)
