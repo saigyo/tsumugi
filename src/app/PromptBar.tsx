@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { DEFAULT_SYSTEM_PROMPT, TEXT_FORMAT, systemOf } from '../engine/chatTemplate'
 import { Term } from '../glossary/Term'
+import { parseSeed, type SharedRun } from './shareLink'
 import type { GenParams, Mode, PromptFormat } from '../trace/types'
 
 const REAL_TITLE = 'Runs SmolLM2-135M-Instruct in your browser from a custom export with attention and readout outputs (its output layer stays full precision). Downloads ~250 MB once on first use; cached afterward. If that fails it falls back to the ~120 MB stock export without them.'
@@ -16,7 +17,7 @@ export interface PromptExample {
 export interface PromptBarProps {
   mode: Mode
   onModeChange(mode: Mode): void
-  onGenerate(prompt: string, params: GenParams, format: PromptFormat): void
+  onGenerate(prompt: string, params: GenParams, format: PromptFormat, seed?: number): void
   busy: boolean
   // a run is being computed: Generate shows activity and a Stop button appears
   generating?: boolean
@@ -24,6 +25,8 @@ export interface PromptBarProps {
   // what the activity label says while generating (a knockout sweep says Measuring…)
   activity?: string
   examples?: PromptExample[]
+  // values from a share link, read once when the bar mounts
+  initial?: SharedRun
 }
 
 const clampOrKeep = (raw: string, min: number, max: number, prev: number): number => {
@@ -32,14 +35,16 @@ const clampOrKeep = (raw: string, min: number, max: number, prev: number): numbe
   return Math.min(max, Math.max(min, n))
 }
 
-export function PromptBar({ mode, onModeChange, onGenerate, busy, generating = false, onStop, activity = 'Generating…', examples }: PromptBarProps) {
-  const [prompt, setPrompt] = useState('')
-  const [temperature, setTemperature] = useState(0.8)
-  const [topK, setTopK] = useState(10)
-  const [maxNewTokens, setMaxNewTokens] = useState(20)
-  const [chatFmt, setChatFmt] = useState(true)
-  const [system, setSystem] = useState(DEFAULT_SYSTEM_PROMPT)
+export function PromptBar({ mode, onModeChange, onGenerate, busy, generating = false, onStop, activity = 'Generating…', examples, initial }: PromptBarProps) {
+  const [prompt, setPrompt] = useState(initial?.prompt ?? '')
+  const [temperature, setTemperature] = useState(initial?.params?.temperature ?? 0.8)
+  const [topK, setTopK] = useState(initial?.params?.topK ?? 10)
+  const [maxNewTokens, setMaxNewTokens] = useState(initial?.params?.maxNewTokens ?? 20)
+  const [chatFmt, setChatFmt] = useState(initial?.format?.kind !== 'text')
+  const [system, setSystem] = useState(initial?.format?.kind === 'chat' ? (initial.format.system ?? '') : DEFAULT_SYSTEM_PROMPT)
+  const [seedText, setSeedText] = useState(initial?.seed === undefined ? '' : String(initial.seed))
   const chatOn = mode === 'real' && chatFmt
+  const seed = mode === 'real' ? parseSeed(seedText) ?? undefined : undefined
   const format: PromptFormat = chatOn ? { kind: 'chat', system: systemOf(system) } : TEXT_FORMAT
 
   return (
@@ -63,7 +68,11 @@ export function PromptBar({ mode, onModeChange, onGenerate, busy, generating = f
           onChange={(e) => setPrompt(e.target.value)} />
         <button data-testid="btn-generate" disabled={prompt.trim() === '' || busy || generating}
           aria-busy={generating || undefined}
-          onClick={() => onGenerate(prompt, { temperature, topK, maxNewTokens }, format)}>
+          onClick={() => {
+            const params = { temperature, topK, maxNewTokens }
+            if (seed === undefined) onGenerate(prompt, params, format)
+            else onGenerate(prompt, params, format, seed)
+          }}>
           {generating
             ? <><span data-testid="generate-activity" className="generate-activity" aria-hidden="true" />{activity}</>
             : 'Generate'}
@@ -104,6 +113,14 @@ export function PromptBar({ mode, onModeChange, onGenerate, busy, generating = f
           <Term id="generation-settings" section="max-new-tokens" variant="icon" label="About max new tokens" testId="setting-info"
             tip="The run stops here at the latest.">ⓘ</Term>
         </span>
+        {mode === 'real' && (
+          <span className="config-field">
+            <label>Seed <input data-testid="seed-input" inputMode="numeric" placeholder="random" value={seedText}
+              onChange={(e) => { const v = parseSeed(e.target.value); if (v !== undefined) setSeedText(v === null ? '' : String(v)) }} /></label>
+            <Term id="generation-settings" section="seed" variant="icon" label="About the seed" testId="setting-info"
+              tip="Same seed, prompt and settings give the same text.">ⓘ</Term>
+          </span>
+        )}
       </div>
       {examples && examples.length > 0 && (
         <div className="example-chip-row">

@@ -155,3 +155,60 @@ test('the chat example in simulated mode still asks for a chat run (the app load
   expect(onGenerate).toHaveBeenLastCalledWith('What is the capital of France?', expect.anything(),
     expect.objectContaining({ kind: 'chat' }))
 })
+
+test('seed field shows in real mode only', () => {
+  const { rerender } = render(<PromptBar mode="sim" onModeChange={noop} onGenerate={noop} busy={false} />)
+  expect(screen.queryByTestId('seed-input')).toBeNull()
+  rerender(<PromptBar mode="real" onModeChange={noop} onGenerate={noop} busy={false} />)
+  expect(screen.getByTestId('seed-input')).toBeInTheDocument()
+})
+
+test('a typed seed is passed to onGenerate', () => {
+  const onGenerate = vi.fn()
+  render(<PromptBar mode="real" onModeChange={noop} onGenerate={onGenerate} busy={false} />)
+  fireEvent.change(screen.getByTestId('prompt-input'), { target: { value: 'Hi' } })
+  fireEvent.change(screen.getByTestId('seed-input'), { target: { value: '123' } })
+  fireEvent.click(screen.getByTestId('btn-generate'))
+  expect(onGenerate.mock.calls[0][3]).toBe(123)
+})
+
+test('clearing the seed sends no seed', () => {
+  const onGenerate = vi.fn()
+  render(<PromptBar mode="real" onModeChange={noop} onGenerate={onGenerate} busy={false} />)
+  fireEvent.change(screen.getByTestId('prompt-input'), { target: { value: 'Hi' } })
+  fireEvent.change(screen.getByTestId('seed-input'), { target: { value: '5' } })
+  fireEvent.change(screen.getByTestId('seed-input'), { target: { value: '' } })
+  fireEvent.click(screen.getByTestId('btn-generate'))
+  expect(onGenerate.mock.calls[0][3]).toBeUndefined()
+})
+
+test('an invalid seed keeps the previous value', () => {
+  render(<PromptBar mode="real" onModeChange={noop} onGenerate={noop} busy={false} />)
+  fireEvent.change(screen.getByTestId('seed-input'), { target: { value: '5' } })
+  fireEvent.change(screen.getByTestId('seed-input'), { target: { value: '-1' } })
+  expect(screen.getByTestId('seed-input')).toHaveValue('5')
+})
+
+test('initial values fill the fields', () => {
+  const onGenerate = vi.fn()
+  render(<PromptBar mode="real" onModeChange={noop} onGenerate={onGenerate} busy={false}
+    initial={{ prompt: 'Hi', format: { kind: 'chat', system: 'Be brief.' }, params: { temperature: 0, topK: 3, maxNewTokens: 40 }, seed: 9 }} />)
+  expect(screen.getByTestId('prompt-input')).toHaveValue('Hi')
+  expect(screen.getByTestId('system-input')).toHaveValue('Be brief.')
+  expect(screen.getByTestId('temp-input')).toHaveValue(0)
+  expect(screen.getByTestId('topk-input')).toHaveValue(3)
+  expect(screen.getByTestId('maxtok-input')).toHaveValue(40)
+  expect(screen.getByTestId('seed-input')).toHaveValue('9')
+  fireEvent.click(screen.getByTestId('btn-generate'))
+  expect(onGenerate).toHaveBeenCalledWith('Hi', { temperature: 0, topK: 3, maxNewTokens: 40 },
+    { kind: 'chat', system: 'Be brief.' }, 9)
+})
+
+test('example chips ignore the seed', () => {
+  const onGenerate = vi.fn()
+  render(<PromptBar mode="real" onModeChange={noop} onGenerate={onGenerate} busy={false}
+    examples={[{ id: 'a', label: 'A', prompt: 'Once', hint: 'h' }]} />)
+  fireEvent.change(screen.getByTestId('seed-input'), { target: { value: '7' } })
+  fireEvent.click(screen.getByTestId('example-chip'))
+  expect(onGenerate.mock.calls[0][3]).toBeUndefined()
+})

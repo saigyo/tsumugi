@@ -42,6 +42,7 @@ export function runSummary(events: TraceEvent[], cursor: number, sweeps?: Knocko
     mode: start.mode,
     modelId: start.modelId,
     params: start.params,
+    ...(start.seed !== undefined ? { seed: start.seed } : {}),
     tokens: tokenize?.tokens ?? [],
     cycle,
     cycles: maxCycle + 1,

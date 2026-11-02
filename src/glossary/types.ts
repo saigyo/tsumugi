@@ -19,6 +19,7 @@ export interface RunSummary {
   modelId: string
   params: GenParams
   tokens: TokenInfo[]                    // the prompt's tokens
+  seed?: number                          // the real run's sampling seed
   cycle: number                          // viewed cycle, 0-based
   cycles: number                         // cycles in the trace so far
   generated: number                      // tokens appended in the whole trace

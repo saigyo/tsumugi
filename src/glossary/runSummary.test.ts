@@ -87,3 +87,10 @@ test('a sweep with no rise has no rise entry', () => {
   expect(k.rise).toBeUndefined()
   expect(k.drop).toMatchObject({ layer: 0 })
 })
+
+test('a run started with a seed reports it; one without has none', () => {
+  const events = buildFixtureTrace({ mode: 'real' })
+  expect(runSummary(events, 2)!.seed).toBeUndefined()
+  const seeded = events.map((e) => (e.type === 'run-start' ? { ...e, seed: 42 } : e))
+  expect(runSummary(seeded, 2)!.seed).toBe(42)
+})

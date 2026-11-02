@@ -210,7 +210,7 @@ test('the chat template entry shows SmolLM2’s three template lines and links w
 })
 
 test('the generation settings entry has a section per setting and sits with Sampling', () => {
-  expect(sectionsOf('generation-settings')).toEqual(['temperature', 'top-k', 'max-new-tokens'])
+  expect(sectionsOf('generation-settings')).toEqual(['temperature', 'top-k', 'max-new-tokens', 'seed'])
   const entry = getEntry('generation-settings')!
   expect(entry.stage).toBe('sample')
   expect(entry.related).toEqual(expect.arrayContaining(['sampling', 'softmax']))
@@ -247,4 +247,10 @@ test('the knockout In this run block names the token, the flips, the largest dro
 test('the knockout entry warns about the pass without the key-value cache', () => {
   const { container } = render(<>{getEntry('knockout')!.body()}</>)
   expect(container.textContent).toMatch(/without the key-value cache/)
+})
+
+test('generation settings in this run: a run with a seed names it', () => {
+  const inRun = getEntry('generation-settings')!.inRun!
+  const { container } = render(<>{inRun(sampleRun({ generated: 8, ended: 'max-tokens', seed: 42 }))}</>)
+  expect(container.textContent).toContain('up to 8 new tokens, seed 42.')
 })
