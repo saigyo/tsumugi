@@ -333,6 +333,28 @@ prompt says little about a layer in general, and in a 135M model removing one
 MLP often changes the top token when its lead is small. Removing layer 0
 breaks the model.
 
+## Continuing and sharing a run
+
+In real mode the prompt bar has a **Seed** field. Empty means a new random
+seed for each run; an integer from 0 to 4294967295 fixes it, so the same
+prompt, settings and seed give the same text. A run's seed is shown in its
+run-end detail.
+
+When a run stops at the max-tokens limit (below 100), the run-end detail
+offers **Run again with N tokens**: the same prompt, settings and seed with a
+higher limit, so the text is identical up to the old end and then goes on.
+It needs the model version the run was made with.
+
+**Copy link**, in the run-end detail and on each shelf chip, copies a link
+that opens the app with the prompt, format, settings and seed filled in and
+the real model loading. It does not generate; press Generate. The settings
+travel in the part of the address after `#`, so no server sees them.
+
+Two limits. A different graphics card or browser can round numbers slightly
+differently, so a shared run usually matches but is not guaranteed to. A link
+made with one model version and opened after a newer one is published runs on
+the newer model and can give different text; the app says so.
+
 ## The glossary
 
 Every card links its terms to a glossary that opens in a side panel, so the

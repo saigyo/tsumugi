@@ -20,6 +20,8 @@ import { CHAT_EXAMPLE } from './app/chatExample'
 import { DetailPanel } from './viz/DetailPanel'
 import { PipelineBand } from './viz/PipelineBand'
 import { useKnockoutRequest } from './viz/knockoutRequest'
+import { useRunRequest } from './viz/runRequest'
+import { parseShareLink } from './app/shareLink'
 import { useRealModel } from './viz/realModelRequest'
 import { TokenStream } from './viz/TokenStream'
 import { RunShelf } from './app/RunShelf'
@@ -68,6 +70,9 @@ export default function App() {
   const [compare, setCompare] = useState<{ aId: string; bId: string; cycle?: number } | null>(null)
   const [compareArmed, setCompareArmed] = useState(false)
   const [importError, setImportError] = useState<string | null>(null)
+  // a share link is read once, when the app starts
+  const [shared] = useState(() => parseShareLink(location.hash))
+  const [linkNote, setLinkNote] = useState<string | null>(null)
   const { pins, note: pinNote, pin: handlePin, reset: resetPins } = usePins((layer, head) => {
     const engine = realEngineRef.current
     return engine
@@ -148,6 +153,24 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // a link switches to the real model (which also stops the cached-model check
+  // below from overriding it) and leaves the address clean for a reload
+  useEffect(() => {
+    if (!shared) return
+    history.replaceState(null, '', location.pathname + location.search)
+    void chooseModeRef.current('real')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+  useEffect(() => {
+    if (!shared || !realReady) return
+    const loaded = realEngineRef.current?.revision ?? null
+    const made = shared.rev ?? null
+    if (made !== loaded) {
+      setLinkNote(`This link was made with model version ${made ?? 'stock'}; the loaded model is ${loaded ?? 'stock'}, so the text may differ.`)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [realReady])
+
   // one request for the whole session, so the load buttons do not re-render
   // with every App render; it calls the latest chooseMode through the ref
   const chooseModeRef = useRef(chooseMode)
@@ -212,8 +235,10 @@ export default function App() {
     }
   }
 
-  const handleGenerate = (prompt: string, params: GenParams, format: PromptFormat = TEXT_FORMAT) =>
-    startRun(prompt, params, format)
+  const handleGenerate = (prompt: string, params: GenParams, format: PromptFormat = TEXT_FORMAT, seed?: number) => {
+    setLinkNote(null)
+    return startRun(prompt, params, format, seed !== undefined ? { seed } : undefined)
+  }
 
   // the active record's run-start, and the tokens appended before a cycle
   const activeSource = () => {
@@ -292,6 +317,25 @@ export default function App() {
     })
   }, [realReady])
 
+  // rerun the active run with a larger limit and its own seed (never the prompt bar's)
+  const handleContinue = (maxNewTokens: number) => {
+    const source = activeSource()
+    if (!source || source.start.seed === undefined || sweepRef.current || generating) return
+    const { start } = source
+    void startRun(start.prompt, { ...start.params, maxNewTokens }, start.format ?? TEXT_FORMAT, { seed: start.seed })
+  }
+  const continueRef = useRef(handleContinue)
+  useEffect(() => { continueRef.current = handleContinue })
+  useEffect(() => {
+    if (!realReady) return
+    const engine = realEngineRef.current
+    useRunRequest.setState({
+      model: engine ? { revision: engine.revision ?? null } : null,
+      continueRun: (n) => continueRef.current(n),
+    })
+  }, [realReady])
+  useEffect(() => { useRunRequest.setState({ busy: generating }) }, [generating])
+
   const handleStop = () => { runRef.current?.abort(); sweepRef.current?.abort() }
 
   const handleActivate = async (id: string) => {
@@ -345,7 +389,8 @@ export default function App() {
       </header>
       <PromptBar mode={mode} onModeChange={chooseMode} onGenerate={handleGenerate}
         busy={mode === 'real' && !realReady} generating={generating} activity={activity} onStop={handleStop}
-        examples={[...CURATED_EXAMPLES, CHAT_EXAMPLE]} />
+        examples={[...CURATED_EXAMPLES, CHAT_EXAMPLE]} initial={shared ?? undefined} />
+      {linkNote && <p className="mlp-note" data-testid="link-note">{linkNote}</p>}
       <ModelSlot mode={mode} loading={loading} fromCache={fromCache} progress={progress} error={modelError}
         bannerClosed={bannerClosed} onLoad={() => { void chooseMode('real') }}
         onClose={() => { writeFlag('tsumugi.simBannerClosed', true); setBannerClosed(true) }}

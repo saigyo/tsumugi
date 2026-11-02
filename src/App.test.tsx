@@ -192,3 +192,14 @@ test('when the archive refuses an imported run, the shelf says why instead of bl
     expect(await screen.findByTestId('import-error')).toHaveTextContent('could not add the run: storage quota exceeded')
   } finally { useRunsStore.setState({ importRecord: original }) }
 })
+
+test('a share link fills the prompt bar and clears the hash', async () => {
+  location.hash = '#run=1&p=Hello%20there&f=text&t=0.5&k=7&n=33&seed=42'
+  render(<App />)
+  expect(screen.getByTestId('prompt-input')).toHaveValue('Hello there')
+  expect(screen.getByTestId('maxtok-input')).toHaveValue(33)
+  await waitFor(() => expect(location.hash).toBe(''))
+  // the link switches to the real model, which the mock never finishes loading
+  await waitFor(() => expect(screen.getByTestId('btn-generate')).toBeDisabled())
+  expect(useTraceStore.getState().events).toHaveLength(0)
+})
