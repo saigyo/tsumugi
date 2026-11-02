@@ -683,3 +683,6 @@ math { font-family: 'Latin Modern Math', math, 'STIX Two Math', 'Cambria Math', 
 .knockout-measure { background: var(--ai); color: var(--on-ai); border: 0; }
 .knockout-run { background: transparent; color: var(--ai); border: 1px solid var(--ai); }
 .knockout-measure:disabled, .knockout-run:disabled { opacity: .5; cursor: default; }
+.run-end-actions { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
+.share-feedback { font-size: .8rem; color: var(--ai); }
+.share-link-text { font: inherit; font-size: .75rem; flex: 1 1 100%; min-width: 0; }

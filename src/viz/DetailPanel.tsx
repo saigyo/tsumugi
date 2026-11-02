@@ -8,6 +8,7 @@ import { SoftmaxDetail } from './details/SoftmaxDetail'
 import { SamplerDetail } from './details/SamplerDetail'
 import { RunEndDetail } from './details/RunEndDetail'
 import { visibleTokens } from './selectors'
+import { shareableRun } from '../app/shareLink'
 
 export function DetailPanel({ events, cursor, mode, pinnedHeads, onPin, pinNote }: {
   events: TraceEvent[]; cursor: number; mode: Mode
@@ -23,7 +24,8 @@ export function DetailPanel({ events, cursor, mode, pinnedHeads, onPin, pinNote 
     const { prompt, generated } = visibleTokens(events, cursor)
     return (
       <RunEndDetail runStart={latestOfType(events, cursor, 'run-start')} runEnd={current}
-        promptTokens={prompt.length} generatedTokens={generated.length} />
+        promptTokens={prompt.length} generatedTokens={generated.length}
+        shareable={shareableRun(events)} truncated={latestOfType(events, cursor, 'tokenize')?.truncated} />
     )
   }
 
