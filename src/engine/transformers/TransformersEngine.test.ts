@@ -124,6 +124,15 @@ test('run without options posts no knockout', () => {
   expect((worker.sent.at(-1) as { knockout?: unknown }).knockout).toBeUndefined()
 })
 
+test('run forwards a chosen seed to the worker', () => {
+  const { worker, engine } = make()
+  const params = { temperature: 1, topK: 10, maxNewTokens: 2 }
+  engine.run('Hi', params, () => {}, undefined, { seed: 42 })
+  expect(worker.sent.at(-1)).toMatchObject({ type: 'run', seed: 42 })
+  engine.run('Hi', params, () => {})
+  expect('seed' in (worker.sent.at(-1) as object)).toBe(false)
+})
+
 const sweepReq = { ids: [1, 2], params: { temperature: 1, topK: 10, maxNewTokens: 2 }, chosenId: 2, seed: 5, cycle: 1 }
 const entry = { layer: 0, prob: 0.5, top: { id: 2, text: 'a', prob: 0.5 }, flips: false }
 

@@ -59,7 +59,7 @@ export class TransformersEngine implements PipelineEngine {
         }
       }
       this.listeners.add(listener)
-      this.post({ type: 'run', runId, prompt, params, format, ...(options?.knockout ? { knockout: options.knockout } : {}) })
+      this.post({ type: 'run', runId, prompt, params, format, ...(options?.seed !== undefined ? { seed: options.seed } : {}), ...(options?.knockout ? { knockout: options.knockout } : {}) })
     })
     return { abort: () => this.post({ type: 'abort' }), done }
   }

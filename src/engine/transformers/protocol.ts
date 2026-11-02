@@ -4,7 +4,7 @@ import type { ProgressInfo, RunOptions } from '../types'
 export type WorkerRequest =
   | { type: 'prepare'; modelId: string }
   | { type: 'run'; runId: number; prompt: string; params: GenParams; format: PromptFormat
-      knockout?: RunOptions['knockout'] }
+      seed?: number; knockout?: RunOptions['knockout'] }
   | { type: 'abort' }
   // side channel beside the trace, with exactly two uses: head pins (pin-exactness)
   // and knockout sweeps (design doc section 3); must not grow without a new design

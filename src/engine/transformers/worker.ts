@@ -109,7 +109,7 @@ function updateCache(DynamicCacheCtor: any, output: any, prevCache: any): any {
   return cache
 }
 
-async function run(runId: number, prompt: string, params: GenParams, format: PromptFormat, knockout?: RunOptions['knockout']) {
+async function run(runId: number, prompt: string, params: GenParams, format: PromptFormat, knockout?: RunOptions['knockout'], chosenSeed?: number) {
   aborted = false
   lastRun = null
   const emit = (event: TraceEvent) => post({ type: 'trace', runId, event })
@@ -123,7 +123,7 @@ async function run(runId: number, prompt: string, params: GenParams, format: Pro
     return
   }
 
-  const seed = knockout?.seed ?? crypto.getRandomValues(new Uint32Array(1))[0]
+  const seed = chosenSeed ?? knockout?.seed ?? crypto.getRandomValues(new Uint32Array(1))[0]
   emit({ type: 'run-start', prompt, mode: 'real', modelId: loadedModelId, params, seed,
     ...(loadedModelId === ATTN_MODEL_ID ? { revision: ATTN_MODEL_REVISION } : {}),
     ...(format.kind === 'chat' ? { format } : {}),
@@ -388,7 +388,7 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
   try {
     const msg = e.data
     if (msg.type === 'prepare') await prepare(msg.modelId)
-    if (msg.type === 'run') await run(msg.runId, msg.prompt, msg.params, msg.format ?? TEXT_FORMAT, msg.knockout)
+    if (msg.type === 'run') await run(msg.runId, msg.prompt, msg.params, msg.format ?? TEXT_FORMAT, msg.knockout, msg.seed)
     if (msg.type === 'abort') aborted = true
     if (msg.type === 'sweep-request') await sweep(msg)
     if (msg.type === 'head-request') {
