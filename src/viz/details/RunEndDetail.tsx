@@ -25,6 +25,8 @@ export function RunEndDetail({ runStart, runEnd, promptTokens, generatedTokens, 
   const limit = shareable ? continueLimit(shareable.params.maxNewTokens) : null
   const canContinue = shareable && limit !== null && runEnd.reason === 'max-tokens' && !truncated
   const wanted = shareable?.rev ?? null
+  const showSeed = runStart?.mode === 'real' && runStart.seed !== undefined
+    && (runEnd.reason === 'eos' || runEnd.reason === 'max-tokens')
   const wrongModel = !model || model.revision !== wanted
   return (
     <div data-testid="detail-run-end" className="detail">
@@ -35,7 +37,7 @@ export function RunEndDetail({ runStart, runEnd, promptTokens, generatedTokens, 
       </p>
       <p>
         {promptTokens} prompt tokens in, {generatedTokens} tokens generated
-        {runStart && ` (T=${runStart.params.temperature}, top-k ${runStart.params.topK}, max ${runStart.params.maxNewTokens}${shareable ? `, seed ${shareable.seed}` : ''})`}.
+        {runStart && ` (T=${runStart.params.temperature}, top-k ${runStart.params.topK}, max ${runStart.params.maxNewTokens}${showSeed ? `, seed ${runStart.seed}` : ''})`}.
       </p>
       {shareable && (
         <p className="run-end-actions">

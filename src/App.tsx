@@ -317,11 +317,10 @@ export default function App() {
     })
   }, [realReady])
 
-  // rerun the active run with a larger limit and its own seed (never the prompt bar's)
+  // rerun the shown run with a larger limit and its own seed (never the prompt bar's)
   const handleContinue = (maxNewTokens: number) => {
-    const source = activeSource()
-    if (!source || source.start.seed === undefined || sweepRef.current || generating) return
-    const { start } = source
+    const start = useTraceStore.getState().events.find((e) => e.type === 'run-start')
+    if (start?.type !== 'run-start' || start.seed === undefined || sweepRef.current || generating) return
     void startRun(start.prompt, { ...start.params, maxNewTokens }, start.format ?? TEXT_FORMAT, { seed: start.seed })
   }
   const continueRef = useRef(handleContinue)

@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, expect, test, vi } from 'vitest'
 import App from './App'
 import { useTraceStore } from './trace/store'
@@ -9,6 +9,13 @@ import { _resetArchiveForTests, archiveImport } from './app/runArchive'
 import { serializeRun } from './app/runFiles'
 import { buildFixtureTrace } from './test/fixtures'
 import { resetGlossaryStore } from './glossary/store'
+import { useRunRequest } from './viz/runRequest'
+
+// what the mocked engine does: never finish loading (null), or load as this revision
+const engineMock = vi.hoisted(() => ({
+  loadAs: null as { revision: string | undefined } | null,
+  runs: [] as { prompt: string; params: { maxNewTokens: number }; options?: { seed?: number } }[],
+}))
 
 vi.mock('./engine/tokenizer', async (importOriginal) => {
   const mod = await importOriginal<typeof import('./engine/tokenizer')>()
@@ -23,8 +30,17 @@ vi.mock('./engine/transformers/TransformersEngine', () => {
   // constructor.)
   class FakeTransformersEngine {
     device = null
-    prepare() { return new Promise(() => {}) }
-    run() { throw new Error('not used in this test') }
+    revision: string | undefined = undefined
+    prepare() {
+      const load = engineMock.loadAs
+      if (!load) return new Promise(() => {})
+      this.revision = load.revision
+      return Promise.resolve()
+    }
+    run(prompt: string, params: { maxNewTokens: number }, _onEvent: unknown, _format: unknown, options?: { seed?: number }) {
+      engineMock.runs.push({ prompt, params, options })
+      return { abort() {}, done: Promise.resolve() }
+    }
   }
   return { TransformersEngine: FakeTransformersEngine }
 })
@@ -34,9 +50,11 @@ beforeEach(() => {
   usePlayerStore.setState({ ...initialPlayerState })
   useRunsStore.setState({ records: [], activeId: null, nextSeq: 1, persistFailed: false })
   _resetArchiveForTests()
+  engineMock.loadAs = null
+  engineMock.runs = []
 })
 
-afterEach(() => { cleanup(); resetGlossaryStore() })
+afterEach(() => { cleanup(); resetGlossaryStore(); location.hash = '' })
 
 test('the header carries the tagline', () => {
   render(<App />)
@@ -202,4 +220,53 @@ test('a share link fills the prompt bar and clears the hash', async () => {
   // the link switches to the real model, which the mock never finishes loading
   await waitFor(() => expect(screen.getByTestId('btn-generate')).toBeDisabled())
   expect(useTraceStore.getState().events).toHaveLength(0)
+})
+
+const NOTE_TEXT = (made: string, loaded: string) =>
+  `This link was made with model version ${made}; the loaded model is ${loaded}, so the text may differ.`
+
+async function openLink(hash: string, loadedRevision: string) {
+  engineMock.loadAs = { revision: loadedRevision }
+  location.hash = hash
+  render(<App />)
+  await waitFor(() => expect(screen.getByTestId('btn-generate')).not.toBeDisabled())
+}
+
+test('a link made with another model version shows a note', async () => {
+  await openLink('#run=1&p=Hi&f=text&t=0.5&k=7&n=33&seed=42&rev=v6', 'v7')
+  expect(await screen.findByTestId('link-note')).toHaveTextContent(NOTE_TEXT('v6', 'v7'))
+  expect(screen.getByTestId('link-note').textContent).toBe(NOTE_TEXT('v6', 'v7'))
+})
+
+test('a link without a version counts as stock', async () => {
+  await openLink('#run=1&p=Hi&f=text&t=0.5&k=7&n=33&seed=42', 'v7')
+  expect((await screen.findByTestId('link-note')).textContent).toBe(NOTE_TEXT('stock', 'v7'))
+})
+
+test('a link made with the loaded model version shows no note', async () => {
+  await openLink('#run=1&p=Hi&f=text&t=0.5&k=7&n=33&seed=42&rev=v7', 'v7')
+  expect(screen.queryByTestId('link-note')).toBeNull()
+})
+
+test('the note goes away on the next Generate', async () => {
+  await openLink('#run=1&p=Hi&f=text&t=0.5&k=7&n=33&seed=42&rev=v6', 'v7')
+  await screen.findByTestId('link-note')
+  fireEvent.click(screen.getByTestId('btn-generate'))
+  await waitFor(() => expect(screen.queryByTestId('link-note')).toBeNull())
+})
+
+test('Continue reruns the shown trace with its own seed after the active chip was removed', async () => {
+  await openLink('#run=1&p=Hi&f=text&t=0.5&k=7&n=33&seed=42&rev=v7', 'v7')
+  act(() => {
+    useTraceStore.getState().append({ type: 'run-start', prompt: 'Once upon', mode: 'real', modelId: 'm', seed: 777,
+      revision: 'v7', params: { temperature: 0.8, topK: 10, maxNewTokens: 20 } })
+    useTraceStore.getState().append({ type: 'run-end', reason: 'max-tokens' })
+  })
+  expect(useRunsStore.getState().activeId).toBeNull()      // no shelf record is active
+  await waitFor(() => expect(useRunRequest.getState().continueRun).toBeTruthy())
+  await act(async () => { useRunRequest.getState().continueRun?.(40) })
+  await waitFor(() => expect(engineMock.runs).toHaveLength(1))
+  expect(engineMock.runs[0].prompt).toBe('Once upon')
+  expect(engineMock.runs[0].params.maxNewTokens).toBe(40)
+  expect(engineMock.runs[0].options).toEqual({ seed: 777 })
 })

@@ -104,12 +104,18 @@ test('copy failure shows the link in a text field', async () => {
 test.each([
   ['sim', start({ mode: 'sim' }), end()],
   ['seedless', start({ seed: undefined }), end()],
-  ['knockout', start({ knockout: { sourceRunId: 'r', layer: 1, cycle: 0 } as never }), end()],
   ['aborted', start(), end({ reason: 'aborted' })],
   ['error', start(), end({ reason: 'error' })],
 ])('nothing extra for %s runs', (_n, s, e) => {
   view(s, e)
   expect(screen.getByTestId('detail-run-end').textContent).not.toContain('seed')
+  expect(screen.queryByRole('button', { name: 'Copy link' })).toBeNull()
+  expect(screen.queryByRole('button', { name: /Run again/ })).toBeNull()
+})
+
+test.each(['eos', 'max-tokens'] as const)('knockout runs ending with %s show the seed but no buttons', (reason) => {
+  view(start({ knockout: { sourceRunId: 'r', layer: 1, cycle: 0 } as never }), end({ reason }))
+  expect(screen.getByTestId('detail-run-end').textContent).toContain('seed 123456789')
   expect(screen.queryByRole('button', { name: 'Copy link' })).toBeNull()
   expect(screen.queryByRole('button', { name: /Run again/ })).toBeNull()
 })
