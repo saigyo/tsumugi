@@ -69,6 +69,8 @@
   --t-tick: .66rem;
   --t-brand: 1.7rem;
   --t-prompt: 1.3rem;
+  --t-mark: 1.25em;
+  --t-formula: 1.05rem;
 }
 
 body {
@@ -87,8 +89,8 @@ h1 { margin: 0 0 1rem; font-size: var(--t-brand); font-weight: 800; letter-spaci
 .app-mark {
   font-family: var(--mark);
   color: var(--ai-deep);
-  font-size: inherit;
-  margin-right: .15rem;
+  font-size: var(--t-mark);
+  margin-right: .5rem;
 }
 .app-subtitle { display: block; font-size: var(--t-cap); font-weight: 400; color: var(--ink-faint); margin-top: .1rem; letter-spacing: 0; }
 
@@ -302,9 +304,6 @@ input[type="number"] { width: 4rem; }
 .run-chip-pin { filter: grayscale(1); opacity: .35; }
 .run-chip-pin:hover { filter: none; opacity: .7; }
 .run-chip-pin[data-pinned="true"] { filter: none; opacity: 1; }
-.run-shelf-btn { font: inherit; font-size: var(--t-label); color: var(--ai-deep); background: var(--ai-wash);
-  border: 1px solid var(--line-strong); border-radius: 6px; padding: .15rem .5rem; cursor: pointer; }
-.run-shelf-btn:disabled { opacity: .5; cursor: default; }
 .run-shelf-note { font-size: var(--t-label); color: var(--ink-faint); }
 .compare-view { border: 1px solid var(--line); border-radius: 10px; background: var(--card);
   padding: .8rem 1rem; margin-top: .5rem; }
@@ -511,12 +510,19 @@ input[type="number"] { width: 4rem; }
 
 /* ── Header with the glossary button ─────────────────────────────────── */
 .app-header { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem 1rem; margin: 0 0 1rem; }
+.app-header h1 { line-height: 1.1; }
+.app-header .mode-badge { margin-left: .7rem; padding: .15rem .6rem; border: 0; border-radius: 999px; letter-spacing: .08em;
+  font-weight: 600; color: var(--ai-deep); background: var(--ai-wash); }
+.app-header .app-subtitle { margin-top: .4rem; }
 .app-header h1 { margin: 0; }
 .gl-help { margin-left: auto; display: flex; align-items: center; gap: .6rem; }
-.gl-help-btn {
-  width: 1.9rem; height: 1.9rem; padding: 0; border-radius: 999px; font-weight: 600;
-  color: var(--ai-deep); border-color: var(--ai-soft);
+.hdr-btn, .gl-help-btn {
+  font-size: var(--t-cap); color: var(--ink-soft); background: var(--card);
+  border: 1px solid var(--line); border-radius: 8px; padding: .35rem .75rem; cursor: pointer;
 }
+.hdr-btn:hover:not(:disabled), .gl-help-btn:hover { color: var(--ai-deep); border-color: var(--ai-soft); }
+.hdr-btn:disabled { opacity: .5; cursor: default; }
+.gl-help-btn { font-weight: 600; }
 .gl-hint {
   font-size: var(--t-cap); color: var(--ink-soft); background: var(--shu-wash); border: 1px solid var(--shu-soft);
   border-radius: 6px; padding: .2rem .3rem .2rem .6rem; display: inline-flex; align-items: center; gap: .3rem;
@@ -534,9 +540,9 @@ input[type="number"] { width: 4rem; }
 }
 /* bundled Latin Modern Math first: the LaTeX look on every device */
 math { font-family: var(--math); color: var(--ink); }
-.formula { margin: .7rem 0; overflow-x: auto; overflow-y: hidden; font-size: var(--t-body); }
+.formula { margin: .7rem 0; overflow-x: auto; overflow-y: hidden; font-size: var(--t-formula); }
 .formula-inline { margin: 0; overflow: visible; font-size: inherit; }
-.card-formula { display: block; margin: .4rem 0 .6rem; font-size: var(--t-body); max-width: 100%; overflow-x: auto; overflow-y: hidden; }
+.card-formula { display: block; margin: .4rem 0 .6rem; font-size: var(--t-formula); max-width: 100%; overflow-x: auto; overflow-y: hidden; }
 .formula-error code { color: var(--shu); }
 .gl-symbols { display: grid; grid-template-columns: max-content 1fr; gap: .45rem .8rem; margin: .4rem 0; }
 .gl-symbols dt { text-align: right; font-size: var(--t-body); }

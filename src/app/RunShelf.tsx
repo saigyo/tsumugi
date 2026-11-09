@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import { DEFAULT_SYSTEM_PROMPT } from '../engine/chatTemplate'
 import { ShareLinkButton, type ShareFeedback } from '../viz/ShareLinkButton'
 import type { RunRecord } from './runsStore'
@@ -13,12 +13,9 @@ export interface RunShelfProps {
   importError: string | null
   onActivate(id: string): void
   onSelectCompareB(id: string): void
-  onArmCompare(): void
-  onExitCompare(): void
   onTogglePin(id: string): void
   onExport(id: string): void
   onRemove(id: string): void
-  onImportFile(file: File): void
 }
 
 const isChat = (r: RunRecord) => r.meta.format?.kind === 'chat'
@@ -33,9 +30,16 @@ const systemNote = (r: RunRecord): string => {
 }
 
 export function RunShelf(p: RunShelfProps) {
-  const fileRef = useRef<HTMLInputElement>(null)
   const [share, setShare] = useState<{ runId: string; feedback: ShareFeedback } | null>(null)
-  if (p.records.length === 0) return null
+  const notes = (
+    <>
+      {p.importError && <span data-testid="import-error" className="run-shelf-note">{p.importError}</span>}
+      {p.persistFailed && <span data-testid="shelf-note" className="run-shelf-note">archive not persisted in this browser</span>}
+    </>
+  )
+  if (p.records.length === 0) {
+    return (p.importError || p.persistFailed) ? <div data-testid="run-shelf" className="run-shelf">{notes}</div> : null
+  }
   const selecting = p.armed || p.compare !== null
   const aId = p.compare?.aId ?? (p.armed ? p.activeId : null)
   const chipClick = (id: string) => {
@@ -74,23 +78,12 @@ export function RunShelf(p: RunShelfProps) {
             title="remove run" onClick={() => p.onRemove(r.id)}>×</button>
         </div>
       ))}
-      <span className="run-shelf-tools">
-        {selecting
-          ? <button data-testid="btn-compare-exit" className="run-shelf-btn" onClick={p.onExitCompare}>× exit compare</button>
-          : p.records.length > 1 && <button data-testid="btn-compare-arm" className="run-shelf-btn" disabled={p.activeId === null}
-              title="pick a second run to compare against the active one" onClick={p.onArmCompare}>⇄ compare</button>}
-        <button data-testid="btn-import" className="run-shelf-btn" title="load an exported run"
-          onClick={() => fileRef.current?.click()}>⇧ import</button>
-        <input ref={fileRef} data-testid="import-input" type="file" accept="application/json" hidden
-          onChange={(e) => { const f = e.target.files?.[0]; if (f) p.onImportFile(f); e.target.value = '' }} />
-      </span>
-      {p.importError && <span data-testid="import-error" className="run-shelf-note">{p.importError}</span>}
       {shown?.kind === 'copied' && <span role="status" data-testid="share-copied" className="run-shelf-note">Link copied</span>}
       {shown?.kind === 'failed' && (
         <input readOnly data-testid="share-link-text" className="share-link-text" value={shown.link}
           aria-label="Share link" onFocus={(e) => e.currentTarget.select()} />
       )}
-      {p.persistFailed && <span data-testid="shelf-note" className="run-shelf-note">archive not persisted in this browser</span>}
+      {notes}
     </div>
   )
 }

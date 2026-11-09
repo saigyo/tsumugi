@@ -24,6 +24,7 @@ import { useRunRequest } from './viz/runRequest'
 import { parseShareLink } from './app/shareLink'
 import { useRealModel } from './viz/realModelRequest'
 import { TokenStream } from './viz/TokenStream'
+import { HeaderTools } from './app/HeaderTools'
 import { RunShelf } from './app/RunShelf'
 import { archiveAddSweep, archiveImport, archiveRemove, archiveSeal, archiveTogglePin, initArchive } from './app/runArchive'
 import { parseRunFile, serializeRun } from './app/runFiles'
@@ -383,8 +384,13 @@ export default function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <h1><span className="app-mark">紬</span> Tsumugi <ModeBadge mode={mode} loading={loading} device={device} attentions={attn} /> <span className="app-subtitle">Watch a language model write, one token at a time</span></h1>
-        <HelpButton />
+        <h1><span className="app-mark">紬</span>Tsumugi<ModeBadge mode={mode} loading={loading} device={device} attentions={attn} /> <span className="app-subtitle">Watch a language model write, one token at a time</span></h1>
+        <HelpButton tools={
+          <HeaderTools runCount={records.length} canArm={activeId !== null} selecting={compareArmed || compare !== null}
+            onArmCompare={() => setCompareArmed(true)}
+            onExitCompare={() => { setCompare(null); setCompareArmed(false) }}
+            onImportFile={handleImportFile} />
+        } />
       </header>
       <PromptBar mode={mode} onModeChange={chooseMode} onGenerate={handleGenerate}
         busy={mode === 'real' && !realReady} generating={generating} activity={activity} onStop={handleStop}
@@ -401,10 +407,8 @@ export default function App() {
           setCompareArmed(false)
           setCompare((c) => c ? { aId: c.aId, bId: id } : activeId ? { aId: activeId, bId: id } : null)
         }}
-        onArmCompare={() => setCompareArmed(true)}
-        onExitCompare={() => { setCompare(null); setCompareArmed(false) }}
         onTogglePin={archiveTogglePin} onRemove={handleRemove}
-        onExport={handleExport} onImportFile={handleImportFile} />
+        onExport={handleExport} />
       {(() => {
         const cmpA = compare && records.find((r) => r.id === compare.aId)
         const cmpB = compare && records.find((r) => r.id === compare.bId)

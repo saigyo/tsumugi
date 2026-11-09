@@ -48,7 +48,7 @@ const declared = (prop: string) =>
 
 test('font sizes come from the scale', () => {
   const bad = declared('font-size')
-    .filter((v) => !/^(var\(--t-(title|body|cap|label|tick|brand|prompt)\)|inherit)$/.test(v))
+    .filter((v) => !/^(var\(--t-(title|body|cap|label|tick|brand|prompt|mark|formula)\)|inherit)$/.test(v))
   expect(bad).toEqual([])
 })
 

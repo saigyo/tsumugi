@@ -10,14 +10,25 @@ afterEach(() => cleanup())
 const props = (over: Partial<RunShelfProps> = {}): RunShelfProps => ({
   records: [makeRunRecord(1), makeRunRecord(2, { temperature: 0.2 })],
   activeId: 'run-2', compare: null, armed: false, persistFailed: false, importError: null,
-  onActivate: vi.fn(), onSelectCompareB: vi.fn(), onArmCompare: vi.fn(), onExitCompare: vi.fn(),
-  onTogglePin: vi.fn(), onExport: vi.fn(), onRemove: vi.fn(), onImportFile: vi.fn(),
+  onActivate: vi.fn(), onSelectCompareB: vi.fn(), 
+  onTogglePin: vi.fn(), onExport: vi.fn(), onRemove: vi.fn(),
   ...over,
 })
 
-test('renders nothing for an empty archive', () => {
+test('renders nothing for an empty archive without notes', () => {
   const { container } = render(<RunShelf {...props({ records: [] })} />)
   expect(container.firstChild).toBeNull()
+})
+
+test('an empty archive still shows the notes line', () => {
+  render(<RunShelf {...props({ records: [], importError: 'bad file' })} />)
+  expect(screen.getByTestId('import-error')).toHaveTextContent('bad file')
+})
+
+test('the shelf no longer holds import or compare buttons', () => {
+  render(<RunShelf {...props()} />)
+  expect(screen.queryByTestId('btn-import')).toBeNull()
+  expect(screen.queryByTestId('btn-compare-arm')).toBeNull()
 })
 
 test('chips show seq labels and the active run is marked', () => {
@@ -47,18 +58,11 @@ test('armed: clicking a non-active chip selects run B; the active chip is ignore
   expect(p.onActivate).not.toHaveBeenCalled()
 })
 
-test('compare roles are marked and the exit control shows', () => {
+test('compare roles are marked', () => {
   render(<RunShelf {...props({ compare: { aId: 'run-2', bId: 'run-1' } })} />)
   const chips = screen.getAllByTestId('run-chip')
   expect(chips[1].dataset.role).toBe('a')
   expect(chips[0].dataset.role).toBe('b')
-  expect(screen.getByTestId('btn-compare-exit')).toBeInTheDocument()
-  expect(screen.queryByTestId('btn-compare-arm')).toBeNull()
-})
-
-test('a single record hides the compare affordance', () => {
-  render(<RunShelf {...props({ records: [makeRunRecord(1)], activeId: 'run-1' })} />)
-  expect(screen.queryByTestId('btn-compare-arm')).toBeNull()
 })
 
 test('pinned marker, pin/remove/export actions', () => {
@@ -77,23 +81,11 @@ test('pinned marker, pin/remove/export actions', () => {
   expect(p.onRemove).toHaveBeenCalledWith('run-1')
 })
 
-test('import file input forwards the file; notes render', () => {
+test('notes render', () => {
   const p = props({ persistFailed: true, importError: 'bad file' })
   render(<RunShelf {...p} />)
-  const file = new File(['{}'], 'run.json', { type: 'application/json' })
-  fireEvent.change(screen.getByTestId('import-input'), { target: { files: [file] } })
-  expect(p.onImportFile).toHaveBeenCalledWith(file)
   expect(screen.getByTestId('shelf-note')).toHaveTextContent('not persisted')
   expect(screen.getByTestId('import-error')).toHaveTextContent('bad file')
-})
-
-test('exit-compare stays reachable when only one record remains while comparing', () => {
-  const p = props({ records: [makeRunRecord(1)], compare: { aId: 'run-1', bId: 'gone' } })
-  render(<RunShelf {...p} />)
-  expect(screen.getByTestId('btn-compare-exit')).toBeInTheDocument()
-  expect(screen.queryByTestId('btn-compare-arm')).toBeNull()
-  fireEvent.click(screen.getByTestId('btn-compare-exit'))
-  expect(p.onExitCompare).toHaveBeenCalled()
 })
 
 test('a chat run’s chip says Chat and its title names the system prompt', () => {

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { useGlossaryStore } from './store'
 
 const HINT_KEY = 'tsumugi.glossaryHintDismissed'
@@ -12,7 +12,7 @@ function writeDismissed(): void {
 
 // The header's "?" (opens the glossary index) and, on a first visit, a
 // one-time pointer to "How to read Tsumugi".
-export function HelpButton() {
+export function HelpButton({ tools }: { tools?: ReactNode }) {
   const [hint, setHint] = useState(() => !readDismissed())
   const { openIndex, openEntry } = useGlossaryStore.getState()
   const dismiss = () => { setHint(false); writeDismissed() }
@@ -33,6 +33,7 @@ export function HelpButton() {
             aria-label="Dismiss hint" onClick={dismiss}>×</button>
         </span>
       )}
+      {tools}
       <button type="button" data-testid="btn-help" className="gl-help-btn" aria-label="Open the glossary"
         onClick={(e) => openIndex(e.currentTarget)}>?</button>
     </div>
