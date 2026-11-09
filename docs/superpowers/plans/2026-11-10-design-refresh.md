@@ -85,7 +85,7 @@ test('font sizes come from the scale', () => {
   expect(bad).toEqual([])
 })
 test('font families come from the four variables', () => { /* same shape: var(--sans|--mono|--mark|--math) */ })
-test('font weights are 400, 600 or 800', () => { /* same shape; also rejects `bold` and the `font:` shorthand */ })
+test('font weights are 400, 600 or 800', () => { /* same shape; also rejects `bold` and any `font:` shorthand other than `font: inherit` */ })
 ```
 
 The declarations inside `:root` and inside `@font-face` are excluded from these three checks.
@@ -198,7 +198,7 @@ expect(shelfRow(r.slice(0, 3), []).hidden).toBe(0)
 ### Task 6: Token strip, pipeline, playback and notices
 
 **Files:**
-- Modify: `src/index.css`; `src/viz/TokenStream.tsx`, `src/viz/PipelineBand.tsx`, `src/player/Controls.tsx`, `src/app/ModelSlot.tsx` only if a class is missing for the styling
+- Modify: `src/index.css`; `src/viz/TokenStream.tsx`, `src/viz/PipelineBand.tsx`, `src/app/Controls.tsx`, `src/app/ModelSlot.tsx` only if a class is missing for the styling
 
 **Interfaces:** none.
 
