@@ -324,22 +324,69 @@ input[type="number"] { width: 4rem; }
   padding: .25rem .6rem; cursor: pointer; }
 .explore-toggle:hover { background: var(--ai-wash-strong); }
 
-.run-shelf { display: flex; flex-wrap: wrap; align-items: center; gap: .35rem; margin: .5rem 0; }
-.run-chip { display: inline-flex; align-items: center; border: 1px solid var(--line-strong);
-  border-radius: 999px; background: var(--card); padding: 0 .3rem 0 0; }
-.run-chip[data-active="true"] { border-color: var(--ai); background: var(--ai-wash); }
-.run-chip[data-role="a"], .run-chip[data-role="b"] { border-color: var(--shu); background: var(--shu-wash); }
-.run-chip-main { font: inherit; font-size: var(--t-label); background: none; border: none; cursor: pointer;
-  padding: .18rem .3rem .18rem .55rem; color: var(--ink);
-  border-radius: 999px 0 0 999px; /* hover wash follows the pill's left curve */ }
-.run-chip-glyph { color: var(--ai); margin-right: .3rem; }
-.run-chip-action { font-size: var(--t-tick); background: none; border: none; cursor: pointer; border-radius: 999px;
-  color: var(--ink-faint); padding: .1rem .15rem; }
+.run-shelf { margin: .5rem 0; }
+.run-line { display: flex; align-items: center; gap: .5rem; }
+.run-label { flex: none; font-size: var(--t-tick); letter-spacing: .09em; text-transform: uppercase;
+  color: var(--ink-faint); font-weight: 600; }
+.run-row { display: flex; flex-wrap: nowrap; align-items: center; gap: .4rem; min-width: 0;
+  overflow-x: auto; padding: 2px 0; scrollbar-width: thin; }
+.run-chip { flex: none; display: inline-flex; align-items: center; border: 1px solid var(--line);
+  border-radius: 999px; background: var(--card); color: var(--ink-soft); white-space: nowrap; }
+.run-chip:hover, .run-chip:focus-within { border-color: var(--ai); color: var(--ink); }
+.run-chip[data-active="true"] { background: var(--ai-deep); border-color: var(--ai-deep); color: var(--on-ai); }
+.run-chip[data-role="a"], .run-chip[data-role="b"] { border-color: var(--shu); background: var(--shu-wash); color: var(--ink); }
+.run-chip[data-role="a"] .run-chip-main::before, .run-chip[data-role="b"] .run-chip-main::before {
+  font-weight: 600; margin-right: .3rem; }
+.run-chip[data-role="a"] .run-chip-main::before { content: "A"; }
+.run-chip[data-role="b"] .run-chip-main::before { content: "B"; }
+.run-chip-main { font: inherit; font-size: var(--t-cap); background: none; border: none; cursor: pointer;
+  padding: .3rem .7rem; color: inherit; border-radius: 999px; }
+.run-chip-glyph { color: var(--ai-mute); margin-right: .35rem; }
+.run-chip[data-active="true"] .run-chip-glyph { color: var(--on-ai); }
+.run-chip[data-role] .run-chip-glyph { color: var(--ai-mute); }
+.run-chip-pinmark { font-size: var(--t-tick); margin: 0 .5rem 0 -.3rem; }
+.run-chip-actions { display: none; align-items: center; margin: .15rem .35rem .15rem 0; padding-left: .3rem;
+  border-left: 1px solid var(--line); }
+.run-chip[data-active="true"] .run-chip-actions { border-left-color: var(--ai-mute); }
+.run-chip[data-active="true"] .run-chip-actions, .run-chip:hover .run-chip-actions,
+.run-chip:focus-within .run-chip-actions { display: inline-flex; }
+.run-chip:hover .run-chip-pinmark, .run-chip:focus-within .run-chip-pinmark,
+.run-chip[data-active="true"] .run-chip-pinmark { display: none; }
+.run-chip-action { font: inherit; font-size: var(--t-cap); background: none; border: none; cursor: pointer; border-radius: 999px;
+  color: var(--ink-faint); padding: .1rem .25rem; }
 .run-chip-action:hover { color: var(--shu); }
+.run-chip[data-active="true"] .run-chip-action { color: var(--on-ai); }
+.run-chip[data-active="true"] .run-chip-action:hover { background: var(--ai); }
+.run-chip[data-role] .run-chip-action { color: var(--ink-soft); }
 /* the pin button IS the pin state: washed out when unpinned, full color when pinned */
-.run-chip-pin { filter: grayscale(1); opacity: .35; }
-.run-chip-pin:hover { filter: none; opacity: .7; }
+.run-chip-pin { filter: grayscale(1); opacity: .5; }
+.run-chip-pin:hover { filter: none; opacity: .8; }
 .run-chip-pin[data-pinned="true"] { filter: none; opacity: 1; }
+.run-chip[data-active="true"] .run-chip-pin:not([data-pinned="true"]), .run-list-row[data-active="true"] .run-chip-pin:not([data-pinned="true"]) { opacity: .8; }
+.run-more-wrap { position: relative; flex: none; }
+.run-more { font: inherit; font-size: var(--t-cap); color: var(--ai-deep); background: var(--ai-wash);
+  border: 1px solid var(--line-strong); border-radius: 999px; padding: .3rem .7rem; cursor: pointer; white-space: nowrap; }
+.run-more:hover { background: var(--ai-wash-strong); }
+.run-list { position: absolute; z-index: 20; top: calc(100% + .35rem); right: 0; width: min(34rem, calc(100vw - 2rem));
+  max-height: 60vh; overflow-y: auto; background: var(--card); border: 1px solid var(--line);
+  border-radius: 10px; box-shadow: var(--shadow-pop); padding: .25rem; }
+.run-list-row { display: flex; align-items: center; gap: .3rem; border-radius: 8px; padding: 0 .3rem 0 0; }
+.run-list-row:hover { background: var(--ai-wash); }
+.run-list-row[data-active="true"] { background: var(--ai-deep); color: var(--on-ai); }
+.run-list-row[data-role="a"], .run-list-row[data-role="b"] { background: var(--shu-wash); color: var(--ink); }
+.run-list-row[data-role="a"] .run-list-main::before, .run-list-row[data-role="b"] .run-list-main::before {
+  font-weight: 600; margin-right: .3rem; }
+.run-list-row[data-role="a"] .run-list-main::before { content: "A"; }
+.run-list-row[data-role="b"] .run-list-main::before { content: "B"; }
+.run-list-main { flex: 1; min-width: 0; text-align: left; font: inherit; font-size: var(--t-cap); background: none;
+  border: none; color: inherit; cursor: pointer; padding: .4rem .6rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.run-list-actions { flex: none; display: inline-flex; align-items: center; }
+.run-list-row[data-active="true"] .run-chip-glyph { color: var(--on-ai); }
+.run-list-row[data-active="true"] .run-chip-action { color: var(--on-ai); }
+.run-list-row[data-role] .run-chip-action { color: var(--ink-soft); }
+.run-notes { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
+.run-notes:empty { display: none; }
+.run-notes { margin-top: .3rem; }
 .run-shelf-note { font-size: var(--t-label); color: var(--ink-faint); }
 .compare-view { border: 1px solid var(--line); border-radius: 10px; background: var(--card);
   padding: .8rem 1rem; margin-top: .5rem; }

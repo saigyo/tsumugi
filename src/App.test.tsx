@@ -155,7 +155,7 @@ test('activating an archived run reloads its trace, parked at run-end', async ()
   await generateAndFinish('one two three')
   await generateAndFinish('red green blue')
   await waitFor(() => expect(screen.getAllByTestId('run-chip')).toHaveLength(2))
-  fireEvent.click(screen.getAllByTestId('run-chip-main')[0])
+  fireEvent.click(screen.getAllByTestId('run-chip-main')[1])
   await waitFor(() => {
     const first = useTraceStore.getState().events[0]
     expect(first?.type === 'run-start' && first.prompt).toBe('one two three')
@@ -171,7 +171,7 @@ test('compare arms from the shelf, opens the view, and exits', async () => {
   await generateAndFinish('red green blue')
   await waitFor(() => expect(screen.getAllByTestId('run-chip')).toHaveLength(2))
   fireEvent.click(screen.getByTestId('btn-compare-arm'))
-  fireEvent.click(screen.getAllByTestId('run-chip-main')[0])
+  fireEvent.click(screen.getAllByTestId('run-chip-main')[1])
   expect(screen.getByTestId('compare-view')).toBeInTheDocument()
   expect(screen.getByTestId('cmp-badge')).toHaveTextContent('different prompts')
   expect(screen.queryByTestId('stage-card')).toBeNull()          // player stack hidden

@@ -15,7 +15,7 @@ test('an imported chat run: folded strip, end of turn, and an attention matrix t
     params: { temperature: 0, topK: 10, maxNewTokens: 8 }, mode: 'real', modelId: 'fixture', endedAt: Date.now(),
     reason: 'eos', format: { kind: 'chat', system: 'You are a helpful AI assistant named SmolLM, trained by Hugging Face' } } })
   await page.getByTestId('import-input').setInputFiles({ name: 'run.json', mimeType: 'application/json', buffer: Buffer.from(file) })
-  const chip = page.getByTestId('run-chip').filter({ hasText: 'Chat · What is the' })
+  const chip = page.getByTestId('run-chip').filter({ hasText: 'What is the' })
   await chip.getByTestId('run-chip-main').click()
 
   await expect(page.getByTestId('token-stream').getByTestId('system-fold')).toHaveText('system prompt · 20 tokens ▸')

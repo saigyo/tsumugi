@@ -1,4 +1,4 @@
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, expect, test, vi } from 'vitest'
 import { makeRunRecord } from '../test/fixtures'
 import type { RunEndReason } from '../trace/types'
@@ -35,25 +35,25 @@ test('chips show seq labels and the active run is marked', () => {
   render(<RunShelf {...props()} />)
   const chips = screen.getAllByTestId('run-chip')
   expect(chips).toHaveLength(2)
-  expect(chips[0]).toHaveTextContent('#1 · The cat · T=0.8')
-  expect(chips[1]).toHaveTextContent('T=0.2')
-  expect(chips[0].dataset.active).toBe('false')
-  expect(chips[1].dataset.active).toBe('true')
+  expect(chips[0]).toHaveTextContent('#2 · The cat')
+  expect(chips[1]).toHaveTextContent('#1 · The cat')
+  expect(chips[0].dataset.active).toBe('true')
+  expect(chips[1].dataset.active).toBe('false')
 })
 
 test('main click activates when not armed', () => {
   const p = props()
   render(<RunShelf {...p} />)
-  fireEvent.click(screen.getAllByTestId('run-chip-main')[0])
+  fireEvent.click(screen.getAllByTestId('run-chip-main')[1])
   expect(p.onActivate).toHaveBeenCalledWith('run-1')
 })
 
 test('armed: clicking a non-active chip selects run B; the active chip is ignored', () => {
   const p = props({ armed: true })
   render(<RunShelf {...p} />)
-  fireEvent.click(screen.getAllByTestId('run-chip-main')[1])   // active run = A
+  fireEvent.click(screen.getAllByTestId('run-chip-main')[0])   // active run = A
   expect(p.onSelectCompareB).not.toHaveBeenCalled()
-  fireEvent.click(screen.getAllByTestId('run-chip-main')[0])
+  fireEvent.click(screen.getAllByTestId('run-chip-main')[1])
   expect(p.onSelectCompareB).toHaveBeenCalledWith('run-1')
   expect(p.onActivate).not.toHaveBeenCalled()
 })
@@ -61,8 +61,8 @@ test('armed: clicking a non-active chip selects run B; the active chip is ignore
 test('compare roles are marked', () => {
   render(<RunShelf {...props({ compare: { aId: 'run-2', bId: 'run-1' } })} />)
   const chips = screen.getAllByTestId('run-chip')
-  expect(chips[1].dataset.role).toBe('a')
-  expect(chips[0].dataset.role).toBe('b')
+  expect(chips[0].dataset.role).toBe('a')
+  expect(chips[1].dataset.role).toBe('b')
 })
 
 test('pinned marker, pin/remove/export actions', () => {
@@ -88,19 +88,20 @@ test('notes render', () => {
   expect(screen.getByTestId('import-error')).toHaveTextContent('bad file')
 })
 
-test('a chat run’s chip says Chat and its title names the system prompt', () => {
+test('a chat run’s chip leaves out Chat and its title names the system prompt', () => {
   const chat = makeRunRecord(1, { mode: 'real', prompt: 'What is the capital of France?' })
   chat.meta.format = { kind: 'chat', system: 'You are a helpful AI assistant named SmolLM, trained by Hugging Face' }
   const none = makeRunRecord(2, { mode: 'real', prompt: 'Hi there' })
   none.meta.format = { kind: 'chat', system: null }
   const plain = makeRunRecord(3, { prompt: 'The cat sat' })
   render(<RunShelf {...props({ records: [chat, none, plain] })} />)
-  const mains = screen.getAllByTestId('run-chip-main')
-  expect(mains[0]).toHaveTextContent('#1 · Chat · What is the')
-  expect(mains[0]).toHaveAttribute('title', expect.stringContaining('system: default'))
+  const mains = screen.getAllByTestId('run-chip-main')   // newest first
+  expect(mains[2]).toHaveTextContent('#1 · What is the')
+  expect(mains[2]).not.toHaveTextContent('Chat')
+  expect(mains[2]).toHaveAttribute('title', expect.stringContaining('system: default'))
   expect(mains[1]).toHaveAttribute('title', expect.stringContaining('system: none'))
-  expect(mains[2]).toHaveTextContent('#3 · The cat sat')
-  expect(mains[2].getAttribute('title')).not.toContain('system:')
+  expect(mains[0]).toHaveTextContent('#3 · The cat sat')
+  expect(mains[0].getAttribute('title')).not.toContain('system:')
 })
 
 test('a custom system prompt is named in the title; one longer than 60 characters is cut with an ellipsis', () => {
@@ -112,9 +113,9 @@ test('a custom system prompt is named in the title; one longer than 60 character
   exact.meta.format = { kind: 'chat', system: 'y'.repeat(60) }
   render(<RunShelf {...props({ records: [short, long, exact] })} />)
   const titles = screen.getAllByTestId('run-chip-main').map((m) => m.getAttribute('title'))
-  expect(titles[0]).toContain(' · system: You always answer in French. · ended:')
+  expect(titles[2]).toContain(' · system: You always answer in French. · ended:')
   expect(titles[1]).toContain(` · system: ${'x'.repeat(60)}… · ended:`)
-  expect(titles[2]).toContain(` · system: ${'y'.repeat(60)} · ended:`)
+  expect(titles[0]).toContain(` · system: ${'y'.repeat(60)} · ended:`)
 })
 
 test('a knockout run chip label ends with the zeroed layer', () => {
@@ -171,7 +172,7 @@ test('"Link copied" goes away when the run is removed within the 2 s window, and
     stubClipboard(vi.fn().mockResolvedValue(undefined))
     const a = seeded(1), b = seeded(2)
     const { rerender } = render(<RunShelf {...props({ records: [a, b], activeId: 'run-1' })} />)
-    await act(async () => { fireEvent.click(screen.getAllByTestId('btn-chip-share')[1]) })
+    await act(async () => { fireEvent.click(screen.getAllByTestId('btn-chip-share')[0]) })
     expect(screen.getByText('Link copied')).toBeInTheDocument()
     rerender(<RunShelf {...props({ records: [a], activeId: 'run-1' })} />)
     expect(screen.queryByText('Link copied')).toBeNull()
@@ -180,4 +181,88 @@ test('"Link copied" goes away when the run is removed within the 2 s window, and
     await act(async () => { vi.advanceTimersByTime(2100) })
     expect(screen.queryByText('Link copied')).toBeNull()
   } finally { vi.useRealTimers() }
+})
+
+const many = (n: number) => Array.from({ length: n }, (_, i) => makeRunRecord(i + 1))
+
+test('eight runs: five chips newest first and a "+3 more" button; five or fewer have none', () => {
+  const { rerender } = render(<RunShelf {...props({ records: many(8), activeId: 'run-8' })} />)
+  expect(screen.getAllByTestId('run-chip').map((c) => c.textContent)).toHaveLength(5)
+  expect(screen.getAllByTestId('run-chip-main')[0]).toHaveTextContent('#8')
+  expect(screen.getAllByTestId('run-chip-main')[4]).toHaveTextContent('#4')
+  expect(screen.getByTestId('run-more')).toHaveTextContent('+3 more ▾')
+  rerender(<RunShelf {...props({ records: many(5), activeId: 'run-5' })} />)
+  expect(screen.queryByTestId('run-more')).toBeNull()
+})
+
+test('an older active run stays in the row; without it the row goes back to five', () => {
+  const { rerender } = render(<RunShelf {...props({ records: many(8), activeId: 'run-2' })} />)
+  expect(screen.getAllByTestId('run-chip')).toHaveLength(6)
+  expect(screen.getByTestId('run-more')).toHaveTextContent('+2 more ▾')
+  rerender(<RunShelf {...props({ records: many(8), activeId: null })} />)
+  expect(screen.getAllByTestId('run-chip')).toHaveLength(5)
+  expect(screen.getByTestId('run-more')).toHaveTextContent('+3 more ▾')
+})
+
+test('the list shows every run; choosing one activates it and closes the list', () => {
+  const p = props({ records: many(8), activeId: 'run-8' })
+  render(<RunShelf {...p} />)
+  expect(screen.queryByTestId('run-list')).toBeNull()
+  fireEvent.click(screen.getByTestId('run-more'))
+  expect(screen.getByTestId('run-more')).toHaveAttribute('aria-expanded', 'true')
+  expect(screen.getAllByTestId('run-list-row')).toHaveLength(8)
+  fireEvent.click(screen.getAllByTestId('run-list-main')[7])
+  expect(p.onActivate).toHaveBeenCalledWith('run-1')
+  expect(screen.queryByTestId('run-list')).toBeNull()
+})
+
+test('Escape closes the list and focuses the button; dropping to five runs removes it', () => {
+  const { rerender } = render(<RunShelf {...props({ records: many(8), activeId: 'run-8' })} />)
+  fireEvent.click(screen.getByTestId('run-more'))
+  fireEvent.keyDown(document, { key: 'Escape' })
+  expect(screen.queryByTestId('run-list')).toBeNull()
+  expect(screen.getByTestId('run-more')).toHaveFocus()
+  fireEvent.click(screen.getByTestId('run-more'))
+  rerender(<RunShelf {...props({ records: many(5), activeId: 'run-5' })} />)
+  expect(screen.queryByTestId('run-list')).toBeNull()
+})
+
+test('an outside click closes the list', () => {
+  render(<RunShelf {...props({ records: many(8), activeId: 'run-8' })} />)
+  fireEvent.click(screen.getByTestId('run-more'))
+  fireEvent.mouseDown(document.body)
+  expect(screen.queryByTestId('run-list')).toBeNull()
+})
+
+test('armed: a list row picks run B and closes the list', () => {
+  const p = props({ records: many(8), activeId: 'run-8', armed: true })
+  render(<RunShelf {...p} />)
+  fireEvent.click(screen.getByTestId('run-more'))
+  fireEvent.click(screen.getAllByTestId('run-list-main')[7])
+  expect(p.onSelectCompareB).toHaveBeenCalledWith('run-1')
+  expect(screen.queryByTestId('run-list')).toBeNull()
+})
+
+test('chip and list text for a chat run at T=0.8', () => {
+  const chat = makeRunRecord(16, { mode: 'real', prompt: 'What is the capital of France?' })
+  chat.meta.format = { kind: 'chat', system: null }
+  render(<RunShelf {...props({ records: [...many(6).map((r, i) => ({ ...r, meta: { ...r.meta, seq: i + 1 } })), chat], activeId: 'run-16' })} />)
+  const main = screen.getAllByTestId('run-chip-main')[0]
+  expect(main.textContent).toMatch(/#16 · What is the$/)
+  expect(main.getAttribute('title')).toContain('T=0.8')
+  fireEvent.click(screen.getByTestId('run-more'))
+  expect(screen.getAllByTestId('run-list-main')[0].textContent).toMatch(/#16 · Chat · What is the · T=0\.8$/)
+})
+
+test('list rows have pin, export and remove buttons wired to the same handlers', () => {
+  const p = props({ records: many(8), activeId: 'run-8' })
+  render(<RunShelf {...p} />)
+  fireEvent.click(screen.getByTestId('run-more'))
+  const row = screen.getAllByTestId('run-list-row')[7]
+  fireEvent.click(within(row).getByTestId('btn-chip-pin'))
+  fireEvent.click(within(row).getByTestId('btn-chip-export'))
+  fireEvent.click(within(row).getByTestId('btn-chip-remove'))
+  expect(p.onTogglePin).toHaveBeenCalledWith('run-1')
+  expect(p.onExport).toHaveBeenCalledWith('run-1')
+  expect(p.onRemove).toHaveBeenCalledWith('run-1')
 })
