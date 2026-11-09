@@ -40,3 +40,35 @@ test.each([
   expect(vars[bg], bg).toBeDefined()
   expect(contrast(vars[fg], vars[bg])).toBeGreaterThanOrEqual(4.5)
 })
+
+// Type rules: everything outside :root and @font-face must use the shared variables.
+const typeCss = rest.replace(/@font-face\s*\{[^}]*\}/g, '')
+const declared = (prop: string) =>
+  [...typeCss.matchAll(new RegExp(`(?:^|[;{\\s])${prop}\\s*:\\s*([^;}]+)`, 'g'))].map((m) => m[1].trim())
+
+test('font sizes come from the scale', () => {
+  const bad = declared('font-size')
+    .filter((v) => !/^(var\(--t-(title|body|cap|label|tick|brand|prompt)\)|inherit)$/.test(v))
+  expect(bad).toEqual([])
+})
+
+test('font families come from the four variables', () => {
+  const bad = declared('font-family').filter((v) => !/^var\(--(sans|mono|mark|math)\)$/.test(v))
+  expect(bad).toEqual([])
+})
+
+test('font weights are 400, 600 or 800, and font: is only ever inherit', () => {
+  expect(declared('font-weight').filter((v) => !/^(400|600|800)$/.test(v))).toEqual([])
+  expect(declared('font').filter((v) => v !== 'inherit')).toEqual([])
+})
+
+test('the type variables exist with the specified sizes', () => {
+  const get = (name: string) => rootBlock.match(new RegExp(`${name}\\s*:\\s*([^;]+);`))?.[1].trim()
+  expect(get('--t-title')).toBe('1.25rem')
+  expect(get('--t-body')).toBe('.95rem')
+  expect(get('--t-cap')).toBe('.82rem')
+  expect(get('--t-label')).toBe('.72rem')
+  expect(get('--t-tick')).toBe('.66rem')
+  expect(get('--t-prompt')).toBe('1.3rem')
+  for (const v of ['--t-brand', '--sans', '--mono', '--mark', '--math']) expect(get(v), v).toBeDefined()
+})
