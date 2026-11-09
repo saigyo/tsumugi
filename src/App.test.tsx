@@ -88,6 +88,8 @@ test('while a run is in flight, Generate is disabled and shows activity; it re-e
   expect(btn).toBeDisabled()
   expect(btn).toHaveTextContent('Generating…')
   expect(btn.querySelector('[data-testid="generate-activity"]')).not.toBeNull()
+  expect(screen.queryByTestId('examples-row')).toBeNull()   // closed by the first run
+  fireEvent.click(screen.getByTestId('toggle-examples'))
   expect(screen.getAllByTestId('example-chip')[0]).toBeDisabled()
 
   await waitFor(() => {

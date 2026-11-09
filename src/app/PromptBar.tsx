@@ -27,6 +27,8 @@ export interface PromptBarProps {
   examples?: PromptExample[]
   // values from a share link, read once when the bar mounts
   initial?: SharedRun
+  // the shelf holds saved runs: the examples row then starts closed
+  hasRuns: boolean
 }
 
 const clampOrKeep = (raw: string, min: number, max: number, prev: number): number => {
@@ -35,7 +37,7 @@ const clampOrKeep = (raw: string, min: number, max: number, prev: number): numbe
   return Math.min(max, Math.max(min, n))
 }
 
-export function PromptBar({ mode, onModeChange, onGenerate, busy, generating = false, onStop, activity = 'Generating…', examples, initial }: PromptBarProps) {
+export function PromptBar({ mode, onModeChange, onGenerate, busy, generating = false, onStop, activity = 'Generating…', examples, initial, hasRuns }: PromptBarProps) {
   const [prompt, setPrompt] = useState(initial?.prompt ?? '')
   const [temperature, setTemperature] = useState(initial?.params?.temperature ?? 0.8)
   const [topK, setTopK] = useState(initial?.params?.topK ?? 10)
@@ -43,13 +45,42 @@ export function PromptBar({ mode, onModeChange, onGenerate, busy, generating = f
   const [chatFmt, setChatFmt] = useState(initial?.format?.kind !== 'text')
   const [system, setSystem] = useState(initial?.format?.kind === 'chat' ? (initial.format.system ?? '') : DEFAULT_SYSTEM_PROMPT)
   const [seedText, setSeedText] = useState(initial?.seed === undefined ? '' : String(initial.seed))
+  const [ranOnce, setRanOnce] = useState(false)
+  const [examplesToggled, setExamplesToggled] = useState<boolean | null>(null)
+  const [systemToggled, setSystemToggled] = useState<boolean | null>(null)
   const chatOn = mode === 'real' && chatFmt
   const seed = mode === 'real' ? parseSeed(seedText) ?? undefined : undefined
+  const examplesOpen = examplesToggled ?? (!hasRuns && !ranOnce)
+  const systemEdited = system !== DEFAULT_SYSTEM_PROMPT
+  const systemOpen = systemToggled ?? (initial?.format?.kind === 'chat' && systemEdited)
+  const hasExamples = !!examples && examples.length > 0
+  const generate: PromptBarProps['onGenerate'] = (p, params, f, sd) => {
+    setRanOnce(true)
+    if (sd === undefined) onGenerate(p, params, f)
+    else onGenerate(p, params, f, sd)
+  }
   const format: PromptFormat = chatOn ? { kind: 'chat', system: systemOf(system) } : TEXT_FORMAT
 
   return (
-    <div className="prompt-bar">
-      <div className="prompt-row">
+    <div className="prompt-box">
+      <div className="prompt-line">
+        <input data-testid="prompt-input" value={prompt} placeholder={chatOn ? 'Ask a question…' : 'Type a prompt…'}
+          onChange={(e) => setPrompt(e.target.value)} />
+        <button data-testid="btn-generate" className="btn-generate" disabled={prompt.trim() === '' || busy || generating}
+          aria-busy={generating || undefined}
+          onClick={() => generate(prompt, { temperature, topK, maxNewTokens }, format, seed)}>
+          {generating
+            ? <><span data-testid="generate-activity" className="generate-activity" aria-hidden="true" />{activity}</>
+            : 'Generate'}
+        </button>
+        {generating && onStop && (
+          <button data-testid="btn-stop" className="btn-stop" onClick={onStop}
+            title="Abort the run in flight; what was generated so far is kept">
+            Stop
+          </button>
+        )}
+      </div>
+      <div className="settings-line">
         <div className="seg" role="group" aria-label="Model" data-testid="mode-switch">
           <button type="button" data-testid="mode-sim" aria-pressed={mode === 'sim'}
             onClick={() => onModeChange('sim')}>Simulated</button>
@@ -64,66 +95,57 @@ export function PromptBar({ mode, onModeChange, onGenerate, busy, generating = f
             <Term id="chat-template" variant="icon" label="About the chat template" testId="format-info">ⓘ</Term>
           </div>
         )}
-        <input data-testid="prompt-input" value={prompt} placeholder={chatOn ? 'Ask a question…' : 'Type a prompt…'}
-          onChange={(e) => setPrompt(e.target.value)} />
-        <button data-testid="btn-generate" disabled={prompt.trim() === '' || busy || generating}
-          aria-busy={generating || undefined}
-          onClick={() => {
-            const params = { temperature, topK, maxNewTokens }
-            if (seed === undefined) onGenerate(prompt, params, format)
-            else onGenerate(prompt, params, format, seed)
-          }}>
-          {generating
-            ? <><span data-testid="generate-activity" className="generate-activity" aria-hidden="true" />{activity}</>
-            : 'Generate'}
-        </button>
-        {generating && onStop && (
-          <button data-testid="btn-stop" className="btn-stop" onClick={onStop}
-            title="Abort the run in flight; what was generated so far is kept">
-            Stop
-          </button>
-        )}
-      </div>
-      {chatOn && (
-        <div className="system-row">
-          <label htmlFor="system-input">System prompt</label>
-          <input id="system-input" data-testid="system-input" value={system} onChange={(e) => setSystem(e.target.value)} />
-          {system !== DEFAULT_SYSTEM_PROMPT && (
-            <button type="button" data-testid="system-reset" className="link-button"
-              onClick={() => setSystem(DEFAULT_SYSTEM_PROMPT)}>Reset to default</button>
-          )}
-        </div>
-      )}
-      <div className="config-row">
-        <span className="config-field">
+        <span className="chip">
           <label>Temperature <input data-testid="temp-input" type="number" step="0.1" min="0" max="2" value={temperature}
             onChange={(e) => setTemperature(clampOrKeep(e.target.value, 0, 2, temperature))} /></label>
           <Term id="generation-settings" section="temperature" variant="icon" label="About temperature" testId="setting-info"
             tip="0 = always the top token; higher = more varied.">ⓘ</Term>
         </span>
-        <span className="config-field">
+        <span className="chip">
           <label>Top-k <input data-testid="topk-input" type="number" min="1" max="10" value={topK}
             onChange={(e) => setTopK(clampOrKeep(e.target.value, 1, 10, topK))} /></label>
           <Term id="generation-settings" section="top-k" variant="icon" label="About top-k" testId="setting-info"
             tip="Only the k best candidates can be drawn.">ⓘ</Term>
         </span>
-        <span className="config-field">
-          <label>Max new tokens <input data-testid="maxtok-input" type="number" min="1" max="100" value={maxNewTokens}
+        <span className="chip">
+          <label>Max tokens <input data-testid="maxtok-input" type="number" min="1" max="100" value={maxNewTokens}
             onChange={(e) => setMaxNewTokens(clampOrKeep(e.target.value, 1, 100, maxNewTokens))} /></label>
           <Term id="generation-settings" section="max-new-tokens" variant="icon" label="About max new tokens" testId="setting-info"
             tip="The run stops here at the latest.">ⓘ</Term>
         </span>
         {mode === 'real' && (
-          <span className="config-field">
-            <label>Seed <input data-testid="seed-input" inputMode="numeric" placeholder="random" value={seedText}
+          <span className="chip">
+            <label>Seed <input className="seed-input" data-testid="seed-input" inputMode="numeric" placeholder="random" value={seedText}
               onChange={(e) => { const v = parseSeed(e.target.value); if (v !== undefined) setSeedText(v === null ? '' : String(v)) }} /></label>
             <Term id="generation-settings" section="seed" variant="icon" label="About the seed" testId="setting-info"
               tip="Same seed, prompt and settings give the same text.">ⓘ</Term>
           </span>
         )}
+        <span className="toggles">
+          {chatOn && (
+            <button type="button" data-testid="toggle-system" className="toggle" aria-expanded={systemOpen}
+              onClick={() => setSystemToggled(!systemOpen)}>
+              {systemEdited ? 'System prompt · edited' : 'System prompt'} ▾
+            </button>
+          )}
+          {hasExamples && (
+            <button type="button" data-testid="toggle-examples" className="toggle" aria-expanded={examplesOpen}
+              onClick={() => setExamplesToggled(!examplesOpen)}>Examples ▾</button>
+          )}
+        </span>
       </div>
-      {examples && examples.length > 0 && (
-        <div className="example-chip-row">
+      {chatOn && systemOpen && (
+        <div className="sub-row system-row" data-testid="system-row">
+          <label htmlFor="system-input">System prompt</label>
+          <input id="system-input" data-testid="system-input" value={system} onChange={(e) => setSystem(e.target.value)} />
+          {systemEdited && (
+            <button type="button" data-testid="system-reset" className="link-button"
+              onClick={() => setSystem(DEFAULT_SYSTEM_PROMPT)}>Reset to default</button>
+          )}
+        </div>
+      )}
+      {hasExamples && examplesOpen && (
+        <div className="sub-row example-chip-row" data-testid="examples-row">
           <span className="example-chip-label">Try:</span>
           {examples.map((ex) => (
             <button key={ex.id} data-testid="example-chip" className="example-chip" title={ex.hint}
@@ -133,10 +155,10 @@ export function PromptBar({ mode, onModeChange, onGenerate, busy, generating = f
                 const params = { temperature, topK, maxNewTokens }
                 if (ex.format === 'chat') {
                   setChatFmt(true); setSystem(DEFAULT_SYSTEM_PROMPT)
-                  onGenerate(ex.prompt, params, { kind: 'chat', system: DEFAULT_SYSTEM_PROMPT })
+                  generate(ex.prompt, params, { kind: 'chat', system: DEFAULT_SYSTEM_PROMPT })
                 } else {
                   setChatFmt(false)
-                  onGenerate(ex.prompt, params, TEXT_FORMAT)
+                  generate(ex.prompt, params, TEXT_FORMAT)
                 }
               }}>
               {ex.format === 'chat' && <span data-testid="example-chip-tag" className="example-chip-tag">Chat</span>}
