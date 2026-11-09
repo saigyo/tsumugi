@@ -343,3 +343,19 @@ test('the Knockouts card reads the active record\'s sweep for the viewed cycle, 
   expect(screen.queryAllByTestId('knockout-bar')).toHaveLength(0)
   useRunsStore.setState({ activeId: null, records: [] })
 })
+
+test('the Stage n of 6 pill appears once, at the stage views, and not at the empty state or run-end', () => {
+  const pillAt = (cursor: number) => {
+    const { unmount } = render(<DetailPanel events={trace} cursor={cursor} mode="sim" />)
+    const pills = screen.queryAllByTestId('stage-pill').map((p) => p.textContent)
+    unmount()
+    return pills
+  }
+  expect(pillAt(7)).toEqual(['Stage 4 of 6'])
+  expect(pillAt(3)).toEqual(['Stage 3 of 6'])
+  expect(pillAt(1)).toEqual(['Stage 1 of 6'])
+  expect(pillAt(trace.length - 1)).toEqual([])
+  render(<DetailPanel events={[]} cursor={-1} mode="sim" />)
+  expect(screen.getByTestId('detail-empty')).toBeInTheDocument()
+  expect(screen.queryByTestId('stage-pill')).toBeNull()
+})

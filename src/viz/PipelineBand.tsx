@@ -6,7 +6,7 @@ import { activeStage, eventAt, flowShapes, latestOfType, stageEventIndex, thousa
 // what travels along the connector INTO stage i (see FlowShapes)
 const CONNECTOR_SHAPE: Array<keyof FlowShapes> = ['ids', 'ids', 'stream', 'lastRow', 'vocab', 'probs']
 
-const STAGES: Array<{ id: Exclude<StageId, null>; label: string }> = [
+export const STAGES: Array<{ id: Exclude<StageId, null>; label: string }> = [
   { id: 'tokenizer', label: 'Tokenizer' },
   { id: 'embeddings', label: 'Embeddings' },
   { id: 'layers', label: 'Layers' },
