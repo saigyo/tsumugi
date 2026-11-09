@@ -15,6 +15,8 @@ export function TokenStream({ events, cursor }: { events: TraceEvent[]; cursor: 
   const [openFor, setOpenFor] = useState<TraceEvent | null>(null)
   const open = events[0] !== undefined && openFor === events[0]
   const [hoveredCycle, setHoveredCycle] = useState<number | null>(null)
+  // the newest token is the one the next prediction continues from
+  const current = generated.length > 0 ? `g${generated.length - 1}` : prompt.length > 0 ? `p${prompt.length - 1}` : null
   const dist = hoveredCycle !== null ? distributionFor(events, hoveredCycle) : undefined
 
   return (
@@ -26,7 +28,7 @@ export function TokenStream({ events, cursor }: { events: TraceEvent[]; cursor: 
         </button>
       ) : (
         <span key={`p${item.index}`} data-testid="prompt-token"
-          className={`token token-prompt${ROLE_CLASS[tokenRole(item.index, prompt[item.index].text, chat)]}`}
+          className={`token token-prompt${ROLE_CLASS[tokenRole(item.index, prompt[item.index].text, chat)]}${current === `p${item.index}` ? ' token-current' : ''}`}
           title={`id ${prompt[item.index].id}`}>
           {visibleToken(prompt[item.index])}
         </span>
@@ -35,7 +37,7 @@ export function TokenStream({ events, cursor }: { events: TraceEvent[]; cursor: 
         const end = chat !== undefined && t.text === END_TOKEN
         return (
           <span key={`g${i}`} data-testid="generated-token"
-            className={`token token-generated${end ? ' token-end' : ''}`}
+            className={`token token-generated${end ? ' token-end' : current === `g${i}` ? ' token-current' : ''}`}
             title={end ? `id ${t.id} · end of turn: the model stopped here` : `id ${t.id}`}
             onMouseEnter={() => setHoveredCycle(t.cycle)}
             onMouseLeave={() => setHoveredCycle(null)}>
