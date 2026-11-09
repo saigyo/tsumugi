@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><title>Tsumugi – direction A in full</title>
+<style>
+:root{--washi:#f6f3ea;--card:#fcfbf6;--white:#fff;--ink:#2b2b31;--soft:#6e6b62;--faint:#99958a;--kon:#1d3a5f;--ai:#2f5d8a;--ai-soft:#86a3c0;--wash:#e9eef4;--shu:#c94f38;--shu-wash:#f8ece7;--line:#ded8c8;--line2:#beb7a4;
+--mono:ui-monospace,SFMono-Regular,Menlo,monospace;--sans:Inter,system-ui,-apple-system,sans-serif;
+--t-title:1.25rem;--t-body:.95rem;--t-cap:.82rem;--t-label:.72rem;--t-tick:.66rem}
+*{box-sizing:border-box}
+body{margin:0;font:16px/1.45 var(--sans);background:#e9e9ec;color:#222;padding:24px 0 90px}
+.meta{max-width:1060px;margin:0 auto 14px;padding:0 10px}
+.meta h1{font-size:20px;margin:0 0 4px}.meta p{margin:0;color:#555;font-size:14px;max-width:80ch}
+.meta h2{font-size:16px;margin:34px 0 4px}
+.page{max-width:1060px;margin:0 auto;background:var(--washi);color:var(--ink);padding:28px 36px 34px;border-radius:12px;box-shadow:0 2px 14px rgba(0,0,0,.14)}
+.row{display:flex;align-items:center;gap:10px}.grow{flex:1}.wrap{flex-wrap:wrap}
+.mono{font-family:var(--mono)}
+.num{font-variant-numeric:tabular-nums}
+.brand{font-size:30px;font-weight:800;color:var(--kon);letter-spacing:-.5px;line-height:1}
+.brand span{font-family:'Hiragino Mincho ProN','Yu Mincho',Georgia,serif;margin-right:8px;font-weight:600}
+.tag{color:var(--soft);font-size:var(--t-cap);margin:6px 0 0}
+.pill{font-size:var(--t-tick);letter-spacing:.08em;padding:3px 9px;border-radius:99px;background:var(--wash);color:var(--kon);font-weight:600}
+.ghost{color:var(--soft);font-size:var(--t-cap);padding:6px 12px;border-radius:8px;border:1px solid var(--line);background:var(--card)}
+.composer{margin-top:18px;background:var(--white);border:1.5px solid var(--kon);border-radius:14px;padding:14px 14px 10px 18px;box-shadow:0 6px 22px rgba(29,58,95,.10)}
+.prompt{font-size:1.3rem}
+.gen{background:var(--shu);color:#fff;font-weight:600;padding:11px 22px;border-radius:10px;font-size:1rem;box-shadow:0 4px 12px rgba(201,79,56,.28)}
+.set{margin-top:10px;padding-top:9px;border-top:1px solid #eee8da;font-size:var(--t-cap);color:var(--soft)}
+.seg{display:inline-flex;border-radius:8px;background:#f1eee4;padding:2px}
+.seg em{font-style:normal;padding:3px 10px;border-radius:6px}.seg em.on{background:var(--kon);color:#fff}
+.chip{padding:3px 9px;border-radius:7px;background:var(--washi);white-space:nowrap}
+.chip b{color:var(--ink);font-weight:600}.chip i{font-style:normal;color:var(--ai-soft);margin-left:5px;font-size:var(--t-label)}
+.chip.edit{background:#fff;box-shadow:0 0 0 1.5px var(--ai)}
+.chip.edit b{border-bottom:1px solid var(--ai);padding:0 14px 0 2px}
+.sub{margin-top:9px;padding-top:9px;border-top:1px solid #eee8da;font-size:var(--t-cap);color:var(--soft)}
+.sub .field{flex:1;border:1px solid var(--line);border-radius:8px;padding:6px 10px;color:var(--ink);background:var(--card)}
+.ex{padding:4px 11px;border-radius:99px;background:var(--wash);color:var(--kon)}
+.runs{margin-top:16px;gap:8px;overflow:hidden}
+.lab{font-size:var(--t-tick);letter-spacing:.09em;color:var(--faint);font-weight:600;text-transform:uppercase}
+.run{white-space:nowrap;font-size:var(--t-cap);padding:5px 11px;border-radius:99px;background:var(--card);border:1px solid var(--line);color:var(--soft)}
+.run.on{background:var(--kon);border-color:var(--kon);color:#fff}
+.run .d{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--ai-soft);margin-right:6px}
+.run.on .d{background:#fff}
+.run .act{margin-left:8px;padding-left:8px;border-left:1px solid rgba(255,255,255,.3);letter-spacing:6px;opacity:.9}
+.run.hov{border-color:var(--ai);color:var(--ink)}.run.hov .act{border-left-color:var(--line)}
+.banner{margin-top:14px;border:1px solid #e9c4b9;background:var(--shu-wash);border-radius:10px;padding:10px 14px;font-size:var(--t-cap)}
+.banner .btn{background:var(--kon);color:#fff;padding:6px 12px;border-radius:8px;white-space:nowrap;font-weight:600}
+.toks{margin-top:20px}
+.tok{display:inline-block;padding:2px 7px;border-radius:5px;margin:0 3px 5px 0;font-size:var(--t-body);background:#fff;border:1px solid var(--line)}
+.tok.sp{border-style:dashed;color:var(--ai-soft);font-size:var(--t-label);background:transparent}
+.tok.cur{background:var(--kon);color:#fff;border-color:var(--kon)}
+.pipe{display:flex;align-items:stretch;margin-top:12px}
+.stage{padding:10px 16px;border-radius:10px;background:var(--card);border:1px solid var(--line)}
+.stage b{display:block;font-size:1rem;font-weight:600}.stage small{font-size:var(--t-label);color:var(--soft)}
+.stage.on{background:var(--shu);border-color:var(--shu);color:#fff;box-shadow:0 6px 16px rgba(201,79,56,.3)}.stage.on small{color:#fde3dc}
+.arr{display:flex;flex-direction:column;justify-content:center;align-items:center;padding:0 8px;font-size:var(--t-tick);color:var(--faint)}
+.transport{display:flex;align-items:center;gap:8px;margin-top:16px}
+.tb{width:38px;height:32px;border-radius:8px;display:grid;place-items:center;font-size:12px;background:var(--card);border:1px solid var(--line)}
+.track{flex:1;height:6px;border-radius:3px;position:relative;background:#e4dfd0}
+.track i{position:absolute;left:0;top:0;bottom:0;width:62%;border-radius:3px;background:var(--kon)}
+.track u{position:absolute;left:62%;top:-6px;width:18px;height:18px;border-radius:50%;margin-left:-9px;background:#fff;border:2px solid var(--kon)}
+/* detail card */
+.card{margin-top:22px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px 26px;box-shadow:0 2px 8px rgba(43,43,49,.05)}
+.card h3{margin:0;font-size:var(--t-title);color:var(--kon);font-weight:600}
+.card h3 i{font-style:normal;color:var(--ai-soft);font-size:var(--t-cap);margin-left:6px;font-weight:400}
+.card .stagetag{float:right}
+.card p.lede{font-size:var(--t-body);margin:10px 0 12px;max-width:75ch}
+.math{font-family:'Latin Modern Math','STIX Two Math','Cambria Math',serif;font-size:1.05rem;line-height:1.7}
+.grid{display:grid;grid-template-columns:260px 110px 1fr;gap:26px;margin-top:16px;align-items:start}
+.cap{font-size:var(--t-cap);color:var(--soft)}
+.ph{border:1px dashed var(--line2);border-radius:6px;padding:6px 10px;font-size:var(--t-cap);color:var(--faint);margin:6px 0}
+.mat{border:1.5px solid var(--ai);border-radius:6px;background:var(--wash);height:96px;display:flex;flex-direction:column;justify-content:space-between;align-items:center;padding:6px;font-size:var(--t-tick)}
+.bar-row{display:grid;grid-template-columns:90px 1fr 44px;align-items:center;gap:12px;padding:5px 8px;border-radius:8px;font-size:var(--t-body)}
+.bar-row.top{background:var(--shu-wash);box-shadow:0 0 0 1.5px var(--shu)}
+.bar-row .t{font-family:var(--mono);padding:1px 8px;border-radius:99px;justify-self:start}
+.bar-row .b{height:12px;background:var(--ai);border-radius:2px}
+.bar-row.top .b{background:var(--shu)}
+.bar-row .n{text-align:right;font-size:var(--t-cap);color:var(--soft)}
+.foot{margin-top:16px;padding-top:12px;border-top:1px solid var(--line);font-size:var(--t-cap);color:var(--soft)}
+.foot a{color:var(--ai);margin-right:16px;text-decoration:underline dotted}
+/* states */
+.states{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.state{background:var(--washi);border-radius:12px;padding:16px 18px;box-shadow:0 2px 10px rgba(0,0,0,.1);color:var(--ink)}
+.state>.lab{display:block;margin-bottom:10px}
+.pop{background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 28px rgba(29,58,95,.16);padding:6px;font-size:var(--t-cap);max-width:380px}
+.pop div{display:flex;gap:8px;padding:7px 10px;border-radius:8px;color:var(--soft)}
+.pop div.on{background:var(--wash);color:var(--kon);font-weight:600}
+.pop div span{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.type td{padding:4px 14px 4px 0;vertical-align:baseline}.type td:first-child{color:var(--faint);font-size:var(--t-label)}
+</style></head><body>
+
+<div class="meta"><h1>Direction A in full: light theme</h1>
+<p>The whole page as it would look mid-run, with the Logits card below in the new type rules. Further down are the states the main view can't show at once. Tell me what to change; anything you don't mention I'll treat as approved.</p></div>
+
+<div class="page">
+  <div class="row"><div><div class="brand"><span>紬</span>Tsumugi</div></div><span class="pill">REAL MODEL · WEBGPU · ATTN</span><div class="grow"></div><span class="ghost">⇄ Compare</span><span class="ghost">⇧ Import</span><span class="ghost">?</span></div>
+  <p class="tag">Watch a language model write, one token at a time</p>
+
+  <div class="composer">
+    <div class="row"><div class="prompt grow">What is the capital of France?</div><div class="gen">Generate</div></div>
+    <div class="row set wrap">
+      <span class="seg"><em>Simulated</em><em class="on">Real model</em></span>
+      <span class="seg"><em class="on">Chat</em><em>Continue text</em></span>
+      <span class="chip">Temperature <b class="num">0.8</b><i>ⓘ</i></span><span class="chip">Top-k <b class="num">10</b><i>ⓘ</i></span><span class="chip">Max tokens <b class="num">20</b><i>ⓘ</i></span><span class="chip">Seed <b>random</b><i>ⓘ</i></span>
+      <div class="grow"></div><span>System prompt ▾</span><span>Examples ▾</span>
+    </div>
+  </div>
+
+  <div class="row runs"><span class="lab">Runs</span>
+    <span class="run on"><span class="d"></span>#16 · What is the capital…<span class="act">📌🔗↓×</span></span><span class="run"><span class="d"></span>#15 · Once upon a · MLP 1 off</span><span class="run"><span class="d"></span>#14 · Once upon a</span><span class="run"><span class="d"></span>#13 · Once upon a</span><span class="run"><span class="d"></span>#12 · Why does the</span><span class="run">+3 more ▾</span>
+  </div>
+
+  <div class="toks"><span class="tok sp">system · 20 tokens ▸</span><span class="tok sp">user</span><span class="tok">What</span><span class="tok">␣is</span><span class="tok">␣the</span><span class="tok">␣capital</span><span class="tok">␣of</span><span class="tok">␣France</span><span class="tok">?</span><span class="tok sp">assistant</span><span class="tok cur">As</span></div>
+
+  <div class="pipe"><div class="stage"><b>Tokenizer</b><small>37 tokens · 7 yours</small></div><div class="arr mono">→<span>[37]</span></div><div class="stage"><b>Embeddings</b><small class="num">49 152 × 576</small></div><div class="arr mono">→<span>[38×576]</span></div><div class="stage"><b>Layers</b><small>30 layers</small></div><div class="arr mono">→<span>[1×576]</span></div><div class="stage on"><b>Logits</b><small>top: <span class="mono">␣a</span></small></div><div class="arr mono">→<span>[49 152]</span></div><div class="stage"><b>Softmax</b><small>The: 95%</small></div><div class="arr mono">→<span>[10]</span></div><div class="stage"><b>Sampler</b><small>chose <span class="mono">As</span></small></div></div>
+
+  <div class="transport"><div class="tb">|◀</div><div class="tb">◀</div><div class="tb">▶</div><div class="tb">▶|</div><div class="tb">▶▶|</div><div class="track"><i></i><u></u></div><div class="tb" style="width:56px">1×</div><div class="tb" style="width:70px">● Live</div></div>
+
+  <div class="card">
+    <span class="pill stagetag">STAGE 4 OF 6</span>
+    <h3>Logits<i>ⓘ</i></h3>
+    <p class="lede">Each score is a dot product: the last token's final vector against one row of E — the same matrix the Embeddings stage looked rows up in.</p>
+    <div class="math">logits = norm(<i>x</i><sub>last</sub>) · <i>E</i><sup>⊤</sup><br>[1 × 576] · [576 × 49 152] → [49 152]</div>
+    <div class="grid">
+      <div><div class="lab">x_last <span class="mono">[1×576]</span></div><div class="ph">not recorded in this run</div><div class="cap">The last position after the final layer and norm.</div></div>
+      <div><div class="lab">&nbsp;</div><div class="mat"><b>Eᵀ</b><span class="mono">[576 × 49 152]</span></div></div>
+      <div><div class="lab">Scores <span class="mono">[49 152]</span></div>
+        <div class="bar-row top"><span class="t" style="background:#dbe4ee">␣she</span><span class="b" style="width:100%"></span><span class="n num">10.3</span></div>
+        <div class="bar-row"><span class="t" style="background:#f3ded7">␣was</span><span class="b" style="width:87%"></span><span class="n num">9.0</span></div>
+        <div class="bar-row"><span class="t" style="background:#ede3c8">␣who</span><span class="b" style="width:81%"></span><span class="n num">8.4</span></div>
+        <div class="bar-row"><span class="t" style="background:#dde5cf">␣that</span><span class="b" style="width:68%"></span><span class="n num">7.0</span></div>
+        <div class="bar-row"><span class="t" style="background:#ecdde4">␣of</span><span class="b" style="width:59%"></span><span class="n num">6.1</span></div>
+        <div class="bar-row"><span class="t" style="background:#d9e7ea">␣would</span><span class="b" style="width:46%"></span><span class="n num">4.7</span></div>
+      </div>
+    </div>
+    <div class="foot"><a>ⓘ tied with Embeddings</a><a>ⓘ similar rows, similar scores</a><a>ⓘ 49 152 scores, 10 shown</a></div>
+  </div>
+</div>
+
+<div class="meta"><h2>States</h2><p>How the pieces behave when you use them.</p></div>
+<div class="meta states">
+  <div class="state"><span class="lab">Saved runs: resting, hovered, active</span>
+    <div class="row wrap"><span class="run"><span class="d"></span>#14 · Once upon a</span><span class="run hov"><span class="d"></span>#13 · Once upon a<span class="act">📌🔗↓×</span></span><span class="run on"><span class="d"></span>#16 · What is the…<span class="act">📌🔗↓×</span></span></div>
+    <p class="cap">Pin, copy link, download and remove appear only on the hovered and the active run. A pinned run keeps a small pin mark.</p></div>
+  <div class="state"><span class="lab">"+3 more" opens the full list</span>
+    <div class="pop"><div class="on"><span>#16 · Chat · What is the capital of France?</span>T 0.8</div><div><span>#15 · Once upon a · MLP 1 off</span>T 0.8</div><div><span>#11 · Chat · What's your name?</span>T 0.8</div><div><span>#10 · Chat · What's your name?</span>T 0.8</div><div><span>#9 · The farmer went</span>T 0.8</div></div></div>
+  <div class="state"><span class="lab">Editing a setting in place</span>
+    <div class="row wrap set" style="border:0;margin:0;padding:0"><span class="chip edit">Temperature <b class="num">0.8</b><i>ⓘ</i></span><span class="chip">Top-k <b class="num">10</b><i>ⓘ</i></span><span class="chip">Seed <b class="num">2168657436</b><i>ⓘ</i></span></div>
+    <p class="cap">Click a value to type a new one. Each is still a normal number field underneath, so keyboard and arrow keys work as today.</p></div>
+  <div class="state"><span class="lab">System prompt and examples open</span>
+    <div class="composer" style="margin:0;box-shadow:none"><div class="row"><div class="prompt grow" style="font-size:1rem">What is the capital of France?</div></div>
+      <div class="row sub"><span>System prompt</span><span class="field">You are a helpful AI assistant named SmolLM…</span></div>
+      <div class="row sub wrap"><span>Try</span><span class="ex">Coreference: "it" → "cat"</span><span class="ex">Induction</span><span class="ex">Attention sink</span><span class="ex">Chat: a question</span></div></div></div>
+  <div class="state"><span class="lab">Simulation notice</span>
+    <div class="banner row" style="margin:0"><div class="grow"><b>You are watching a simulation.</b> Load the real model to see what SmolLM2 actually computes. 250 MB, downloaded once.</div><span class="btn">Load the real model</span><span>×</span></div></div>
+  <div class="state"><span class="lab">Type rules</span>
+    <table class="type"><tr><td>Card title</td><td style="font-size:var(--t-title);font-weight:600;color:var(--kon)">Logits</td></tr><tr><td>Body</td><td style="font-size:var(--t-body)">Each score is a dot product.</td></tr><tr><td>Caption</td><td style="font-size:var(--t-cap);color:var(--soft)">The last position after the final layer.</td></tr><tr><td>Label</td><td class="lab">Scores</td></tr><tr><td>Chart tick</td><td style="font-size:var(--t-tick);color:var(--soft)" class="num">0 · 2.5 · 5.0 · 7.5 · 10.0</td></tr><tr><td>Model content</td><td class="mono">␣capital · [38×576] · id 1041</td></tr><tr><td>Formula</td><td class="math">softmax(<i>z</i>/<i>T</i>)</td></tr></table></div>
+</div>
+</body></html>
