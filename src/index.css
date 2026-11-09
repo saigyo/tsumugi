@@ -8,20 +8,23 @@
 
   --washi: #f6f3ea;        /* page ground */
   --card: #fcfbf6;         /* raised surfaces */
-  --on-ai: #fff;           /* text on an indigo fill */
+  --white: #ffffff;
+  --on-ai: #ffffff;        /* text on an indigo fill */
   --ink: #2b2b31;          /* sumi text */
   --ink-soft: #6e6b62;     /* secondary text */
-  --ink-faint: #99958a;    /* tertiary text */
+  --ink-faint: #726f66;    /* tertiary text, 4.5:1 on washi */
 
   --ai-deep: #1d3a5f;      /* kon — darkest indigo */
   --ai: #2f5d8a;           /* ai — working indigo */
   --ai-soft: #86a3c0;      /* faded indigo */
+  --ai-mute: #4e7298;      /* soft indigo for text and info marks */
   --ai-wash: #e9eef4;      /* pale indigo fill */
   --ai-wash-strong: #d3dfeb;
 
   --shu: #c94f38;          /* vermillion accent */
   --shu-soft: #e2937f;
   --shu-wash: #f8ece7;
+  --shu-line: #e2937f;     /* banner border */
 
   --line: #ded8c8;         /* warm hairline */
   --line-strong: #beb7a4;
@@ -33,14 +36,35 @@
   --dye-4: #ecdde4;        /* ume plum      */
   --dye-5: #d9e7ea;        /* mizu water    */
 
+  --mark: #d08a1c;
+  --note-ink: #6b5a36;     /* chart notes: about 6.5:1 on the card */
+
+  --grain: rgba(43, 43, 49, 0.014);  /* body texture */
+  --shadow-card: 0 1px 3px rgba(43, 43, 49, 0.05);
+  --shadow-box: 0 2px 4px rgba(43, 43, 49, .05);
+  --shadow-accent: 0 1px 4px rgba(0, 0, 0, .08);
+  --shadow-pop: 0 3px 10px rgba(43, 43, 49, 0.12);
+  --shadow-tip: 0 2px 8px rgba(43, 43, 49, .2);
+  --shadow-drawer: -4px 0 16px rgba(43, 43, 49, .08);
+
+  --vote-pos: hsl(211 45% 45%);
+  --vote-pos-deep: hsl(211 45% 40%);
+  --vote-neg: hsl(13 55% 55%);
+  --ramp-lo: hsl(211 30% 94%);
+  --ramp-hi: hsl(211 55% 24%);
+  --div-neg: hsl(13 55% 50%);
+  --div-neg-lo: hsl(13 55% 90%);
+  --div-pos-lo: hsl(211 45% 88%);
+  --div-pos: hsl(211 45% 38%);
+
   --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
 body {
   margin: 0;
   background:
-    repeating-linear-gradient(0deg, transparent 0 3px, rgba(43, 43, 49, 0.014) 3px 4px),
-    repeating-linear-gradient(90deg, transparent 0 3px, rgba(43, 43, 49, 0.014) 3px 4px),
+    repeating-linear-gradient(0deg, transparent 0 3px, var(--grain) 3px 4px),
+    repeating-linear-gradient(90deg, transparent 0 3px, var(--grain) 3px 4px),
     var(--washi);
   color: var(--ink);
 }
@@ -109,7 +133,7 @@ input[type="number"] { width: 4rem; }
 .token-popover {
   position: absolute; top: calc(100% + 4px); left: 0; z-index: 10; background: var(--card);
   border: 1px solid var(--line-strong); border-radius: 8px; padding: .5rem .6rem;
-  box-shadow: 0 3px 10px rgba(43, 43, 49, 0.12); font-size: .78rem; white-space: nowrap;
+  box-shadow: var(--shadow-pop); font-size: .78rem; white-space: nowrap;
 }
 .popover-title { color: var(--ink-soft); margin-bottom: .3rem; }
 .popover-row { display: flex; align-items: center; gap: .4rem; line-height: 1.5; }
@@ -172,7 +196,7 @@ input[type="number"] { width: 4rem; }
 
 .detail {
   border: 1px solid var(--line); border-radius: 8px; padding: 1rem 1.2rem; min-height: 10rem;
-  background: var(--card); box-shadow: 0 1px 3px rgba(43, 43, 49, 0.05);
+  background: var(--card); box-shadow: var(--shadow-card);
 }
 
 .residual-diagram { margin: .3rem 0 .8rem; overflow-x: auto; }
@@ -209,7 +233,7 @@ input[type="number"] { width: 4rem; }
   color: var(--ink-soft); background: var(--card); }
 .mode-badge-sim { border-color: var(--shu-soft); color: var(--shu); }
 .model-slot { margin-top: .6rem; border-radius: 8px; padding: .55rem .8rem; font-size: .85rem; }
-.sim-banner { display: flex; gap: .8rem; align-items: center; border: 1px solid var(--shu-soft); background: var(--shu-wash); }
+.sim-banner { display: flex; gap: .8rem; align-items: center; border: 1px solid var(--shu-line); background: var(--shu-wash); }
 .sim-banner p { flex: 1; margin: 0; line-height: 1.45; }
 .sim-banner-close { border: 0; background: none; color: var(--ink-faint); font-size: 1.1rem; cursor: pointer; }
 .model-progress { display: flex; gap: .6rem; align-items: center; border: 1px solid var(--line); background: var(--card); color: var(--ink-soft); }
@@ -416,7 +440,7 @@ input[type="number"] { width: 4rem; }
 .gl-tip {
   position: fixed; z-index: 50; width: max-content; max-width: 280px;
   background: var(--ink); color: var(--card); font-size: .78rem; font-weight: 400; line-height: 1.35;
-  padding: .35rem .55rem; border-radius: 5px; box-shadow: 0 2px 8px rgba(43, 43, 49, .2); pointer-events: none;
+  padding: .35rem .55rem; border-radius: 5px; box-shadow: var(--shadow-tip); pointer-events: none;
 }
 .gl-tip em { color: var(--ai-wash-strong); font-style: normal; }
 .gl-section { margin-top: .9rem; border-radius: 6px; transition: background-color .6s; }
@@ -432,11 +456,11 @@ input[type="number"] { width: 4rem; }
 .gl-vote-edit { stroke: var(--ink); stroke-width: 1.8; }
 .gl-vote-headfill { fill: var(--ink); }
 .gl-vote-drop { stroke: var(--ink-faint); stroke-width: .8; stroke-dasharray: 2 2; }
-.gl-vote-share-pos { stroke: hsl(211 45% 45%); stroke-width: 4; }
+.gl-vote-share-pos { stroke: var(--vote-pos); stroke-width: 4; }
 .gl-vote-share-neg { stroke: var(--shu); stroke-width: 4; }
 .gl-vote-total { stroke: var(--ai-deep); stroke-width: 4; }
 .gl-vote-label { font-size: 10px; fill: var(--ink-soft); font-family: var(--mono); }
-.gl-vote-pos { fill: hsl(211 45% 40%); }
+.gl-vote-pos { fill: var(--vote-pos-deep); }
 .gl-vote-neg { fill: var(--shu); }
 @media (prefers-reduced-motion: reduce) { .gl-section { transition: none; } }
 
@@ -444,7 +468,7 @@ input[type="number"] { width: 4rem; }
 .gl-drawer {
   position: fixed; top: 0; right: 0; bottom: 0; z-index: 40; width: 380px; max-width: 100vw;
   display: flex; flex-direction: column; background: var(--card); border-left: 1px solid var(--line-strong);
-  box-shadow: -4px 0 16px rgba(43, 43, 49, .08); font-size: .9rem; line-height: 1.5;
+  box-shadow: var(--shadow-drawer); font-size: .9rem; line-height: 1.5;
 }
 @media (max-width: 600px) { .gl-drawer { width: 100vw; border-left: 0; } }
 .gl-drawer-bar { display: flex; justify-content: space-between; align-items: center; padding: .5rem .8rem; border-bottom: 1px solid var(--line); }
@@ -523,9 +547,9 @@ math { font-family: 'Latin Modern Math', math, 'STIX Two Math', 'Cambria Math', 
 .mlp-seg button[aria-pressed="true"] { background: var(--ai); color: var(--on-ai); }
 .mlp-legend { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; font-size: .75rem; color: var(--ink-faint); }
 .mlp-legend-note { margin-left: .4rem; }
-.mlp-ramp { width: 120px; height: 10px; border-radius: 2px; background: linear-gradient(90deg, hsl(211 30% 94%), hsl(211 55% 24%)); }
+.mlp-ramp { width: 120px; height: 10px; border-radius: 2px; background: linear-gradient(90deg, var(--ramp-lo), var(--ramp-hi)); }
 .mlp-ramp-diverging { width: 140px; height: 10px; border-radius: 2px;
-  background: linear-gradient(90deg, hsl(13 55% 50%), hsl(13 55% 90%) 47%, hsl(211 45% 88%) 53%, hsl(211 45% 38%)); }
+  background: linear-gradient(90deg, var(--div-neg), var(--div-neg-lo) 47%, var(--div-pos-lo) 53%, var(--div-pos)); }
 /* one grid per chart, rows flattened into it, so every row's cells line up */
 .mlp-heatmap { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 2px 8px; align-items: center; min-width: 0; }
 .votes-grid { display: grid; grid-template-columns: max-content minmax(0, 1fr) max-content; gap: 3px 10px; align-items: center; min-width: 0; }
@@ -539,7 +563,7 @@ math { font-family: 'Latin Modern Math', math, 'STIX Two Math', 'Cambria Math', 
 .mlp-tok, .mlp-cand { justify-self: end; font: inherit; font-size: .82rem; white-space: pre; border-radius: 999px;
   padding: .02rem .55rem; border: 1px solid transparent; background: transparent; color: var(--ink-soft); }
 .mlp-tok[aria-pressed="true"] { color: var(--ai-deep); background: var(--ai-wash-strong); border-color: var(--ai); font-weight: 600; }
-.mlp-cand { background: var(--dye-kihada, #ede3c8); color: var(--ink); }
+.mlp-cand { background: var(--dye-2); color: var(--ink); }
 .mlp-cand[aria-pressed="true"] { border-color: var(--shu); background: var(--shu-wash); }
 .edit-bar-clickable, .votes-cells > div, .mlp-cells > div[data-testid="edit-cell"] { cursor: pointer; }
 .votes-total-cell { font-family: var(--mono); font-size: .8rem; display: inline-flex; align-items: center; gap: .4rem; font-variant-numeric: tabular-nums; }
@@ -555,7 +579,6 @@ math { font-family: 'Latin Modern Math', math, 'STIX Two Math', 'Cambria Math', 
 .mlp-chart-fig:has(.mlp-chart-wide) { overflow-x: auto; }
 .mlp-chart-wide { min-width: 620px; }
 .mlp-chart text { font-family: var(--mono); }
-:root { --mark: #d08a1c; --note-ink: #6b5a36; /* chart notes: about 6.3:1 on the card */ }
 .step-row { display: grid; grid-template-columns: 170px minmax(0, 1fr); gap: 14px; padding: .7rem 0; border-top: 1px solid var(--line); }
 .step-row h5 { margin: 0 0 .25rem; font-size: .85rem; color: var(--ai-deep); }
 .step-row .step-text { margin: .3rem 0 0; font-size: .74rem; color: var(--ink-soft); line-height: 1.35; }
@@ -577,7 +600,7 @@ math { font-family: 'Latin Modern Math', math, 'STIX Two Math', 'Cambria Math', 
 .step-row-ring .step-strip-label { color: var(--ink); font-weight: 600; }
 .step-mark { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--mark); vertical-align: middle; }
 .step-box { position: absolute; width: max-content; max-width: 22rem; padding: .35rem .55rem; border: 1px solid var(--ai); border-radius: 5px;
-  background: var(--card); font-size: .74rem; line-height: 1.35; box-shadow: 0 1px 4px rgba(0,0,0,.08); pointer-events: none;
+  background: var(--card); font-size: .74rem; line-height: 1.35; box-shadow: var(--shadow-accent); pointer-events: none;
   display: grid; z-index: 1; }
 .step-box-labels { color: var(--ink-soft); }
 .step-strip-mono { font-family: var(--mono); }
@@ -610,8 +633,8 @@ math { font-family: 'Latin Modern Math', math, 'STIX Two Math', 'Cambria Math', 
 .votes-sub th { padding-left: 1rem; color: var(--ai); }
 .votes-total th, .votes-total td { border-top: 1.5px solid var(--line-strong); border-bottom: 0; font-weight: 600; color: var(--ai-deep); }
 .votes-bar { display: inline-block; height: 8px; vertical-align: middle; border-radius: 1px; }
-.votes-bar-pos { background: hsl(211 45% 45%); }
-.votes-bar-neg { background: hsl(13 55% 55%); }
+.votes-bar-pos { background: var(--vote-pos); }
+.votes-bar-neg { background: var(--vote-neg); }
 .neuron-stepper { display: inline-flex; gap: .25rem; margin-left: .5rem; vertical-align: middle; }
 .neuron-stepper button { font: inherit; font-size: .75rem; padding: 0 .4rem; border: 1px solid var(--line-strong); border-radius: 4px; background: var(--card); color: var(--ink); }
 .neuron-stepper button:disabled { opacity: .4; }
@@ -634,7 +657,7 @@ math { font-family: 'Latin Modern Math', math, 'STIX Two Math', 'Cambria Math', 
 /* Layers detail: sticky section bar (#17) */
 .layers-nav { position: sticky; top: var(--controls-h, 0px); z-index: 5; display: flex; align-items: center; gap: .5rem; flex-wrap: nowrap;
   margin: .4rem -1.2rem .6rem; padding: .45rem 1.2rem; background: var(--card); border-bottom: 1px solid var(--line);
-  box-shadow: 0 2px 4px rgba(43, 43, 49, .05); }
+  box-shadow: var(--shadow-box); }
 .layers-nav-title { font-weight: 600; font-size: .8rem; white-space: nowrap; }
 .layers-nav-links { display: flex; gap: .35rem; overflow-x: auto; min-width: 0; flex: 1; scrollbar-width: thin; }
 .layers-nav-link { padding: .1rem .6rem; border: 1px solid var(--line-strong); border-radius: 999px; font-size: .76rem;
