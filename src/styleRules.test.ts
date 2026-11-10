@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs'
+import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { expect, test } from 'vitest'
 
 const css = readFileSync('src/index.css', 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')
@@ -35,6 +35,14 @@ test.each([
   ['--ink-faint', '--washi'], ['--ink-faint', '--card'],
   ['--ai-mute', '--white'], ['--ai-mute', '--washi'], ['--ai-mute', '--card'],
   ['--on-ai', '--ai-deep'], ['--on-ai', '--shu'], ['--ai-deep', '--ai-wash'], ['--note-ink', '--card'],
+  // grounds the first set did not pair
+  ['--ink-soft', '--seg-ground'],         // .mode-note
+  ['--ink-soft', '--card'], ['--ink', '--ai-wash-strong'],   // .head-loc / .head-score (resting, active head chip)
+  ['--ink', '--dye-2'],                   // .gl-stage-chip
+  ['--shu-deep', '--shu-wash'],           // .token-end
+  ['--ink-soft', '--ai-wash'],            // .run-chip-action on a hovered list row
+  ['--ink-soft', '--shu-wash'],           // .run-chip-action on a compare A/B chip
+  ['--on-ai', '--ai'],                    // hovered action on the active chip or row
 ])('%s on %s reaches 4.5:1', (fg, bg) => {
   expect(vars[fg], fg).toBeDefined()
   expect(vars[bg], bg).toBeDefined()
@@ -71,4 +79,31 @@ test('the type variables exist with the specified sizes', () => {
   expect(get('--t-tick')).toBe('.66rem')
   expect(get('--t-prompt')).toBe('1.3rem')
   for (const v of ['--t-brand', '--sans', '--mono', '--mark', '--math']) expect(get(v), v).toBeDefined()
+})
+
+// Colour values computed in TypeScript: only these five files, until the chart ramps move to variables.
+const RAMP_FILES = [
+  'src/viz/stripMath.ts', 'src/viz/mlpMath.ts', 'src/viz/AttentionHeatmap.tsx',
+  'src/viz/AttentionGridExplorer.tsx', 'src/viz/EmbeddingGeometry.tsx',
+]
+function sourceFiles(dir: string): string[] {
+  return readdirSync(dir).flatMap((name) => {
+    const path = `${dir}/${name}`
+    if (statSync(path).isDirectory()) return sourceFiles(path)
+    return /\.tsx?$/.test(name) && !/\.(test|spec)\.tsx?$/.test(name) ? [path] : []
+  })
+}
+
+test('no colour literals in TypeScript source outside the data ramps', () => {
+  const colour = /#[0-9a-fA-F]{3,8}\b|\brgba?\(|\bhsla?\(/
+  const offenders = sourceFiles('src')
+    .filter((f) => !RAMP_FILES.includes(f))
+    .filter((f) => colour.test(readFileSync(f, 'utf8').replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, '')))
+  expect(offenders).toEqual([])
+})
+
+test('the allow-list holds only files that still need it', () => {
+  // data-driven chart ramps; to be moved to variables with the dark theme
+  const colour = /#[0-9a-fA-F]{3,8}\b|\brgba?\(|\bhsla?\(/
+  for (const f of RAMP_FILES) expect(colour.test(readFileSync(f, 'utf8')), f).toBe(true)
 })
