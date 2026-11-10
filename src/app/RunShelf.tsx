@@ -49,9 +49,27 @@ export function RunShelf(p: RunShelfProps) {
   }, [open])
   const rowEl = useRef<HTMLDivElement>(null)
   useEffect(() => {
-    // keep the active chip visible when the row scrolls sideways
-    rowEl.current?.querySelector('[data-active="true"]')?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' })
+    // keep the active chip visible when the row scrolls sideways; only the row scrolls, never the window
+    const row = rowEl.current
+    const chip = row?.querySelector<HTMLElement>('[data-active="true"]')
+    if (!row || !chip) return
+    if (chip.offsetLeft < row.scrollLeft) row.scrollLeft = chip.offsetLeft
+    else if (chip.offsetLeft + chip.offsetWidth > row.scrollLeft + row.clientWidth) {
+      row.scrollLeft = chip.offsetLeft + chip.offsetWidth - row.clientWidth
+    }
   }, [p.activeId])
+  const hiddenCount = shelfRow(p.records, [p.activeId, p.compare?.aId, p.compare?.bId]).hidden
+  // no hidden runs left: forget that the list was open, so it stays closed when a later run hides one again
+  if (hiddenCount === 0 && open) setOpen(false)
+  // after the list closes its row unmounts: focus returns to the button that opened it, or to the chosen chip
+  const refocus = useRef<string | null>(null)
+  useEffect(() => {
+    const id = refocus.current
+    if (id === null) return
+    refocus.current = null
+    if (moreBtn.current) moreBtn.current.focus()
+    else rowEl.current?.querySelector<HTMLElement>(`[data-run-id="${id}"] [data-testid="run-chip-main"]`)?.focus()
+  })
   const notes = (
     <>
       {p.importError && <span data-testid="import-error" className="run-shelf-note">{p.importError}</span>}
@@ -100,6 +118,7 @@ export function RunShelf(p: RunShelfProps) {
         <div className="run-row" ref={rowEl}>
           {row.map((r) => (
             <div key={r.id} data-testid="run-chip" className="run-chip"
+              data-run-id={r.id}
               data-active={String(r.id === p.activeId)} data-pinned={String(r.meta.pinned)} data-role={role(r.id) || undefined}>
               <button data-testid="run-chip-main" className="run-chip-main" onClick={() => chipClick(r.id)}
                 title={`${r.meta.prompt} — ${r.meta.mode} · T=${r.meta.params.temperature}${systemNote(r)} · ended: ${r.meta.reason}`}>
@@ -120,7 +139,7 @@ export function RunShelf(p: RunShelfProps) {
                 {[...p.records].reverse().map((r) => (
                   <div key={r.id} data-testid="run-list-row" className="run-list-row"
                     data-active={String(r.id === p.activeId)} data-pinned={String(r.meta.pinned)} data-role={role(r.id) || undefined}>
-                    <button data-testid="run-list-main" className="run-list-main" onClick={() => { chipClick(r.id); if (!(selecting && r.id === aId)) setOpen(false) }}
+                    <button data-testid="run-list-main" className="run-list-main" onClick={() => { chipClick(r.id); if (!(selecting && r.id === aId)) { setOpen(false); refocus.current = r.id } }}
                       title={r.meta.prompt}>
                       <span className="run-chip-glyph" aria-hidden="true">{r.meta.mode === 'real' ? '●' : '○'}</span>
                       {listLabel(r)}

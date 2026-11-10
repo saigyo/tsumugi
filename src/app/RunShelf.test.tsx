@@ -266,3 +266,32 @@ test('list rows have pin, export and remove buttons wired to the same handlers',
   expect(p.onExport).toHaveBeenCalledWith('run-1')
   expect(p.onRemove).toHaveBeenCalledWith('run-1')
 })
+
+test('F1: moving the active run does not call scrollIntoView (it would scroll the window too)', () => {
+  const spy = vi.fn()
+  Element.prototype.scrollIntoView = spy
+  try {
+    const { rerender } = render(<RunShelf {...props({ records: many(4), activeId: 'run-4' })} />)
+    rerender(<RunShelf {...props({ records: many(4), activeId: 'run-2' })} />)
+    expect(spy).not.toHaveBeenCalled()
+  } finally { delete (Element.prototype as { scrollIntoView?: unknown }).scrollIntoView }
+})
+
+test('F6: once the hidden count has dropped to zero, a sixth run does not reopen the list', () => {
+  const { rerender } = render(<RunShelf {...props({ records: many(8), activeId: 'run-8' })} />)
+  fireEvent.click(screen.getByTestId('run-more'))
+  rerender(<RunShelf {...props({ records: many(5), activeId: 'run-5' })} />)
+  rerender(<RunShelf {...props({ records: many(8), activeId: 'run-8' })} />)
+  expect(screen.getByTestId('run-more')).toHaveAttribute('aria-expanded', 'false')
+  expect(screen.queryByTestId('run-list')).toBeNull()
+})
+
+test('F8: after choosing a run from the list, focus goes to the "+N more" button', () => {
+  render(<RunShelf {...props({ records: many(8), activeId: 'run-8' })} />)
+  fireEvent.click(screen.getByTestId('run-more'))
+  const row = screen.getAllByTestId('run-list-main')[7]
+  row.focus()
+  fireEvent.click(row)
+  expect(screen.queryByTestId('run-list')).toBeNull()
+  expect(screen.getByTestId('run-more')).toHaveFocus()
+})

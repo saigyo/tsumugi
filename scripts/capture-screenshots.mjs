@@ -2,7 +2,10 @@
 //
 //   npm run screenshots
 //
-// Leaves runs that were already in the profile alone and removes the ones it makes.
+// Leaves runs that were already in the profile as they were and removes the ones it makes.
+// The archive keeps only 8 unpinned runs and evicts the oldest, and this script makes more than
+// that, so it pins every unpinned run it finds first and unpins exactly those at the end. If the
+// saved runs cannot be read or do not show up in the page, it stops before touching anything.
 // Spawns its own dev server on port 5199 and drives a headed Chromium with a
 // persistent profile (.screenshots-profile/, gitignored) so the ~250 MB real
 // model stays cached across invocations — only the first run downloads it.
@@ -47,22 +50,81 @@ const context = await chromium.launchPersistentContext(PROFILE, {
 const only = process.argv.slice(2)
 const want = (scene) => only.length === 0 || only.includes(scene)
 
+let cleanup = null   // set once the archive state is known; also run when a scene fails
 try {
   await waitForServer()
   const page = context.pages()[0] ?? await context.newPage()
   await page.goto(URL)
   const $ = (id) => page.getByTestId(id)
 
-  // The profile persists IndexedDB, so runs from earlier sessions survive reloads and are left alone: the shelf shows
-  // only the newest five runs plus the active one, so runs are told apart by their number (the newest chip is first),
-  // not counted. Runs made here are removed again at the end.
-  await page.waitForTimeout(1500)                            // let the saved runs hydrate
+  // The profile persists IndexedDB, so runs from earlier sessions survive reloads. The shelf shows only the newest
+  // five runs plus the active one, so runs are told apart by their number (the newest chip is first), not counted.
   const topNum = async () => {
-    const t = await $('run-chip').first().textContent().catch(() => null)
+    const t = await $('run-chip').first().textContent({ timeout: 1000 }).catch(() => null)
     return t ? Number(t.match(/#(\d+)/)?.[1]) : 0
   }
-  await $('run-chip').first().waitFor({ timeout: 5000 }).catch(() => {})   // an empty shelf shows none
-  const startNum = await topNum()
+  // Read the saved runs straight from IndexedDB, so "no runs" can never be a guess made from a slow page.
+  const saved = await page.evaluate(() => new Promise((resolve, reject) => {
+    const req = indexedDB.open('tsumugi', 1)
+    req.onupgradeneeded = () => { req.result.createObjectStore('runs', { keyPath: 'id' }) }
+    req.onerror = () => reject(req.error)
+    req.onsuccess = () => {
+      const all = req.result.transaction('runs', 'readonly').objectStore('runs').getAll()
+      all.onerror = () => reject(all.error)
+      all.onsuccess = () => { req.result.close(); resolve(all.result.map((r) => ({ seq: r.meta.seq, pinned: r.meta.pinned }))) }
+    }
+  })).catch((err) => { throw new Error(`cannot read the saved runs (${err}); not touching the archive`) })
+  const startNum = Math.max(0, ...saved.map((r) => r.seq))
+  if (saved.length > 0) {
+    // the page has loaded the archive once its newest chip is the newest saved run
+    await page.waitForFunction((n) => {
+      const t = document.querySelector('[data-testid="run-chip"]')?.textContent
+      return !!t && Number(t.match(/#(\d+)/)?.[1]) === n
+    }, startNum, { timeout: 15000 }).catch(() => {
+      throw new Error(`the page did not show saved run #${startNum} within 15 s; the archive state is unknown, so nothing was changed`)
+    })
+  }
+  // a run's row: in the open "+N more" list when there is one, else its chip (hovered so its buttons show)
+  const rowOf = async (seq) => {
+    const label = new RegExp(`(?<!\\d)#${seq} ·`)
+    if (await $('run-more').count() && !(await $('run-list').count())) await $('run-more').click()
+    const inList = $('run-list-row').filter({ hasText: label })
+    if (await inList.count()) return inList
+    const chip = $('run-chip').filter({ hasText: label })
+    await chip.hover()
+    return chip
+  }
+  const closeList = async () => { if (await $('run-list').count()) await page.keyboard.press('Escape') }
+  const pinnedByScript = saved.filter((r) => !r.pinned).map((r) => r.seq)
+  for (const seq of pinnedByScript) {
+    const row = await rowOf(seq)
+    await row.getByTestId('btn-chip-pin').click()
+    await closeList()
+  }
+  // remove only the runs made here, then unpin the ones pinned at the start
+  const madeHere = async () => {
+    const nums = new Set()
+    for (const t of await $('run-chip').allTextContents()) nums.add(Number(t.match(/#(\d+)/)?.[1]))
+    if (await $('run-more').count()) {
+      await $('run-more').click()
+      for (const t of await $('run-list-row').allTextContents()) nums.add(Number(t.match(/#(\d+)/)?.[1]))
+      await closeList()
+    }
+    return [...nums].filter((n) => n > startNum)
+  }
+  cleanup = async () => {
+  if (await $('btn-compare-exit').count()) await $('btn-compare-exit').click()
+  for (let left = await madeHere(); left.length > 0; left = await madeHere()) {
+    const row = await rowOf(left[0])
+    await row.getByTestId('btn-chip-remove').click()
+    await closeList()
+  }
+  for (const seq of pinnedByScript) {
+    const row = await rowOf(seq)
+    await row.getByTestId('btn-chip-pin').click()
+    await closeList()
+  }
+  }
   const newerThan = (n) => page.waitForFunction((n) => {
     const t = document.querySelector('[data-testid="run-chip"]')?.textContent
     return t && Number(t.match(/#(\d+)/)[1]) > n
@@ -304,12 +366,11 @@ try {
     await $('maxtok-input').fill('20')
     console.log('neurons.png')
   }
-  // remove the runs made here (newest first); each is activated so its remove button shows
-  while (await topNum() > startNum) {
-    if (await $('btn-compare-exit').count()) await $('btn-compare-exit').click()
-    await $('run-chip-main').first().click({ position: { x: 15, y: 8 } })
-    await page.locator('[data-testid="run-chip"][data-active="true"] [data-testid="btn-chip-remove"]').click()
-  }
+  await cleanup()
+  cleanup = null
+} catch (err) {
+  if (cleanup) await cleanup().catch((e) => console.error('cleanup failed:', e))
+  throw err
 } finally {
   await context.close()
   stopServer()
