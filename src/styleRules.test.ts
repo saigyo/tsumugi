@@ -1,5 +1,5 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs'
-import { expect, test } from 'vitest'
+import { describe, expect, test } from 'vitest'
 
 const css = readFileSync('src/index.css', 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')
 // The two variable blocks: light (:root) and dark (:root[data-theme="dark"]).
@@ -8,8 +8,19 @@ const darkMatch = css.match(/:root\[data-theme="dark"\]\s*\{([\s\S]*?)\n\}/)
 const rootBlock = rootMatch ? rootMatch[1] : ''
 const rest = [rootMatch, darkMatch].reduce((text, m) => (m ? text.replace(m[0], '') : text), css)
 
-const vars: Record<string, string> = {}
-for (const m of rootBlock.matchAll(/(--[\w-]+)\s*:\s*(#[0-9a-fA-F]{6})\s*;/g)) vars[m[1]] = m[2]
+const darkBlock = darkMatch ? darkMatch[1] : ''
+const hexVars = (block: string) => {
+  const out: Record<string, string> = {}
+  for (const m of block.matchAll(/(--[\w-]+)\s*:\s*(#[0-9a-fA-F]{6})\s*;/g)) out[m[1]] = m[2]
+  return out
+}
+const themes: Record<string, Record<string, string>> = { light: hexVars(rootBlock), dark: hexVars(darkBlock) }
+// Colour variables: those whose light value holds a colour literal or a shadow.
+const colourNames = (block: string) =>
+  [...block.matchAll(/(--[\w-]+)\s*:\s*([^;]+);/g)]
+    .filter((m) => /#[0-9a-fA-F]{3,8}\b|\brgba?\(|\bhsla?\(/.test(m[2]))
+    .map((m) => m[1])
+    .sort()
 
 function luminance(hex: string): number {
   const channel = (i: number) => {
@@ -34,24 +45,34 @@ test('no colour literals outside the two variable blocks', () => {
   expect(rest.match(/#[0-9a-fA-F]{3,8}\b|\brgba?\(|\bhsla?\(/g) ?? []).toEqual([])
 })
 
-test.each([
-  ['--ink', '--washi'], ['--ink-soft', '--washi'], ['--ink-soft', '--card'], ['--ink-soft', '--seg-ground'],
+test('the dark block defines exactly the colour variables of the light block', () => {
+  const light = colourNames(rootBlock)
+  expect(light.length).toBeGreaterThan(40)
+  expect(colourNames(darkBlock)).toEqual(light)
+})
+
+const pairs: [string, string][] = [
+  ['--ink', '--washi'], ['--ink', '--card'], ['--ink-soft', '--washi'], ['--ink-soft', '--card'], ['--ink-soft', '--seg-ground'],
   ['--ink-faint', '--washi'], ['--ink-faint', '--card'],
   ['--ai-mute', '--white'], ['--ai-mute', '--washi'], ['--ai-mute', '--card'],
-  ['--on-ai', '--ai-deep'], ['--on-ai', '--shu'], ['--ai-deep', '--ai-wash'], ['--note-ink', '--card'],
-  // grounds the first set did not pair
-  ['--ink-soft', '--seg-ground'],         // .mode-note
-  ['--ink-soft', '--card'], ['--ink', '--ai-wash-strong'],   // .head-loc / .head-score (resting, active head chip)
-  ['--ink', '--dye-2'],                   // .gl-stage-chip
+  ['--ai', '--washi'], ['--ai', '--card'],   // links and text in --ai
+  ['--ai-deep', '--card'], ['--ai-deep', '--ai-wash'], ['--note-ink', '--card'],
+  ['--ink', '--ai-wash-strong'],          // .head-score (active head chip)
+  ['--ai-deep', '--ai-wash-strong'],      // active head chip, lit layer block
+  ['--ink', '--dye-0'], ['--ink', '--dye-1'], ['--ink', '--dye-2'], ['--ink', '--dye-3'], ['--ink', '--dye-4'], ['--ink', '--dye-5'],  // token washes
   ['--shu-deep', '--shu-wash'],           // .token-end
   ['--ink-soft', '--ai-wash'],            // .run-chip-action on a hovered list row
   ['--ink-soft', '--shu-wash'],           // .run-chip-action on a compare A/B chip
-  ['--on-ai', '--ai'],                    // hovered action on the active chip or row
-  ['--on-ai', '--fill'], ['--on-ai', '--fill-hover'], ['--on-shu', '--shu'],   // text on the split fill roles
-])('%s on %s reaches 4.5:1', (fg, bg) => {
-  expect(vars[fg], fg).toBeDefined()
-  expect(vars[bg], bg).toBeDefined()
-  expect(contrast(vars[fg], vars[bg])).toBeGreaterThanOrEqual(4.5)
+  // text on the split fill roles
+  ['--on-ai', '--fill'], ['--on-ai', '--fill-hover'], ['--on-shu', '--shu'], ['--on-fill-soft', '--fill-hover'],
+]
+describe.each(Object.keys(themes))('%s theme contrast', (theme) => {
+  test.each(pairs)('%s on %s reaches 4.5:1', (fg, bg) => {
+    const vars = themes[theme]
+    expect(vars[fg], fg).toBeDefined()
+    expect(vars[bg], bg).toBeDefined()
+    expect(contrast(vars[fg], vars[bg])).toBeGreaterThanOrEqual(4.5)
+  })
 })
 
 // Fill roles: text on indigo fills uses --on-ai over --fill / --fill-hover; text on vermillion uses --on-shu.
