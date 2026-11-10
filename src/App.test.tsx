@@ -61,6 +61,12 @@ test('the header carries the tagline', () => {
   expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Watch a language model write, one token at a time')
 })
 
+test('F10: the heading keeps spaces between the mark, the name, the badge and the tagline', () => {
+  render(<App />)
+  expect(screen.getByRole('heading', { level: 1 }).textContent).toMatch(/^紬 Tsumugi .*\S .*Watch a language model/)
+  expect(screen.getByRole('heading', { level: 1 }).textContent).toContain('紬 Tsumugi ')
+})
+
 test('generate in sim mode fills the trace and plays', async () => {
   render(<App />)
   fireEvent.change(screen.getByTestId('prompt-input'), { target: { value: 'The cat sat' } })

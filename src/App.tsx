@@ -384,7 +384,7 @@ export default function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <h1><span className="app-mark">紬</span>Tsumugi<ModeBadge mode={mode} loading={loading} device={device} attentions={attn} /> <span className="app-subtitle">Watch a language model write, one token at a time</span></h1>
+        <h1><span className="app-mark">紬</span> Tsumugi <ModeBadge mode={mode} loading={loading} device={device} attentions={attn} /> <span className="app-subtitle">Watch a language model write, one token at a time</span></h1>
         <HelpButton tools={
           <HeaderTools runCount={records.length} canArm={activeId !== null} selecting={compareArmed || compare !== null}
             onArmCompare={() => setCompareArmed(true)}

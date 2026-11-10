@@ -52,7 +52,9 @@ export function PromptBar({ mode, onModeChange, onGenerate, busy, generating = f
   const seed = mode === 'real' ? parseSeed(seedText) ?? undefined : undefined
   const examplesOpen = examplesToggled ?? (!hasRuns && !ranOnce)
   const systemEdited = system !== DEFAULT_SYSTEM_PROMPT
-  const systemOpen = systemToggled ?? (initial?.format?.kind === 'chat' && systemEdited)
+  // latched at mount: a share link with a custom system prompt opens the row, and later resets do not close it
+  const [systemOpenAtMount] = useState(initial?.format?.kind === 'chat' && initial.format.system !== DEFAULT_SYSTEM_PROMPT)
+  const systemOpen = systemToggled ?? systemOpenAtMount
   const hasExamples = !!examples && examples.length > 0
   const generate: PromptBarProps['onGenerate'] = (p, params, f, sd) => {
     setRanOnce(true)
@@ -123,19 +125,19 @@ export function PromptBar({ mode, onModeChange, onGenerate, busy, generating = f
         )}
         <span className="toggles">
           {chatOn && (
-            <button type="button" data-testid="toggle-system" className="toggle" aria-expanded={systemOpen}
+            <button type="button" data-testid="toggle-system" className="toggle" aria-expanded={systemOpen} aria-controls="system-row"
               onClick={() => setSystemToggled(!systemOpen)}>
-              {systemEdited ? 'System prompt · edited' : 'System prompt'} ▾
+              {systemEdited ? 'System prompt · edited' : 'System prompt'} <span aria-hidden="true">▾</span>
             </button>
           )}
           {hasExamples && (
-            <button type="button" data-testid="toggle-examples" className="toggle" aria-expanded={examplesOpen}
-              onClick={() => setExamplesToggled(!examplesOpen)}>Examples ▾</button>
+            <button type="button" data-testid="toggle-examples" className="toggle" aria-expanded={examplesOpen} aria-controls="examples-row"
+              onClick={() => setExamplesToggled(!examplesOpen)}>Examples <span aria-hidden="true">▾</span></button>
           )}
         </span>
       </div>
       {chatOn && systemOpen && (
-        <div className="sub-row system-row" data-testid="system-row">
+        <div className="sub-row system-row" id="system-row" data-testid="system-row">
           <label htmlFor="system-input">System prompt</label>
           <input id="system-input" data-testid="system-input" value={system} onChange={(e) => setSystem(e.target.value)} />
           {systemEdited && (
@@ -145,7 +147,7 @@ export function PromptBar({ mode, onModeChange, onGenerate, busy, generating = f
         </div>
       )}
       {hasExamples && examplesOpen && (
-        <div className="sub-row example-chip-row" data-testid="examples-row">
+        <div className="sub-row example-chip-row" id="examples-row" data-testid="examples-row">
           <span className="example-chip-label">Try:</span>
           {examples.map((ex) => (
             <button key={ex.id} data-testid="example-chip" className="example-chip" title={ex.hint}

@@ -2,6 +2,7 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, expect, test, vi } from 'vitest'
 import { PromptBar } from './PromptBar'
 import { CHAT_EXAMPLE } from './chatExample'
+import { DEFAULT_SYSTEM_PROMPT } from '../engine/chatTemplate'
 import { resetGlossaryStore, useGlossaryStore } from '../glossary/store'
 
 afterEach(() => { cleanup(); resetGlossaryStore() })
@@ -270,4 +271,26 @@ test('the system toggle is absent for Continue text', () => {
   render(bar({ mode: 'real' }))
   fireEvent.click(screen.getByTestId('format-text'))
   expect(screen.queryByTestId('toggle-system')).toBeNull()
+})
+
+test('F13: a system row opened by a share link stays open when the chat example resets the prompt', () => {
+  render(bar({ mode: 'real', examples: [CHAT_EXAMPLE],
+    initial: { prompt: 'Hi', format: { kind: 'chat', system: 'Be brief.' } } }))
+  expect(screen.getByTestId('system-row')).toBeInTheDocument()
+  fireEvent.click(screen.getByTestId('example-chip'))
+  expect(screen.getByTestId('system-input')).toHaveValue(DEFAULT_SYSTEM_PROMPT)
+  expect(screen.getByTestId('system-row')).toBeInTheDocument()
+  expect(screen.getByTestId('toggle-system')).toHaveAttribute('aria-expanded', 'true')
+})
+
+test('F9: the toggles name themselves without the arrow and point at their rows', () => {
+  render(bar({ mode: 'real' }))
+  const sys = screen.getByTestId('toggle-system')
+  const ex = screen.getByTestId('toggle-examples')
+  expect(sys).toHaveAccessibleName('System prompt')
+  expect(ex).toHaveAccessibleName('Examples')
+  fireEvent.click(sys)
+  expect(sys).toHaveAttribute('aria-controls', screen.getByTestId('system-row').id)
+  expect(ex).toHaveAttribute('aria-controls', screen.getByTestId('examples-row').id)
+  expect(screen.getByTestId('system-row').id).not.toBe('')
 })
