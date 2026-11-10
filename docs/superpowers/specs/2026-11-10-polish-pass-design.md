@@ -117,7 +117,8 @@ then step through the pipeline." Fixed, three cases (wording is my call):
 while the rest of the app shows "T=0.8". Fixed: the field shows a decimal
 point on every system. It keeps its limits (0 to 2), its test id, and takes
 effect as you type, as today. A typed comma is accepted and shown as a point
-(my call).
+(my call). The Up and Down arrow keys still change the value by 0.1 within the
+limits, as in the number field it replaces and in Top-k and Max tokens.
 
 **D10. Compare gives no visible instruction.** After clicking Compare the
 only hint is a tooltip. Fixed: a line under the runs row reads "Pick a second

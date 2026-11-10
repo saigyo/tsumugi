@@ -395,7 +395,7 @@ export function percent(p: number | null): string           // p in 0..1
 export function points(d: number, approx?: boolean): string // d = difference of two probabilities, −1..1
 ```
 
-- Produces, `src/ui/decimalField.ts`: `normaliseDecimal(text: string): string | null` (comma becomes point; returns `null` unless the result is empty or digits with at most one point) and `decimalValue(text: string, min: number, max: number): number | null` (`null` unless it parses to a finite number within the limits).
+- Produces, `src/ui/decimalField.ts`: `normaliseDecimal(text: string): string | null` (comma becomes point; returns `null` unless the result is empty or digits with at most one point) and `decimalValue(text: string, min: number, max: number): number | null` (`null` unless it parses to a finite number within the limits); `stepDecimal(value: number, delta: number, min: number, max: number): number` (adds, rounds to one decimal, clamps to the limits).
 
 - [ ] **Step 1: Write the failing tests.**
 
@@ -415,9 +415,11 @@ expect(normaliseDecimal('0,85')).toBe('0.85'); expect(normaliseDecimal(',5')).to
 expect(normaliseDecimal('')).toBe(''); expect(normaliseDecimal('abc')).toBeNull(); expect(normaliseDecimal('1.2.3')).toBeNull()
 expect(decimalValue('0.85', 0, 2)).toBe(0.85); expect(decimalValue('.5', 0, 2)).toBe(0.5)
 expect(decimalValue('0.', 0, 2)).toBe(0); expect(decimalValue('', 0, 2)).toBeNull(); expect(decimalValue('2.5', 0, 2)).toBeNull()
+expect(stepDecimal(0.8, 0.1, 0, 2)).toBe(0.9); expect(stepDecimal(0.3, -0.1, 0, 2)).toBe(0.2); expect(stepDecimal(0.84, 0.1, 0, 2)).toBe(0.9)
+expect(stepDecimal(2, 0.1, 0, 2)).toBe(2); expect(stepDecimal(0, -0.1, 0, 2)).toBe(0)
 ```
 
-`PromptBar.test.tsx`: typing "0,5" into `temp-input` shows "0.5" and Generate is called with `temperature: 0.5`; typing "2.5" or "abc" leaves the last good value in the parameters; clearing the field keeps the last good value; the field is not `type="number"`.
+`PromptBar.test.tsx`: typing "0,5" into `temp-input` shows "0.5" and Generate is called with `temperature: 0.5`; typing "2.5" or "abc" leaves the last good value in the parameters; clearing the field keeps the last good value; the field is not `type="number"`; with "0.8" in the field ArrowUp shows "0.9" and ArrowDown then shows "0.8"; at "2" ArrowUp stays at "2" and at "0" ArrowDown stays at "0"; with "abc" rejected or the field cleared, ArrowUp steps from the last good value.
 
 Guard in `src/styleRules.test.ts`: no file under `src` except `src/ui/format.ts` (tests excluded) defines a local `pct`, `signed` or `percent` helper, and none contains `* 100)}%` or `'~'`.
 
@@ -425,7 +427,7 @@ Guard in `src/styleRules.test.ts`: no file under `src` except `src/ui/format.ts`
 
 - [ ] **Step 3: Implement** the two modules; replace every display site. Counts in prose and labels go through `count` (so "1,536" becomes "1536" and "49 152" keeps its look); the compare delta column uses `points(delta, approx)`; the "N %" label in the step charts loses its space. Titles of chart cells (`<title>`, `title=`) use the formatter too. SVG coordinates keep `toFixed`.
 
-- [ ] **Step 4: The Temperature field** becomes a text field with `inputMode="decimal"`: it holds its own text, accepts a change only when `normaliseDecimal` returns a string, and updates the temperature when `decimalValue(text, 0, 2)` is a number. Limits, test id, label and info mark are unchanged.
+- [ ] **Step 4: The Temperature field** becomes a text field with `inputMode="decimal"`: it holds its own text, accepts a change only when `normaliseDecimal` returns a string, and updates the temperature when `decimalValue(text, 0, 2)` is a number. ArrowUp and ArrowDown step the value by 0.1 through `stepDecimal`, starting from the last good value, and write the result to both the text and the temperature (the default caret move is prevented); this matches the number field it replaces and Top-k and Max tokens beside it. Limits, test id, label and info mark are unchanged.
 
 - [ ] **Step 5: Switch on** `numbers follow one format`.
 
