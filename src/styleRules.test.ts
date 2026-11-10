@@ -112,11 +112,6 @@ test('the type variables exist with the specified sizes', () => {
   for (const v of ['--t-brand', '--sans', '--mono', '--mark', '--math']) expect(get(v), v).toBeDefined()
 })
 
-// Colour values computed in TypeScript: only these five files, until the chart ramps move to variables.
-const RAMP_FILES = [
-  'src/viz/stripMath.ts', 'src/viz/mlpMath.ts', 'src/viz/AttentionHeatmap.tsx',
-  'src/viz/AttentionGridExplorer.tsx', 'src/viz/EmbeddingGeometry.tsx',
-]
 function sourceFiles(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {
     const path = `${dir}/${name}`
@@ -125,16 +120,19 @@ function sourceFiles(dir: string): string[] {
   })
 }
 
-test('no colour literals in TypeScript source outside the data ramps', () => {
+test('no colour literals in TypeScript source', () => {
   const colour = /#[0-9a-fA-F]{3,8}\b|\brgba?\(|\bhsla?\(/
   const offenders = sourceFiles('src')
-    .filter((f) => !RAMP_FILES.includes(f))
     .filter((f) => colour.test(readFileSync(f, 'utf8').replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, '')))
   expect(offenders).toEqual([])
 })
 
-test('the allow-list holds only files that still need it', () => {
-  // data-driven chart ramps; to be moved to variables with the dark theme
-  const colour = /#[0-9a-fA-F]{3,8}\b|\brgba?\(|\bhsla?\(/
-  for (const f of RAMP_FILES) expect(colour.test(readFileSync(f, 'utf8')), f).toBe(true)
+test('the light chart ramp end points are today\'s colours', () => {
+  const get = (name: string) => rootBlock.match(new RegExp(`${name}\\s*:\\s*([^;]+);`))?.[1].trim()
+  expect(get('--ramp-lo')).toBe('hsl(211 30% 94%)')
+  expect(get('--ramp-hi')).toBe('hsl(211 55% 24%)')
+  expect(get('--div-pos-lo')).toBe('hsl(211 45% 88%)')
+  expect(get('--div-pos')).toBe('hsl(211 45% 38%)')
+  expect(get('--div-neg-lo')).toBe('hsl(13 55% 90%)')
+  expect(get('--div-neg')).toBe('hsl(13 55% 50%)')
 })

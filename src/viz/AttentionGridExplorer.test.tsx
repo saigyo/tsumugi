@@ -1,6 +1,7 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, expect, test, vi } from 'vitest'
 import { makeGridEvent } from '../test/fixtures'
+import { useTheme } from '../app/theme'
 import { AttentionGridExplorer } from './AttentionGridExplorer'
 
 // Mock getContext to prevent jsdom stub warnings in test output
@@ -39,4 +40,20 @@ test('sorting by coreference uses corefScore, treating null as 0', () => {
   // (nulls sort as 0; the sort is stable, so the zeros keep grid order)
   const order = screen.getAllByTestId('grid-cell').map((c) => c.textContent)
   expect(order).toEqual(['L0·H1', 'L0·H0', 'L1·H0', 'L1·H1'])
+})
+
+test('the canvas thumbnails redraw when the theme changes', () => {
+  const ctx = { clearRect: vi.fn(), fillRect: vi.fn(), fillStyle: '' }
+  const spy = vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(ctx as never)
+  try {
+    act(() => useTheme.setState({ theme: 'light' }))
+    render(<AttentionGridExplorer grid={makeGridEvent(1, 1)} onPin={() => {}} />)
+    const before = spy.mock.calls.length
+    expect(before).toBeGreaterThan(0)
+    act(() => useTheme.setState({ theme: 'dark' }))
+    expect(spy.mock.calls.length).toBeGreaterThan(before)
+  } finally {
+    spy.mockReturnValue(null as never)
+    act(() => useTheme.setState({ theme: 'light' }))
+  }
 })

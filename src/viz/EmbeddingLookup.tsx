@@ -97,7 +97,7 @@ export function EmbeddingLookup({ tokens, dims, vocabSize, selected, onSelect, v
                 {row
                   ? row.map((v, c) => (
                     <rect key={c} data-testid="embed-stack-cell" x={c * STACK_CELL_W} y={y}
-                      width={STACK_CELL_W} height={STACK_ROW_H} fill={cellFill(v, rowPeak)} />
+                      width={STACK_CELL_W} height={STACK_ROW_H} style={{ fill: cellFill(v, rowPeak) }} />
                   ))
                   : <rect x={0} y={y} width={stackW} height={STACK_ROW_H} className="embed-stack-placeholder" />}
                 <rect x={0.5} y={y + 0.5} width={stackW - 1} height={STACK_ROW_H - 1} className="embed-stack-frame" />

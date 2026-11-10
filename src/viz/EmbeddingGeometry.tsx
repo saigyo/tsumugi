@@ -1,6 +1,7 @@
 import type { GeometryAsset } from '../geometry/asset'
 import { renderableNeighbors, similarityMatrix } from '../geometry/math'
 import type { EmbedSource, TokenInfo } from '../trace/types'
+import { seqFill } from './ramps'
 import { SPACE_MARKER, visibleToken } from './tokenText'
 
 const NEIGHBORS = 8
@@ -49,7 +50,7 @@ export function EmbeddingGeometry({ tokens, selected, vectorFor, asset, loading,
   const range = offDiagonalRange(matrix)
   const shade = (v: number, diagonal: boolean) => {
     const t = diagonal ? 1 : range ? Math.min(1, Math.max(0, (v - range.lo) / (range.hi - range.lo))) : Math.max(0, v)
-    return `hsl(211 ${Math.round(30 + 25 * t)}% ${Math.round(94 - 70 * t)}%)`
+    return seqFill(t)
   }
   const neighbors = asset && token ? renderableNeighbors(asset, token.id, NEIGHBORS) : null
   const label = (i: number) => (shown[i] ? visibleToken(shown[i]) : '') || `#${start + i}`
@@ -117,7 +118,7 @@ export function EmbeddingGeometry({ tokens, selected, vectorFor, asset, loading,
                   return (
                     <rect key={c} data-testid="sim-cell" x={LABEL_W + c * CELL} y={DIAG_PAD + r * CELL}
                       width={CELL - 1} height={CELL - 1}
-                      fill={shade(v, r === c)}>
+                      style={{ fill: shade(v, r === c) }}>
                       <title>{`${label(r)} · ${label(c)}: ${v.toFixed(2)}`}</title>
                     </rect>
                   )

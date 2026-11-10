@@ -1,6 +1,7 @@
 import { expect, test } from 'vitest'
 import { blockTotals, layerTotals, ratioFill, runningTotal, topMlpLayers, voteFill, votePeak } from './mlpMath'
 import { cellFill } from './stripMath'
+import { seqFill } from './ramps'
 
 const v = { embed: 1, attn: [0.5, -0.25], mlp: [2, -1] }
 
@@ -24,8 +25,8 @@ test('votePeak is the largest absolute MLP vote, at least a tiny positive number
 })
 
 test('ratioFill darkens with the ratio and clamps at 1', () => {
-  expect(ratioFill(0)).toBe('hsl(211 30% 94%)')
-  expect(ratioFill(1)).toBe('hsl(211 55% 24%)')
+  expect(ratioFill(0)).toBe(seqFill(0))
+  expect(ratioFill(1)).toBe(seqFill(1))
   expect(ratioFill(3)).toBe(ratioFill(1))
 })
 

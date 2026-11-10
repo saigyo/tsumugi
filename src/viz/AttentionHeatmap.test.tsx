@@ -209,7 +209,7 @@ test('a new run starts with the system prompt folded again', () => {
 test('hovering a cell redraws the readout, not the memoised cells', () => {
   render(<AttentionHeatmap heads={chatAttn.heads} tokens={chatTokens} chat={chat} />)
   const cells = screen.getAllByTestId('attn-cell')
-  // every cell computes its fill with two Math.round calls: a redraw of all cells shows up as hundreds
+  // every cell computes its fill with a Math.round call: a redraw of all cells shows up as hundreds
   const round = vi.spyOn(Math, 'round')
   fireEvent.mouseEnter(cells[cells.length - 1])
   fireEvent.mouseLeave(cells[cells.length - 1])

@@ -24,7 +24,7 @@ export const StepStrip = memo(function StepStrip({ values, lim, label, testId, l
     <div className="step-strip-row">
       <span className={labelClass ? `step-strip-label ${labelClass}` : 'step-strip-label'}>{label}</span>
       <svg data-testid={testId} className="step-strip" viewBox={`0 0 ${values.length} 1`} preserveAspectRatio="none" role="img" aria-label={label}>
-        {Array.from(values, (v, i) => <rect key={i} x={i} y={0} width={1.02} height={1} fill={cellFill(clamp(v, lim), lim)} />)}
+        {Array.from(values, (v, i) => <rect key={i} x={i} y={0} width={1.02} height={1} style={{ fill: cellFill(clamp(v, lim), lim) }} />)}
       </svg>
     </div>
   )

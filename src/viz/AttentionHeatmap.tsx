@@ -5,6 +5,7 @@ import { readableTokenText } from '../engine/tokenBytes'
 import { visibleToken } from './tokenText'
 import { LoadRealButton } from './LoadRealButton'
 import { foldMatrix, type FoldedMatrix } from './foldMatrix'
+import { seqFill } from './ramps'
 import { cellSize, labelStep } from './heatmapSizing'
 
 const HINTS: Record<AttentionLabel, string> = {
@@ -29,7 +30,7 @@ const Cells = memo(function Cells({ folded, cell, onHover, rowLabel, colLabel }:
     return (
       <rect key={`${r}-${c}`} data-testid="attn-cell" data-row={r} data-col={c}
         x={LABEL_W + c * cell} y={DIAG_PAD + r * cell} width={cell - 1} height={cell - 1}
-        fill={`hsl(211 ${Math.round(30 + 25 * Math.min(1, w))}% ${Math.round(94 - 70 * Math.min(1, w))}%)`}
+        style={{ fill: seqFill(w) }}
         className={fold ? 'attn-cell-fold' : undefined}
         onMouseEnter={() => onHover({ r, c })} onMouseLeave={() => onHover(null)}>
         <title>{`${rowLabel(r)} → ${colLabel(c)}: ${Math.round(w * 100)}%`}</title>

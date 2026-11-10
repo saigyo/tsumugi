@@ -72,11 +72,12 @@ test('the similarity colour scale is stretched to the matrix\'s own off-diagonal
   render(<EmbeddingGeometry tokens={tokens} selected={0} vectorFor={vecFor(tokens)} asset={asset}
     loading={false} retry={noop} source="asset" />)
   const cells = screen.getAllByTestId('sim-cell')
-  const fill = (i: number) => cells[i].getAttribute('fill') ?? ''
-  const lightness = (f: string) => Number(/(\d+)%\)$/.exec(f)?.[1])
-  expect(lightness(fill(0))).toBe(24)                           // diagonal (1.0) is the darkest step
+  const fill = (i: number) => cells[i].getAttribute('style') ?? ''
+  // share of the dark end: 100 is the darkest step, 0 the lightest
+  const lightness = (f: string) => 100 - Number(/ramp-hi\) ([\d.]+)%/.exec(f)?.[1])
+  expect(lightness(fill(0))).toBe(0)                            // diagonal (1.0) is the darkest step
   expect(lightness(fill(1))).toBeLessThan(lightness(fill(2)))    // (1,2) similar → darker than (1,130)
-  expect(lightness(fill(2))).toBe(94)                           // the minimum maps to the lightest step
+  expect(lightness(fill(2))).toBe(100)                         // the minimum maps to the lightest step
   const legend = screen.getByTestId('embed-sim-legend')
   expect(legend).toHaveTextContent(/colour range/)
   expect(legend).toHaveTextContent(/-?\d\.\d\d … \d\.\d\d/)

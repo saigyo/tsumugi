@@ -23,7 +23,7 @@ test('grid: one row per candidate, one cell per layer, MLP votes by default, blu
   expect(screen.getAllByTestId('vote-cell')).toHaveLength(3 * 3)
   const v = cands[0].votes.mlp[1]
   expect(cell(0, 1)).toHaveAttribute('data-value', v.toFixed(2))
-  expect(cell(0, 1).style.background).toMatch(v >= 0 ? /hsl\(211|rgb/ : /hsl\(13|rgb/)
+  expect(cell(0, 1).style.background).toContain(v >= 0 ? 'var(--div-pos)' : 'var(--div-neg)')
   expect(texOf(screen.getByTestId('votes-formula'))).toContain('\\sum')
 })
 

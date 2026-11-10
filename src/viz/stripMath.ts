@@ -3,13 +3,12 @@
 // a reader recognises "this is a row of E" across the two stages. Kept apart
 // from the VectorStrip component so that file exports only components.
 
+import { divFill } from './ramps'
+
 // Diverging fill: indigo for positive, vermillion for negative, intensity
 // relative to the strip's own peak magnitude.
 export function cellFill(v: number, peak: number): string {
-  const t = Math.abs(v) / peak
-  return v >= 0
-    ? `hsl(211 45% ${Math.round(88 - t * 50)}%)`
-    : `hsl(13 55% ${Math.round(90 - t * 40)}%)`
+  return divFill(v, peak)
 }
 
 export const peakOf = (cells: number[]) => cells.reduce((m, v) => Math.max(m, Math.abs(v)), 0) || 1

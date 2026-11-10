@@ -17,7 +17,7 @@ export function VectorStrip({ cells, cellW, cellH, gap = 1, testId, cellTestId, 
   return (
     <svg data-testid={testId} className={className} width={w} height={cellH} viewBox={`0 0 ${w} ${cellH}`} role="img" aria-label={ariaLabel}>
       {cells.map((v, c) => (
-        <rect key={c} data-testid={cellTestId} x={c * cellW} y={0} width={cellW - gap} height={cellH} fill={cellFill(v, peak)}>
+        <rect key={c} data-testid={cellTestId} x={c * cellW} y={0} width={cellW - gap} height={cellH} style={{ fill: cellFill(v, peak) }}>
           {titleFor && <title>{titleFor(c, v)}</title>}
         </rect>
       ))}

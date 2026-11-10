@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
+import { useTheme } from '../app/theme'
+import { readRampEnds, seqRgb } from './ramps'
 import type { TraceEvent } from '../trace/types'
 
 type GridEvent = Extract<TraceEvent, { type: 'attention-grid' }>
@@ -27,22 +29,30 @@ function topStat(c: GridCell): string {
   return `${entries[0][0]} ${entries[0][1].toFixed(2)}`
 }
 
+// The ramp end points, read off the document once per theme (270 thumbnails share them).
+let endsCache: { theme: string; lo: string; hi: string } | null = null
+function rampEnds(theme: string) {
+  if (endsCache?.theme !== theme) endsCache = { theme, ...readRampEnds() }
+  return endsCache
+}
+
 // One canvas pixel per thumb bucket, upscaled by CSS (image-rendering:
 // pixelated). Canvas here is a recorded amendment to the v1 "SVG + CSS only"
 // constraint: 270 SVG thumbnails would jank; the main heatmap stays SVG.
 export function Thumb({ thumb }: { thumb: number[][] }) {
   const ref = useRef<HTMLCanvasElement>(null)
+  const theme = useTheme((s) => s.theme)
   useEffect(() => {
     const canvas = ref.current
     const ctx = canvas?.getContext('2d')
     if (!canvas || !ctx) return  // jsdom has no 2d context; structure still renders
     ctx.clearRect(0, 0, canvas.width, canvas.height)
+    const { lo, hi } = rampEnds(theme)
     thumb.forEach((row, r) => row.forEach((w, c) => {
-      const v = Math.min(1, Math.max(0, w))
-      ctx.fillStyle = `hsl(211 ${Math.round(30 + 25 * v)}% ${Math.round(94 - 70 * v)}%)`
+      ctx.fillStyle = seqRgb(w, lo, hi)
       ctx.fillRect(c, r, 1, 1)
     }))
-  }, [thumb])
+  }, [thumb, theme])
   const dim = Math.max(thumb.length, 1)
   return <canvas ref={ref} width={dim} height={dim} className="grid-thumb" />
 }

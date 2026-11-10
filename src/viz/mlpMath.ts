@@ -1,5 +1,6 @@
 import type { LayerVotes } from '../trace/types'
 import { cellFill } from './stripMath'
+import { seqFill } from './ramps'
 
 // Numbers behind the MLP cards. Kept apart from the components so those
 // files export only components.
@@ -43,6 +44,5 @@ export const voteFill = (v: number, peak: number) =>
 
 // Edit size 0 → pale, ≥ 1 → deep indigo (the attention heatmap's ramp).
 export function ratioFill(v: number): string {
-  const t = Math.min(1, Math.max(0, v))
-  return `hsl(211 ${Math.round(30 + 25 * t)}% ${Math.round(94 - 70 * t)}%)`
+  return seqFill(v)
 }
