@@ -365,6 +365,14 @@ probability ratios at the run's temperature.
 
 ![Glossary drawer open next to the Softmax card](docs/screenshots/glossary.png)
 
+## Light and dark
+
+The app follows the computer's light or dark setting and changes with it. The
+◐ ☀ ☾ button in the header, left of the help button, steps through Auto (follow the
+system), Light and Dark; the choice is kept in this browser. In the dark theme
+the charts read the other way round: low values fade into the card and high
+values are bright. The screenshots in this README are all light.
+
 ## Comparing runs
 
 Every completed run is kept on a one-row **run shelf** under the prompt box,
