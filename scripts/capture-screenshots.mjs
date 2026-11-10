@@ -44,14 +44,16 @@ process.on('exit', stopServer)
 const context = await chromium.launchPersistentContext(PROFILE, {
   headless: false,
   viewport: { width: 1380, height: 940 },
+  colorScheme: 'light',   // every shot is light except dark.png, whatever this computer is set to
 })
 // Scenes can be selected: `npm run screenshots -- glossary pipeline attention compare embeddings logits mlp neurons knockouts`
-// (mlp also writes mlp-steps.png)
+// (mlp also writes mlp-steps.png; attention also writes head-explorer.png and dark.png)
 // (default: all). Skipping a scene preserves its existing images — useful when
 // a previous capture caught a specimen worth keeping (e.g. a great fork).
 const only = process.argv.slice(2)
 const want = (scene) => only.length === 0 || only.includes(scene)
 
+let restoreTheme = async () => {}  // set once the page is open
 let cleanup = null   // armed just before the first run is pinned; run when a scene fails or on Ctrl-C / SIGTERM
 let cleaning = null  // the cleanup in progress, so it never runs twice
 const runCleanup = () => (cleaning ??= cleanup())
@@ -66,6 +68,16 @@ try {
   await waitForServer()
   const page = context.pages()[0] ?? await context.newPage()
   await page.goto(URL)
+  // the shots need the theme on Auto, so the emulated system setting decides; a stored
+  // choice in this profile is put back at the end
+  const storedTheme = await page.evaluate(() => localStorage.getItem('tsumugi.theme'))
+  if (storedTheme !== null) {
+    await page.evaluate(() => localStorage.removeItem('tsumugi.theme'))
+    await page.reload()
+  }
+  restoreTheme = async () => {
+    if (storedTheme !== null) await page.evaluate((v) => localStorage.setItem('tsumugi.theme', v), storedTheme)
+  }
   const $ = (id) => page.getByTestId(id)
 
   // The profile persists IndexedDB, so runs from earlier sessions survive reloads. The shelf shows only the newest
@@ -200,6 +212,13 @@ try {
     await $('detail-layers').scrollIntoViewIfNeeded()
     await page.screenshot({ path: `${DIR}/real-attention.png` })
     console.log('real-attention.png')
+    // dark.png: the same view with the system set to dark (the theme is on Auto)
+    await page.emulateMedia({ colorScheme: 'dark' })
+    await page.waitForTimeout(400)
+    await page.screenshot({ path: `${DIR}/dark.png` })
+    await page.emulateMedia({ colorScheme: 'light' })
+    await page.waitForTimeout(400)
+    console.log('dark.png')
     await $('btn-explore-heads').click()
     await $('grid-explorer').scrollIntoViewIfNeeded()
     await page.waitForTimeout(500)                           // let the canvases paint
@@ -386,6 +405,7 @@ try {
   if (cleanup) await runCleanup().catch((e) => console.error('cleanup failed:', e))
   throw err
 } finally {
+  await restoreTheme().catch(() => { /* the page may already be gone */ })
   await context.close()
   stopServer()
 }

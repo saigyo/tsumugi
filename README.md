@@ -371,7 +371,9 @@ The app follows the computer's light or dark setting and changes with it. The
 ◐ ☀ ☾ button in the header, left of the help button, steps through Auto (follow the
 system), Light and Dark; the choice is kept in this browser. In the dark theme
 the charts read the other way round: low values fade into the card and high
-values are bright. The screenshots in this README are all light.
+values are bright. The other screenshots in this README are light.
+
+![The Layers detail in the dark theme: low attention weights fade into the card, high ones are bright](docs/screenshots/dark.png)
 
 ## Comparing runs
 
