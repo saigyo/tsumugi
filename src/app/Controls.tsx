@@ -30,7 +30,7 @@ export function Controls() {
       <button data-testid="btn-step-fwd" onClick={() => dispatch({ type: 'stepForward' })} title="Step">▶|</button>
       <button data-testid="btn-cycle-fwd" onClick={cycleFwd} title="Next token cycle">▶▶|</button>
       <input data-testid="scrubber" type="range" min={0} max={Math.max(traceLength - 1, 0)}
-        value={Math.max(cursor, 0)} list="cycle-ticks" style={{ '--fill': fill } as CSSProperties}
+        value={Math.max(cursor, 0)} list="cycle-ticks" style={{ '--pos': fill } as CSSProperties}
         onChange={(e) => dispatch({ type: 'seek', index: Number(e.target.value) })} />
       <datalist id="cycle-ticks">
         {ticks.map((i) => <option key={i} value={i} />)}

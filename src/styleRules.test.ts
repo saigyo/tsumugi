@@ -64,7 +64,7 @@ const pairs: [string, string][] = [
   ['--ink-soft', '--ai-wash'],            // .run-chip-action on a hovered list row
   ['--ink-soft', '--shu-wash'],           // .run-chip-action on a compare A/B chip
   // text on the split fill roles
-  ['--on-ai', '--fill'], ['--on-ai', '--fill-hover'], ['--on-shu', '--shu'], ['--on-fill-soft', '--fill-hover'],
+  ['--on-ai', '--fill'], ['--on-ai', '--fill-hover'], ['--on-shu', '--shu'], ['--on-fill-soft', '--fill-hover'], ['--on-fill-note', '--fill'],
 ]
 describe.each(Object.keys(themes))('%s theme contrast', (theme) => {
   test.each(pairs)('%s on %s reaches 4.5:1', (fg, bg) => {

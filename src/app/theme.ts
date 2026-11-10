@@ -4,6 +4,8 @@ export type ThemeMode = 'auto' | 'light' | 'dark'
 export type Theme = 'light' | 'dark'
 export const THEME_KEY = 'tsumugi.theme'
 
+// The same stored-choice / system-setting logic is repeated by necessity in the inline script in index.html,
+// which must run before the app loads; keep the two in step.
 const QUERY = '(prefers-color-scheme: dark)'
 
 export function readMode(): ThemeMode {
@@ -34,9 +36,10 @@ const apply = (theme: Theme) => { document.documentElement.dataset.theme = theme
 
 interface ThemeState { mode: ThemeMode; theme: Theme; cycle(): void }
 
+const initialMode = readMode()
 export const useTheme = create<ThemeState>()((set, get) => ({
-  mode: readMode(),
-  theme: resolveTheme(readMode(), systemDark()),
+  mode: initialMode,
+  theme: resolveTheme(initialMode, systemDark()),
   cycle: () => {
     const mode = nextMode(get().mode)
     const theme = resolveTheme(mode, systemDark())

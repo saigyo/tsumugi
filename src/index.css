@@ -13,6 +13,7 @@
   --on-ai: #ffffff;        /* text on an indigo fill (--fill, --fill-hover) */
   --on-shu: #ffffff;       /* text on a vermillion fill (--shu) */
   --on-fill-soft: #f6f3ea; /* text on --fill-hover in the ruler tick and mode button; light value is --washi */
+  --on-fill-note: #d3dfeb; /* secondary text on --fill (the 250 MB note); light value is --ai-wash-strong */
   --ink: #2b2b31;          /* sumi text */
   --ink-soft: #6e6b62;     /* secondary text */
   --ink-faint: #726f66;    /* tertiary text, 4.5:1 on washi */
@@ -89,6 +90,7 @@
   --on-ai: #ffffff;
   --on-shu: #0f1726;
   --on-fill-soft: #ffffff;
+  --on-fill-note: #e3eefc;
   --ink: #e6ebf5;
   --ink-soft: #a9b6cf;
   --ink-faint: #94a2bd;
@@ -363,12 +365,12 @@ input[type="number"] { width: 4rem; }
 }
 .controls select { font-family: var(--sans); }
 .controls button:hover:not(:disabled), .controls select:hover { background: var(--ai-wash); border-color: var(--ai-soft); }
-/* the slider: a thin rounded track filled in indigo up to the thumb (--fill is set by Controls) */
+/* the slider: a thin rounded track filled in indigo up to the thumb (--pos is set by Controls) */
 .controls input[type="range"] { flex: 1; min-width: 10rem; height: 1.2rem; background: none; cursor: pointer;
   -webkit-appearance: none; appearance: none; }
 .controls input[type="range"]::-webkit-slider-runnable-track {
   height: 6px; border-radius: 3px;
-  background: linear-gradient(var(--ai-deep), var(--ai-deep)) 0 / var(--fill, 0%) 100% no-repeat, var(--line);
+  background: linear-gradient(var(--ai-deep), var(--ai-deep)) 0 / var(--pos, 0%) 100% no-repeat, var(--line);
 }
 .controls input[type="range"]::-moz-range-track { height: 6px; border-radius: 3px; background: var(--line); }
 .controls input[type="range"]::-moz-range-progress { height: 6px; border-radius: 3px; background: var(--ai-deep); }
@@ -894,7 +896,7 @@ math { font-family: var(--math); color: var(--ink); }
 .seg > button:hover:not([aria-pressed="true"]) { color: var(--ink); }
 .seg > button[aria-pressed="true"] { background: var(--fill); color: var(--on-ai); }
 .seg > button[aria-busy="true"] { background: var(--ai-wash); }
-.seg > button[aria-pressed="true"] .mode-note { color: var(--ai-wash-strong); }
+.seg > button[aria-pressed="true"] .mode-note { color: var(--on-fill-note); }
 .seg .gl-term-wrap { padding: 0 .3rem; }
 .system-row input { flex: 1; min-width: 12rem; padding: .3rem .5rem; }
 .link-button { border: 0; background: none; color: var(--ai); text-decoration: underline; padding: 0; font-size: var(--t-cap); cursor: pointer; }
