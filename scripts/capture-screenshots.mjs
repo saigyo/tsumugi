@@ -2,6 +2,7 @@
 //
 //   npm run screenshots
 //
+// Leaves runs that were already in the profile alone and removes the ones it makes.
 // Spawns its own dev server on port 5199 and drives a headed Chromium with a
 // persistent profile (.screenshots-profile/, gitignored) so the ~250 MB real
 // model stays cached across invocations — only the first run downloads it.
@@ -52,15 +53,29 @@ try {
   await page.goto(URL)
   const $ = (id) => page.getByTestId(id)
 
-  // clean shelf (the profile persists IndexedDB, so old runs survive reloads);
-  // wait for hydration first — records that land after a clear would be re-merged
-  await page.waitForTimeout(1500)
-  while (await $('btn-chip-remove').count()) await $('btn-chip-remove').first().click()
+  // The profile persists IndexedDB, so runs from earlier sessions survive reloads and are left alone: the shelf shows
+  // only the newest five runs plus the active one, so runs are told apart by their number (the newest chip is first),
+  // not counted. Runs made here are removed again at the end.
+  await page.waitForTimeout(1500)                            // let the saved runs hydrate
+  const topNum = async () => {
+    const t = await $('run-chip').first().textContent().catch(() => null)
+    return t ? Number(t.match(/#(\d+)/)?.[1]) : 0
+  }
+  await $('run-chip').first().waitFor({ timeout: 5000 }).catch(() => {})   // an empty shelf shows none
+  const startNum = await topNum()
+  const newerThan = (n) => page.waitForFunction((n) => {
+    const t = document.querySelector('[data-testid="run-chip"]')?.textContent
+    return t && Number(t.match(/#(\d+)/)[1]) > n
+  }, n, { timeout: 120000 })
+  // the examples row starts closed once runs are saved
+  const openExamples = async () => { if (!(await $('example-chip').count())) await $('toggle-examples').click() }
 
   // ---- glossary.png: simulated run, Softmax card with the drawer open -------
   if (want('glossary')) {
+    const prev = await topNum()
+    await openExamples()
     await $('example-chip').first().click()                  // auto-generates
-    await $('run-chip').first().waitFor({ timeout: 15000 })
+    await newerThan(prev)
     await $('btn-live').click()
     await $('stage-card').nth(4).click()                     // Softmax
     await $('embed-callout').filter({ hasText: 'why exponentiate' }).click()
@@ -80,9 +95,10 @@ try {
   // ---- pipeline.png: real model, the chat example at run end ----------------
   if (want('pipeline')) {
     await $('temp-input').fill('0')                          // greedy: the answer ends its turn with <|im_end|>
-    const before = await $('run-chip').count()
+    const before = await topNum()
+    await openExamples()
     await $('example-chip').filter({ hasText: 'Chat:' }).click()   // auto-generates
-    await $('run-chip').nth(before).waitFor({ timeout: 120000 })
+    await newerThan(before)
     await $('btn-live').click()
     // crop to the app column, from the header down to the run summary
     const head = await page.locator('.app-header').boundingBox()
@@ -99,9 +115,10 @@ try {
 
   // ---- real-attention.png + head-explorer.png: real mode --------------------
   if (want('attention')) {
-    const before = await $('run-chip').count()
+    const before = await topNum()
+    await openExamples()
     await $('example-chip').first().click()
-    await $('run-chip').nth(before).waitFor({ timeout: 120000 })
+    await newerThan(before)
     await $('btn-live').click()
     await $('stage-card').nth(2).click()                     // Layers
     await $('detail-layers').scrollIntoViewIfNeeded()
@@ -119,16 +136,16 @@ try {
   await $('prompt-input').fill('The cat sat on the mat because it was tired')
   await $('temp-input').fill('0.9')
   {
-    const before = await $('run-chip').count()               // baseline T=0.9 run,
+    const before = await topNum()               // baseline T=0.9 run,
     await $('btn-generate').click()                          // so the pair shares T
-    await $('run-chip').nth(before).waitFor({ timeout: 120000 })
+    await newerThan(before)
   }
   for (let attempt = 0; attempt < 4; attempt++) {
-    const before = await $('run-chip').count()
+    const before = await topNum()
     await $('btn-generate').click()                          // same prompt again
-    await $('run-chip').nth(before).waitFor({ timeout: 120000 })  // wait for the run to SEAL
-    await $('btn-compare-arm').click()
-    await $('run-chip-main').nth(before - 1).click()         // B = previous run
+    await newerThan(before)  // wait for the run to SEAL
+    await $('btn-compare-arm').click()                       // in the header now
+    await page.locator('[data-testid="run-chip-main"]', { hasText: new RegExp(`#${before} `) }).click()   // B = previous run
     await $('compare-view').waitFor({ timeout: 5000 })
     if (await page.locator('[data-testid="cmp-tick"][data-fork="true"]').count()) break
     console.log('no fork this time — regenerating')
@@ -149,9 +166,9 @@ try {
   if (want('embeddings')) {
     await $('prompt-input').fill('The cat sat on the mat because the cat was tired')
     await $('maxtok-input').fill('8')                               // short run: the card stays one screen tall
-    const before = await $('run-chip').count()
+    const before = await topNum()
     await $('btn-generate').click()
-    await $('run-chip').nth(before).waitFor({ timeout: 120000 })   // wait for the run to SEAL
+    await newerThan(before)   // wait for the run to SEAL
     await $('btn-live').click()
     await $('stage-card').nth(1).click()                            // Embeddings
     await $('embed-neighbors').waitFor({ timeout: 60000 })          // geometry asset fetched from the Hub
@@ -177,9 +194,9 @@ try {
   if (want('logits')) {
     await $('prompt-input').fill('The farmer bought a horse and rode it home.')
     await $('maxtok-input').fill('1')                               // one cycle: the first token's distribution is deterministic
-    const before = await $('run-chip').count()
+    const before = await topNum()
     await $('btn-generate').click()
-    await $('run-chip').nth(before).waitFor({ timeout: 120000 })   // wait for the run to SEAL
+    await newerThan(before)   // wait for the run to SEAL
     await $('btn-live').click()
     await $('stage-card').nth(3).click()                            // Logits
     await $('readout-bench').waitFor({ timeout: 10000 })
@@ -212,9 +229,9 @@ try {
     await $('temp-input').fill('0')                                 // greedy, so the answer token is stable
     await $('prompt-input').fill('The farmer bought a horse and rode it home.')
     await $('maxtok-input').fill('1')
-    const before = await $('run-chip').count()
+    const before = await topNum()
     await $('btn-generate').click()
-    await $('run-chip').nth(before).waitFor({ timeout: 120000 })
+    await newerThan(before)
     await $('btn-live').click()
     await $('stage-card').nth(2).click()                            // Layers
     await $('knockout-card').waitFor({ timeout: 10000 })
@@ -237,9 +254,9 @@ try {
   if (want('mlp')) {
     await $('prompt-input').fill('The farmer bought a horse and rode it home.')
     await $('maxtok-input').fill('1')
-    const before = await $('run-chip').count()
+    const before = await topNum()
     await $('btn-generate').click()
-    await $('run-chip').nth(before).waitFor({ timeout: 120000 })
+    await newerThan(before)
     await $('btn-live').click()
     await $('stage-card').nth(2).click()                            // Layers
     await $('vote-cell').first().waitFor({ timeout: 10000 })
@@ -272,9 +289,9 @@ try {
     // (sampling varies) until the shown total is exact, up to 4 attempts
     await $('maxtok-input').fill('3')
     for (let attempt = 0; attempt < 4; attempt++) {
-      const before = await $('run-chip').count()
+      const before = await topNum()
       await $('btn-generate').click()
-      await $('run-chip').nth(before).waitFor({ timeout: 120000 })
+      await newerThan(before)
       await $('btn-live').click()
       await $('stage-card').nth(2).click()                          // Layers
       await $('neuron-total').waitFor({ timeout: 30000 })
@@ -286,6 +303,12 @@ try {
     await unstick.evaluate((el) => el.remove())
     await $('maxtok-input').fill('20')
     console.log('neurons.png')
+  }
+  // remove the runs made here (newest first); each is activated so its remove button shows
+  while (await topNum() > startNum) {
+    if (await $('btn-compare-exit').count()) await $('btn-compare-exit').click()
+    await $('run-chip-main').first().click({ position: { x: 15, y: 8 } })
+    await page.locator('[data-testid="run-chip"][data-active="true"] [data-testid="btn-chip-remove"]').click()
   }
 } finally {
   await context.close()

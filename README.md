@@ -44,7 +44,7 @@ and underlined words and ⓘ chips in the cards open the matching entry.
   to the stock `HuggingFaceTB/SmolLM2-135M-Instruct` export (~120 MB,
   schematic layers). Prefers WebGPU, falls back to WASM automatically.
 
-  With the real model the prompt bar offers two ways to run a prompt.
+  With the real model the prompt box offers two ways to run a prompt.
   **Continue text** feeds your words to the model as they are. **Chat**
   (real model only) wraps them in SmolLM2's chat template, so the model
   answers as the assistant. The system prompt is editable; leave it empty
@@ -367,14 +367,16 @@ probability ratios at the run's temperature.
 
 ## Comparing runs
 
-Every completed run is kept on a **run shelf** under the prompt bar —
-generation stops being fire-and-forget. Runs survive page reloads
-(IndexedDB), the eight most recent are kept automatically, a pin (📌)
-protects a run from falling off, and any run can be exported as a JSON
-trace file and imported back later — on another machine, or into a bug
-report.
+Every completed run is kept on a one-row **run shelf** under the prompt box,
+newest first — generation stops being fire-and-forget. The row shows the
+five newest runs and the active one; **+N more** opens the full list. Pin,
+copy link, download and remove appear on the active chip and on the chip
+under the pointer. Runs survive page reloads (IndexedDB), the eight most
+recent are kept automatically, a pin (📌) protects a run from falling off,
+and any run can be exported as a JSON trace file and imported back later
+(**Import**, top right) — on another machine, or into a bug report.
 
-Select two runs (**⇄ compare**, then click a second chip) and everything
+Select two runs (**⇄ Compare** in the header, then click a second chip) and everything
 below the shelf becomes a comparison view: both runs' parameters with
 differences highlighted, the two token streams aligned cycle by cycle,
 and — for runs with the same prompt — the **fork** marked: the first
