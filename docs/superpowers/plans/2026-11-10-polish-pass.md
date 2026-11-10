@@ -272,10 +272,12 @@ Component tests (extend the existing files):
 Review: yes.
 
 **Files:**
+- Create: `src/ui/tokenWash.ts`, `src/ui/tokenWash.test.ts`
 - Modify: `src/index.css`, `src/styleRules.test.ts`, `src/viz/details/TokenizerDetail.tsx`, `src/viz/details/SoftmaxDetail.tsx`, `src/viz/details/SamplerDetail.tsx`, `src/viz/EmbeddingLookup.tsx`, `src/viz/EmbeddingGeometry.tsx`, `src/viz/LogitsReadout.tsx`, `src/viz/LayerVotesCard.tsx`, `src/viz/NeuronCard.tsx`, `src/viz/TokenPopover.tsx`, `src/viz/compare/CompareView.tsx`, `src/glossary/entries/token.tsx`, and their tests
 
 **Interfaces:**
-- Produces: class `tok` (pill, monospace text at caption size, hairline border, washi ground, one line), `tok-sm`, `tok-pos-0` … `tok-pos-5` (the six washes, no border), `tok-away` (coral wash), child `tok-id` (label size, soft ink). States from Task 5: `is-picked`, `is-chosen`.
+- Produces, `src/ui/tokenWash.ts`: `washIndexes(ids: number[]): number[]`. For each position, the wash (0 to 5) of its token: a token id seen before reuses its wash; a new id takes `next % 6`, or the one after it if that equals the wash of the position just before, and `next` continues from the wash taken.
+- Produces: class `tok` (pill, monospace text at caption size, hairline border, washi ground, one line), `tok-sm`, `tok-wash-0` … `tok-wash-5` (the six washes, no border), `tok-away` (coral wash), child `tok-id` (label size, soft ink). States from Task 5: `is-picked`, `is-chosen`.
 - Produces: class `bar` (10px high, 2px corners, background `--ai`), `bar-chosen` (`--shu`), `bar-neg` (`--shu`). SVG bars that stay SVG use 10px height and `rx="2"` with the same colours.
 
 - [ ] **Step 1: Write the failing tests.**
@@ -283,8 +285,9 @@ Review: yes.
 Guards in `src/styleRules.test.ts`: the selectors `.token-chip`, `.hue-0` … `.hue-5`, `.hue-fill-0` … `.hue-fill-5`, `.mlp-cand`, `.neuron-chip`, `.cmp-bar`, `.popover-bar`, `.votes-bar`, `.neuron-size-bar`, `.bar-rect` are gone; `--vote-pos` and `--vote-pos-deep` are not used for bars (only the glossary vote figure may use them).
 
 Component tests:
-- `TokenizerDetail` / `EmbeddingLookup`: prompt-token chips have `tok` and `tok-pos-${i % 6}`.
-- `LogitsReadout`, `SoftmaxDetail`, `LayerVotesCard`, `NeuronCard`: candidate chips have `tok` and no `tok-pos-` class.
+- `src/ui/tokenWash.test.ts`: `washIndexes([504, 2644, 2643, 335, 260, 1171, 975, 260, 2644, 436])` equals `[0, 1, 2, 3, 4, 5, 0, 4, 1, 2]` (the repeated 260 and 2644 reuse 4 and 1; 436 would take 1, the wash just before it, so it takes 2); `washIndexes([])` equals `[]`; `washIndexes([7, 7, 7])` equals `[0, 0, 0]`.
+- `TokenizerDetail` / `EmbeddingLookup`: prompt-token chips have `tok` and `tok-wash-n` with n from `washIndexes` over the whole prompt (also when the system prompt is folded); two chips with the same token id carry the same wash class.
+- `LogitsReadout`, `SoftmaxDetail`, `LayerVotesCard`, `NeuronCard`: candidate chips have `tok` and no `tok-wash-` class.
 - `SamplerDetail`: the chosen line contains a `tok is-chosen` chip with the token text and "(id 16394)"-style text after it; no quotation marks.
 - `LogitsReadout`, `SoftmaxDetail`: the top candidate's bar has `bar-chosen`; no other bar has it.
 - Review Focus 1: a candidate whose text is 40 characters renders with a `title` holding the full text.

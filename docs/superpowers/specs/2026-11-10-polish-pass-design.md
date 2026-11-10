@@ -223,8 +223,12 @@ side" / "combined".
   (the neuron table's word lists, the compare distribution lists, the token
   pop-over).
 - Colour: the six washes appear only on prompt-token chips (Tokenizer,
-  Embeddings, the glossary's token example), by position, to tell neighbours
-  apart. Candidate chips carry no colour, in every card and at every step.
+  Embeddings, the glossary's token example). They are given out by word, in
+  order of first appearance (decided with the user): each new token takes the
+  next wash, skipping the wash of the chip just before it, and a repeated
+  token reuses the wash it already has. So the two "cat" chips of a prompt
+  match, as they are the same token and look up the same row. Candidate chips
+  carry no colour, in every card and at every step.
   The user chose this over a colour per candidate because a colour per
   candidate could hold only within one step.
 - States on a chip follow R3: picked, or chosen (coral border and wash).
