@@ -6,6 +6,8 @@
 // The archive keeps only 8 unpinned runs and evicts the oldest, and this script makes more than
 // that, so it pins every unpinned run it finds first and unpins exactly those at the end. If the
 // saved runs cannot be read or do not show up in the page, it stops before touching anything.
+// If it aborts after the first pin (error, Ctrl-C, SIGTERM), the same cleanup runs: runs made here
+// are removed and runs pinned here are unpinned.
 // Spawns its own dev server on port 5199 and drives a headed Chromium with a
 // persistent profile (.screenshots-profile/, gitignored) so the ~250 MB real
 // model stays cached across invocations — only the first run downloads it.
@@ -50,7 +52,16 @@ const context = await chromium.launchPersistentContext(PROFILE, {
 const only = process.argv.slice(2)
 const want = (scene) => only.length === 0 || only.includes(scene)
 
-let cleanup = null   // set once the archive state is known; also run when a scene fails
+let cleanup = null   // armed just before the first run is pinned; run when a scene fails or on Ctrl-C / SIGTERM
+let cleaning = null  // the cleanup in progress, so it never runs twice
+const runCleanup = () => (cleaning ??= cleanup())
+for (const sig of ['SIGINT', 'SIGTERM']) {
+  process.on(sig, async () => {
+    if (cleanup) await runCleanup().catch((e) => console.error('cleanup failed:', e))
+    stopServer()
+    process.exit(130)
+  })
+}
 try {
   await waitForServer()
   const page = context.pages()[0] ?? await context.newPage()
@@ -95,12 +106,7 @@ try {
     return chip
   }
   const closeList = async () => { if (await $('run-list').count()) await page.keyboard.press('Escape') }
-  const pinnedByScript = saved.filter((r) => !r.pinned).map((r) => r.seq)
-  for (const seq of pinnedByScript) {
-    const row = await rowOf(seq)
-    await row.getByTestId('btn-chip-pin').click()
-    await closeList()
-  }
+  const pinnedByScript = []   // filled as each run is pinned, so an abort part-way unpins exactly those
   // remove only the runs made here, then unpin the ones pinned at the start
   const madeHere = async () => {
     const nums = new Set()
@@ -112,18 +118,26 @@ try {
     }
     return [...nums].filter((n) => n > startNum)
   }
+  // armed before the first pin, so any later abort (error, Ctrl-C) undoes what has been done so far
   cleanup = async () => {
-  if (await $('btn-compare-exit').count()) await $('btn-compare-exit').click()
-  for (let left = await madeHere(); left.length > 0; left = await madeHere()) {
-    const row = await rowOf(left[0])
-    await row.getByTestId('btn-chip-remove').click()
-    await closeList()
+    if (await $('btn-compare-exit').count()) await $('btn-compare-exit').click()
+    for (let left = await madeHere(); left.length > 0; left = await madeHere()) {
+      const row = await rowOf(left[0])
+      await row.getByTestId('btn-chip-remove').click()
+      await closeList()
+    }
+    while (pinnedByScript.length > 0) {
+      const row = await rowOf(pinnedByScript[0])
+      await row.getByTestId('btn-chip-pin').click()
+      await closeList()
+      pinnedByScript.shift()
+    }
   }
-  for (const seq of pinnedByScript) {
+  for (const { seq } of saved.filter((r) => !r.pinned)) {
     const row = await rowOf(seq)
     await row.getByTestId('btn-chip-pin').click()
+    pinnedByScript.push(seq)
     await closeList()
-  }
   }
   const newerThan = (n) => page.waitForFunction((n) => {
     const t = document.querySelector('[data-testid="run-chip"]')?.textContent
@@ -366,10 +380,10 @@ try {
     await $('maxtok-input').fill('20')
     console.log('neurons.png')
   }
-  await cleanup()
+  await runCleanup()
   cleanup = null
 } catch (err) {
-  if (cleanup) await cleanup().catch((e) => console.error('cleanup failed:', e))
+  if (cleanup) await runCleanup().catch((e) => console.error('cleanup failed:', e))
   throw err
 } finally {
   await context.close()
