@@ -2,9 +2,11 @@ import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { expect, test } from 'vitest'
 
 const css = readFileSync('src/index.css', 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')
+// The two variable blocks: light (:root) and dark (:root[data-theme="dark"]).
 const rootMatch = css.match(/:root\s*\{([\s\S]*?)\n\}/)
+const darkMatch = css.match(/:root\[data-theme="dark"\]\s*\{([\s\S]*?)\n\}/)
 const rootBlock = rootMatch ? rootMatch[1] : ''
-const rest = rootMatch ? css.replace(rootMatch[0], '') : css
+const rest = [rootMatch, darkMatch].reduce((text, m) => (m ? text.replace(m[0], '') : text), css)
 
 const vars: Record<string, string> = {}
 for (const m of rootBlock.matchAll(/(--[\w-]+)\s*:\s*(#[0-9a-fA-F]{6})\s*;/g)) vars[m[1]] = m[2]
@@ -22,11 +24,13 @@ function contrast(a: string, b: string): number {
   return (hi + 0.05) / (lo + 0.05)
 }
 
-test('there is exactly one :root block', () => {
+test('there are exactly two variable blocks: :root and :root[data-theme="dark"]', () => {
   expect(css.match(/:root\s*\{/g)).toHaveLength(1)
+  expect(css.match(/:root\[data-theme="dark"\]\s*\{/g)).toHaveLength(1)
+  expect(css.match(/:root[^{]*\{/g)).toHaveLength(2)
 })
 
-test('no colour literals outside :root', () => {
+test('no colour literals outside the two variable blocks', () => {
   expect(rest.match(/#[0-9a-fA-F]{3,8}\b|\brgba?\(|\bhsla?\(/g) ?? []).toEqual([])
 })
 

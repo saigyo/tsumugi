@@ -32,6 +32,8 @@ import { createIndexedDbStorage } from './app/runStorage'
 import { useRunsStore } from './app/runsStore'
 import { CompareView } from './viz/compare/CompareView'
 import { GlossaryDrawer } from './glossary/GlossaryDrawer'
+import { ThemeToggle } from './app/ThemeToggle'
+import { initTheme } from './app/theme'
 import { HelpButton } from './glossary/HelpButton'
 import { runSummary } from './glossary/runSummary'
 
@@ -87,6 +89,7 @@ export default function App() {
     return () => { live = false }
   }, [])
 
+  useEffect(() => initTheme(), [])
   useEffect(() => { void initArchive(createIndexedDbStorage()) }, [])
   // a failed measurement belongs to the run it was made on
   useEffect(() => { useKnockoutRequest.setState({ error: null }) }, [activeId])
@@ -385,12 +388,13 @@ export default function App() {
     <div className="app">
       <header className="app-header">
         <h1><span className="app-mark">紬</span> Tsumugi <ModeBadge mode={mode} loading={loading} device={device} attentions={attn} /> <span className="app-subtitle">Watch a language model write, one token at a time</span></h1>
-        <HelpButton tools={
+        <HelpButton tools={<>
           <HeaderTools runCount={records.length} canArm={activeId !== null} selecting={compareArmed || compare !== null}
             onArmCompare={() => setCompareArmed(true)}
             onExitCompare={() => { setCompare(null); setCompareArmed(false) }}
             onImportFile={handleImportFile} />
-        } />
+          <ThemeToggle />
+        </>} />
       </header>
       <PromptBar mode={mode} onModeChange={chooseMode} onGenerate={handleGenerate}
         busy={mode === 'real' && !realReady} generating={generating} activity={activity} onStop={handleStop}

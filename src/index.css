@@ -78,6 +78,10 @@
   --t-formula: 1.05rem;
 }
 
+:root[data-theme="dark"] {
+  color-scheme: dark;
+}
+
 body {
   margin: 0;
   font-size: var(--t-body);
@@ -652,7 +656,7 @@ input[type="number"] { width: 4rem; }
   font-weight: 600; color: var(--ai-deep); background: var(--ai-wash); }
 .app-header .app-subtitle { margin-top: .4rem; }
 .app-header h1 { margin: 0; }
-.gl-help { margin-left: auto; display: flex; align-items: center; gap: .6rem; }
+.gl-help { margin-left: auto; display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: .6rem; }
 .hdr-btn, .gl-help-btn {
   font-size: var(--t-cap); color: var(--ink-soft); background: var(--card);
   border: 1px solid var(--line); border-radius: 8px; padding: .35rem .75rem; cursor: pointer;
