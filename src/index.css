@@ -191,7 +191,10 @@ input[type="number"] { width: 4rem; }
   position: absolute; top: calc(100% + 4px); left: 0; z-index: 10; background: var(--card);
   border: 1px solid var(--line-strong); border-radius: 8px; padding: .5rem .6rem;
   box-shadow: var(--shadow-pop); font-size: var(--t-cap); white-space: nowrap;
+  /* its own ink and weight: it sits inside a token, and the current token is white on indigo */
+  color: var(--ink); font-weight: 400;
 }
+.popover-note { color: var(--ink-soft); font-size: var(--t-label); margin: -.2rem 0 .3rem; }
 .popover-title { color: var(--ink-soft); margin-bottom: .3rem; }
 .popover-row { display: flex; align-items: center; gap: .4rem; line-height: 1.5; }
 .popover-row[data-chosen="true"] .popover-token { font-weight: 600; color: var(--shu); }

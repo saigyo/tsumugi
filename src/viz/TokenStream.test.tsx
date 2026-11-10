@@ -40,6 +40,18 @@ test('hovering a generated token shows its sampling distribution', () => {
   expect(chosen[0]).toHaveTextContent('sat')
 })
 
+test('while the popover shows, the id is inside it and the native tooltip is off', () => {
+  render(<TokenStream events={trace} cursor={trace.length - 1} />)
+  const tok = screen.getAllByTestId('generated-token')[0]
+  const title = tok.getAttribute('title')!
+  expect(title).toMatch(/^id \d+/)
+  fireEvent.mouseEnter(tok)
+  expect(tok).not.toHaveAttribute('title')
+  expect(screen.getByTestId('popover-note')).toHaveTextContent(title)
+  fireEvent.mouseLeave(tok)
+  expect(tok).toHaveAttribute('title', title)
+})
+
 test('mouse leave hides the popover; prompt tokens have none', () => {
   render(<TokenStream events={trace} cursor={trace.length - 1} />)
   const tok = screen.getAllByTestId('generated-token')[1]

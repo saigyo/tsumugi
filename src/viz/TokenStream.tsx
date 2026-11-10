@@ -35,14 +35,17 @@ export function TokenStream({ events, cursor }: { events: TraceEvent[]; cursor: 
       ))}
       {generated.map((t, i) => {
         const end = chat !== undefined && t.text === END_TOKEN
+        const note = end ? `id ${t.id} · end of turn: the model stopped here` : `id ${t.id}`
+        // the popover carries the id while it shows: a native tooltip would sit on top of it
+        const popped = hoveredCycle === t.cycle && dist !== undefined && dist !== null
         return (
           <span key={`g${i}`} data-testid="generated-token"
             className={`token token-generated${end ? ' token-end' : current === `g${i}` ? ' token-current' : ''}`}
-            title={end ? `id ${t.id} · end of turn: the model stopped here` : `id ${t.id}`}
+            title={popped ? undefined : note}
             onMouseEnter={() => setHoveredCycle(t.cycle)}
             onMouseLeave={() => setHoveredCycle(null)}>
             {visibleToken(t)}
-            {hoveredCycle === t.cycle && dist && <TokenPopover softmax={dist.softmax} sample={dist.sample} />}
+            {popped && <TokenPopover softmax={dist.softmax} sample={dist.sample} note={note} />}
           </span>
         )
       })}
