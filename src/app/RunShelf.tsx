@@ -53,10 +53,13 @@ export function RunShelf(p: RunShelfProps) {
     const row = rowEl.current
     const chip = row?.querySelector<HTMLElement>('[data-active="true"]')
     if (!row || !chip) return
-    if (chip.offsetLeft < row.scrollLeft) row.scrollLeft = chip.offsetLeft
-    else if (chip.offsetLeft + chip.offsetWidth > row.scrollLeft + row.clientWidth) {
-      row.scrollLeft = chip.offsetLeft + chip.offsetWidth - row.clientWidth
-    }
+    // offsetLeft is measured from the nearest positioned ancestor (the row is not one), so use bounding rects
+    const rowBox = row.getBoundingClientRect()
+    const chipBox = chip.getBoundingClientRect()
+    const left = chipBox.left - rowBox.left + row.scrollLeft
+    const right = left + chipBox.width
+    if (left < row.scrollLeft) row.scrollLeft = left
+    else if (right > row.scrollLeft + row.clientWidth) row.scrollLeft = right - row.clientWidth
   }, [p.activeId])
   const hiddenCount = shelfRow(p.records, [p.activeId, p.compare?.aId, p.compare?.bId]).hidden
   // no hidden runs left: forget that the list was open, so it stays closed when a later run hides one again
