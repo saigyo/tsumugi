@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Tsumugi — component rules (proposal)</title>
+<style>
+:root {
+  color-scheme: light;
+
+  --washi: #f6f3ea;        /* page ground */
+  --seg-ground: #f1eee4;   /* the track behind a two-way switch */
+  --card: #fcfbf6;         /* raised surfaces */
+  --white: #ffffff;
+  --on-ai: #ffffff;        /* text on an indigo fill (--fill, --fill-hover) */
+  --on-shu: #ffffff;       /* text on a vermillion fill (--shu) */
+  --on-fill-soft: #f6f3ea; /* text on --fill-hover in the ruler tick and mode button; light value is --washi */
+  --on-fill-note: #d3dfeb; /* secondary text on --fill (the 250 MB note); light value is --ai-wash-strong */
+  --ink: #2b2b31;          /* sumi text */
+  --ink-soft: #6e6b62;     /* secondary text */
+  --ink-faint: #726f66;    /* tertiary text, 4.5:1 on washi */
+
+  --ai-deep: #1d3a5f;      /* kon — darkest indigo */
+  --ai: #2f5d8a;           /* ai — working indigo */
+  --fill: #1d3a5f;         /* indigo fill; light value is --ai-deep */
+  --fill-hover: #2f5d8a;   /* indigo fill, hovered; light value is --ai */
+  --ai-soft: #86a3c0;      /* faded indigo */
+  --ai-mute: #4e7298;      /* soft indigo for text and info marks */
+  --ai-wash: #e9eef4;      /* pale indigo fill */
+  --ai-wash-strong: #d3dfeb;
+
+  --shu: #c94f38;          /* vermillion accent */
+  --shu-soft: #e2937f;
+  --shu-wash: #f8ece7;
+  --shu-deep: #a83a25;     /* vermillion as text on --shu-wash, 5.5:1 */
+  --shu-line: #e2937f;     /* banner border */
+
+  --line: #ded8c8;         /* warm hairline */
+  --line-strong: #beb7a4;
+
+  --dye-0: #dbe4ee;        /* indigo wash   */
+  --dye-1: #f3ded7;        /* shu wash      */
+  --dye-2: #ede3c8;        /* kihada mustard*/
+  --dye-3: #dde5cf;        /* matcha moss   */
+  --dye-4: #ecdde4;        /* ume plum      */
+  --dye-5: #d9e7ea;        /* mizu water    */
+
+  --mark-dot: #d08a1c;
+  --note-ink: #6b5a36;     /* chart notes: about 6.5:1 on the card */
+
+  --grain: rgba(43, 43, 49, 0.014);  /* body texture */
+  --shadow-card: 0 1px 3px rgba(43, 43, 49, 0.05);
+  --shadow-box: 0 2px 4px rgba(43, 43, 49, .05);
+  --shadow-accent: 0 1px 4px rgba(0, 0, 0, .08);
+  --shadow-pop: 0 3px 10px rgba(43, 43, 49, 0.12);
+  --shadow-tip: 0 2px 8px rgba(43, 43, 49, .2);
+  --shadow-drawer: -4px 0 16px rgba(43, 43, 49, .08);
+
+  --vote-pos: hsl(211 45% 45%);
+  --vote-pos-deep: hsl(211 45% 40%);
+  --vote-neg: hsl(13 55% 55%);
+  --ramp-lo: hsl(211 30% 94%);
+  --ramp-hi: hsl(211 55% 24%);
+  --div-neg: hsl(13 55% 50%);
+  --div-neg-lo: hsl(13 55% 90%);
+  --div-pos-lo: hsl(211 45% 88%);
+  --div-pos: hsl(211 45% 38%);
+
+  --sans: system-ui, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  --mark: 'Hiragino Mincho ProN', 'Yu Mincho', Georgia, serif;
+  --math: 'Latin Modern Math', math, 'STIX Two Math', 'Cambria Math', serif;
+
+  --t-title: 1.25rem;
+  --t-body: .95rem;
+  --t-cap: .82rem;
+  --t-label: .72rem;
+  --t-tick: .66rem;
+  --t-brand: 1.7rem;
+  --t-prompt: 1.3rem;
+  --t-mark: 1.25em;
+  --t-formula: 1.05rem;
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --washi: #0f1726;
+  --seg-ground: #0b111d;
+  --card: #16203a;
+  --white: #1b2740;
+  --on-ai: #ffffff;
+  --on-shu: #0f1726;
+  --on-fill-soft: #ffffff;
+  --on-fill-note: #e3eefc;
+  --ink: #e6ebf5;
+  --ink-soft: #a9b6cf;
+  --ink-faint: #94a2bd;
+
+  --ai-deep: #a9cbf5;
+  --ai: #6fa3e0;
+  --fill: #3566c9;
+  --fill-hover: #3f72d6;
+  --ai-soft: #4d6a94;
+  --ai-mute: #8fb0db;
+  --ai-wash: #1b2a47;
+  --ai-wash-strong: #26395e;
+
+  --shu: #ff7a5c;
+  --shu-soft: #b85c48;
+  --shu-wash: #33201f;
+  --shu-deep: #ff9a82;
+  --shu-line: #7a3b30;
+
+  --line: #26344f;
+  --line-strong: #3a4b6e;
+
+  --dye-0: #24385a;
+  --dye-1: #4a2c2a;
+  --dye-2: #453c1e;
+  --dye-3: #2c4030;
+  --dye-4: #44293a;
+  --dye-5: #1f4046;
+
+  --mark-dot: #f0a93a;
+  --note-ink: #d6c08a;
+
+  --grain: rgba(255, 255, 255, .012);
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, .35);
+  --shadow-box: 0 6px 22px rgba(0, 0, 0, .35);
+  --shadow-accent: 0 0 18px rgba(255, 122, 92, .35);
+  --shadow-pop: 0 6px 18px rgba(0, 0, 0, .5);
+  --shadow-tip: 0 2px 8px rgba(0, 0, 0, .5);
+  --shadow-drawer: -4px 0 16px rgba(0, 0, 0, .4);
+
+  --vote-pos: hsl(211 60% 62%);
+  --vote-pos-deep: hsl(211 60% 70%);
+  --vote-neg: hsl(13 80% 65%);
+  --ramp-lo: hsl(211 30% 16%);
+  --ramp-hi: hsl(211 70% 72%);
+  --div-neg: hsl(13 80% 62%);
+  --div-neg-lo: hsl(13 40% 22%);
+  --div-pos-lo: hsl(211 40% 24%);
+  --div-pos: hsl(211 65% 65%);
+}
+* { box-sizing: border-box; }
+body { margin: 0; font-family: var(--sans); font-size: var(--t-body); color: var(--ink); background: var(--washi); line-height: 1.45; }
+.page { max-width: 1180px; margin: 0 auto; padding: 1.5rem 1.2rem 4rem; }
+header.top { display: flex; align-items: center; gap: 1rem; margin-bottom: .4rem; }
+header.top h1 { font-size: 1.5rem; margin: 0; font-weight: 800; }
+header.top .mark { font-family: var(--mark); color: var(--ai-deep); }
+.lead { color: var(--ink-soft); max-width: 78ch; margin: 0 0 1.4rem; }
+section.rule { background: var(--card); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow-card); padding: 1rem 1.2rem 1.1rem; margin-bottom: 1.1rem; }
+section.rule > h2 { font-size: var(--t-title); color: var(--ai-deep); font-weight: 600; margin: 0 0 .2rem; }
+section.rule > p.say { margin: 0 0 .8rem; max-width: 86ch; }
+.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1.4rem; }
+.col > h3 { font-size: var(--t-tick); letter-spacing: .09em; text-transform: uppercase; color: var(--ink-faint); font-weight: 600; margin: 0 0 .5rem; }
+.col.new > h3 { color: var(--ai-deep); }
+.col.old { opacity: .92; }
+.row { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin-bottom: .55rem; }
+.lbl { font-size: var(--t-label); color: var(--ink-faint); min-width: 6.5rem; }
+.why { font-size: var(--t-cap); color: var(--ink-soft); margin: .4rem 0 0; max-width: 70ch; }
+.opt { border: 1px dashed var(--line-strong); border-radius: 8px; padding: .6rem .7rem; margin-bottom: .6rem; }
+.opt > b { display: block; font-size: var(--t-cap); color: var(--ai-deep); margin-bottom: .4rem; }
+table.fmt { border-collapse: collapse; font-size: var(--t-cap); }
+table.fmt th, table.fmt td { text-align: left; padding: .25rem .9rem .25rem 0; border-bottom: 1px solid var(--line); font-weight: 400; }
+table.fmt th { color: var(--ink-faint); font-size: var(--t-label); }
+table.fmt td.bad { color: var(--ink-soft); }
+table.fmt td.good { font-weight: 600; font-variant-numeric: tabular-nums; }
+.mono { font-family: var(--mono); }
+
+/* ---------- today (reproduced from the measured styles) ---------- */
+.t { font: inherit; cursor: pointer; }
+.t-base { color: var(--ink); background: var(--card); border: 1px solid var(--line-strong); border-radius: 6px; padding: .3rem .7rem; }
+.t-load { border: 1px solid var(--fill); background: var(--fill); color: var(--on-ai); border-radius: 8px; padding: .35rem .8rem; font-weight: 600; font-size: var(--t-cap); }
+.t-measure { background: var(--fill-hover); color: var(--on-ai); border: 0; border-radius: 4px; padding: .3rem .65rem; font-size: var(--t-cap); }
+.t-run { background: transparent; color: var(--ai); border: 1px solid var(--ai); border-radius: 4px; padding: .3rem .65rem; font-size: var(--t-cap); }
+.t-explore { font-size: var(--t-cap); color: var(--ai-deep); background: var(--ai-wash); border: 1px solid var(--line-strong); border-radius: 6px; padding: .25rem .6rem; }
+.t-hdr { font-size: var(--t-cap); color: var(--ink-soft); background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: .35rem .75rem; }
+.t-ctl { height: 2rem; min-width: 2.4rem; padding: 0 .6rem; border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--ink); font-size: var(--t-cap); }
+.t-gen { background: var(--shu); border: 1px solid var(--shu); color: var(--on-shu); font-weight: 600; padding: .6rem 1.4rem; border-radius: 10px; box-shadow: var(--shadow-accent); }
+.t-stop { color: var(--shu); border: 1px solid var(--shu-soft); background: var(--card); border-radius: 6px; padding: .3rem .7rem; }
+.t-step { font-size: var(--t-label); padding: 0 .4rem; border: 1px solid var(--line-strong); border-radius: 4px; background: var(--card); color: var(--ink); }
+.t-seg { display: inline-flex; align-items: center; gap: 2px; padding: 2px; border-radius: 8px; background: var(--seg-ground); }
+.t-seg > span { border-radius: 6px; color: var(--ink-soft); padding: .2rem .5rem; font-size: var(--t-cap); }
+.t-seg > span.on { background: var(--fill); color: var(--on-ai); }
+.t-mlpseg { display: inline-flex; border: 1px solid var(--line-strong); border-radius: 6px; overflow: hidden; }
+.t-mlpseg > span { font-size: var(--t-cap); background: var(--card); padding: .25rem .65rem; }
+.t-mlpseg > span + span { border-left: 1px solid var(--line-strong); }
+.t-mlpseg > span.on { background: var(--fill-hover); color: var(--on-ai); }
+.t-nav { padding: .1rem .6rem; border: 1px solid var(--line-strong); border-radius: 999px; font-size: var(--t-label); background: var(--washi); }
+.t-nav.on { background: var(--fill-hover); border-color: var(--fill-hover); color: var(--on-ai); }
+.t-tick { font-size: var(--t-label); border: 1px solid var(--line-strong); border-radius: 5px; background: var(--card); padding: .1rem .4rem; }
+.t-tick.on { background: var(--fill-hover); color: var(--on-fill-soft); border-color: var(--fill-hover); }
+.t-head { border: 1px solid var(--line-strong); background: var(--card); border-radius: 999px; padding: .15rem .7rem; font-size: var(--t-cap); }
+.t-head.on { border-color: var(--ai); background: var(--ai-wash-strong); color: var(--ai-deep); }
+.t-cand { font-size: var(--t-cap); border-radius: 999px; padding: .02rem .55rem; border: 1px solid transparent; background: var(--dye-2); }
+.t-cand.on { border-color: var(--shu); background: var(--shu-wash); }
+.t-tok { display: inline-block; border: 1px solid var(--line-strong); border-radius: 4px; padding: 0 .3rem; margin: 0 1px; background: var(--card); }
+.t-tok.gen { border-color: var(--ai); background: var(--ai-wash); }
+.t-tok.cur { background: var(--fill); border-color: var(--fill); color: var(--on-ai); }
+.t-chip { display: inline-flex; align-items: baseline; gap: .35rem; padding: .15rem .55rem; border-radius: 999px; }
+.t-chip small { font-size: var(--t-label); opacity: .7; font-family: var(--mono); }
+.t-cmp { border: 1px solid var(--line); border-radius: 5px; background: var(--washi); padding: .05rem .3rem; font-size: var(--t-cap); }
+.t-neu { display: inline-block; padding: 0 .45rem; border-radius: 999px; background: var(--ai-wash); font-size: var(--t-cap); }
+.h0 { background: var(--dye-0); } .h1 { background: var(--dye-1); } .h2 { background: var(--dye-2); } .h3 { background: var(--dye-3); } .h4 { background: var(--dye-4); } .h5 { background: var(--dye-5); }
+.t-tip1 { background: var(--ink); color: var(--card); font-size: var(--t-cap); line-height: 1.35; padding: .35rem .55rem; border-radius: 5px; box-shadow: var(--shadow-tip); max-width: 260px; }
+.t-tip1 em { color: var(--ai-wash-strong); font-style: normal; }
+.t-tip2 { background: var(--card); border: 1px solid var(--ai); border-radius: 5px; font-size: var(--t-label); line-height: 1.35; padding: .35rem .55rem; box-shadow: var(--shadow-accent); }
+.t-tip3 { font-size: var(--t-cap); background: var(--card); border: 1px solid var(--line); border-radius: 6px; padding: .4rem .6rem; }
+.t-tip4 { background: var(--card); border: 1px solid var(--line-strong); border-radius: 8px; padding: .5rem .6rem; box-shadow: var(--shadow-pop); font-size: var(--t-cap); }
+.glyphs { font-size: 1rem; display: inline-flex; gap: .7rem; align-items: center; }
+
+/* ---------- proposed ---------- */
+.btn { font: inherit; font-size: var(--t-cap); height: 2rem; padding: 0 .8rem; border-radius: 8px; border: 1px solid var(--line-strong);
+  background: var(--card); color: var(--ink); display: inline-flex; align-items: center; justify-content: center; gap: .4rem; cursor: pointer;
+  transition: background .15s, border-color .15s, color .15s; white-space: nowrap; }
+.btn:hover, .btn.hov { background: var(--ai-wash); border-color: var(--ai); }
+.btn.primary { background: var(--fill); border-color: var(--fill); color: var(--on-ai); font-weight: 600; }
+.btn.primary:hover, .btn.primary.hov { background: var(--fill-hover); border-color: var(--fill-hover); }
+.btn.accent { background: var(--shu); border-color: var(--shu); color: var(--on-shu); font-weight: 600; box-shadow: var(--shadow-accent); }
+.btn.accent:hover, .btn.accent.hov { background: var(--shu); border-color: var(--shu); filter: brightness(.93); }
+.btn.danger { color: var(--shu-deep); }
+.btn.danger:hover, .btn.danger.hov { background: var(--shu-wash); border-color: var(--shu); }
+.btn.quiet { border-color: transparent; background: none; color: var(--ai); padding: 0 .45rem; }
+.btn.quiet:hover, .btn.quiet.hov { background: var(--ai-wash); border-color: transparent; }
+.btn.lg { height: 2.5rem; padding: 0 1.4rem; font-size: var(--t-body); }
+.btn.sm { height: 1.5rem; padding: 0 .45rem; font-size: var(--t-label); border-radius: 4px; }
+.btn.icon { width: 2rem; padding: 0; } .btn.icon.sm { width: 1.5rem; }
+.btn:disabled { opacity: .45; cursor: default; }
+.btn svg, .ico { width: 1rem; height: 1rem; flex: none; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.btn.sm svg { width: .8rem; height: .8rem; }
+.ico .f, .btn svg .f { fill: currentColor; stroke: none; }
+.sw { display: inline-flex; align-items: center; gap: 2px; padding: 2px; border-radius: 8px; background: var(--seg-ground); }
+.sw > button { font: inherit; font-size: var(--t-cap); border: 0; border-radius: 6px; background: transparent; color: var(--ink-soft); padding: .2rem .6rem; cursor: pointer; }
+.sw > button:hover { color: var(--ink); }
+.sw > button.on { background: var(--fill); color: var(--on-ai); }
+.sw > button.on:hover { background: var(--fill-hover); }
+.pill { font: inherit; font-size: var(--t-cap); border: 1px solid var(--line-strong); background: var(--card); color: var(--ink); border-radius: 999px; padding: .15rem .7rem; cursor: pointer; transition: background .15s, border-color .15s; }
+.pill:hover { border-color: var(--ai); }
+.pill.on { background: var(--fill); border-color: var(--fill); color: var(--on-ai); }
+.pill.on:hover { background: var(--fill-hover); border-color: var(--fill-hover); }
+.pill.pick { border-color: var(--ai); background: var(--ai-wash-strong); color: var(--ai-deep); font-weight: 600; }
+.pill small { font-size: var(--t-label); color: var(--ink-soft); font-weight: 400; }
+.num { font: inherit; font-size: var(--t-label); font-variant-numeric: tabular-nums; min-width: 1.5rem; height: 1.5rem; border: 1px solid var(--line-strong); border-radius: 4px; background: var(--card); color: var(--ink); cursor: pointer; }
+.num:hover { border-color: var(--ai); background: var(--ai-wash); }
+.num.on { background: var(--fill); border-color: var(--fill); color: var(--on-ai); }
+.num.fork { border-color: var(--shu); }
+.tok { display: inline-flex; align-items: baseline; gap: .35rem; font-family: var(--mono); font-size: var(--t-cap); padding: .15rem .55rem; border-radius: 999px;
+  border: 1px solid var(--line); background: var(--washi); color: var(--ink); white-space: pre; }
+.tok small { font-size: var(--t-label); color: var(--ink-soft); }
+button.tok { cursor: pointer; transition: border-color .15s; }
+button.tok:hover { border-color: var(--ai); }
+.tok.pick { border-color: var(--ai); background: var(--ai-wash-strong); color: var(--ai-deep); font-weight: 600; }
+.tok.chosen { border-color: var(--shu); background: var(--shu-wash); }
+.tok.away { background: var(--shu-wash); border-color: transparent; }
+.tok.sm { padding: 0 .45rem; }
+.tok.d0 { background: var(--dye-0); border-color: transparent; } .tok.d1 { background: var(--dye-1); border-color: transparent; } .tok.d2 { background: var(--dye-2); border-color: transparent; }
+.tok.d3 { background: var(--dye-3); border-color: transparent; } .tok.d4 { background: var(--dye-4); border-color: transparent; } .tok.d5 { background: var(--dye-5); border-color: transparent; }
+button.tok[class*=" d"]:hover { border-color: var(--ai); }
+.bars { display: grid; grid-template-columns: max-content 220px max-content; gap: .3rem .6rem; align-items: center; }
+.bar { height: 10px; border-radius: 2px; background: var(--ai); }
+.bar.chosen { background: var(--shu); }
+.val { font-size: var(--t-cap); color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.tip { background: var(--card); color: var(--ink); border: 1px solid var(--line-strong); border-radius: 8px; box-shadow: var(--shadow-pop);
+  padding: .45rem .65rem; font-size: var(--t-cap); line-height: 1.4; max-width: 280px; white-space: normal; }
+.tip .more { color: var(--ink-soft); }
+.tip b { font-weight: 600; }
+.note { font-size: var(--t-cap); color: var(--ink-soft); margin: .2rem 0; }
+.fine { font-size: var(--t-label); color: var(--ink-faint); margin: .2rem 0; }
+.readout { font-size: var(--t-cap); color: var(--ai-deep); background: var(--ai-wash); border-radius: 8px; padding: .3rem .6rem; font-variant-numeric: tabular-nums; }
+.err { font-size: var(--t-cap); color: var(--shu-deep); background: var(--shu-wash); border: 1px solid var(--shu-line); border-radius: 8px; padding: .3rem .6rem; display: inline-flex; gap: .4rem; align-items: center; }
+.inner { border: 1px solid var(--line); border-radius: 14px; padding: .9rem 1rem; background: var(--card); box-shadow: var(--shadow-card); }
+.h-card { font-size: var(--t-title); color: var(--ai-deep); font-weight: 600; margin: 0 0 .3rem; }
+.h-inner { font-size: 1.05rem; color: var(--ai-deep); font-weight: 600; margin: 0 0 .3rem; }
+.theme-btn { margin-left: auto; }
+input[type="checkbox"].ck { accent-color: var(--fill); width: 1rem; height: 1rem; }
+select.sel { font: inherit; font-size: var(--t-cap); height: 2rem; border: 1px solid var(--line-strong); border-radius: 8px; background: var(--card); color: var(--ink); padding: 0 .5rem; }
+code.c { font-family: var(--mono); font-size: .92em; background: var(--washi); border: 1px solid var(--line); border-radius: 4px; padding: 0 .25rem; }
+@media (max-width: 860px) { .cols { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <symbol id="i-close" viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></symbol>
+    <symbol id="i-down" viewBox="0 0 16 16"><path d="M8 2.5v8M4.5 7.5L8 11l3.5-3.5M3 13.5h10"/></symbol>
+    <symbol id="i-up" viewBox="0 0 16 16"><path d="M8 11V3M4.5 6.5L8 3l3.5 3.5M3 13.5h10"/></symbol>
+    <symbol id="i-link" viewBox="0 0 16 16"><path d="M6.5 9.5l3-3M7.2 4.6l1-1a2.6 2.6 0 013.7 3.7l-1 1M8.8 11.4l-1 1a2.6 2.6 0 01-3.7-3.7l1-1"/></symbol>
+    <symbol id="i-pin" viewBox="0 0 16 16"><path d="M6 2.5h4l-.4 4 2.2 2.5H4.2l2.2-2.5zM8 9v4.5"/></symbol>
+    <symbol id="i-pinned" viewBox="0 0 16 16"><path fill="currentColor" stroke="none" d="M6 2.5h4l-.4 4 2.2 2.5H4.2l2.2-2.5z"/><path d="M6 2.5h4l-.4 4 2.2 2.5H4.2l2.2-2.5zM8 9v4.5"/></symbol>
+    <symbol id="i-compare" viewBox="0 0 16 16"><path d="M3 5.5h9.5M10 3l2.5 2.5L10 8M13 10.5H3.5M6 8l-2.5 2.5L6 13"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 16 16"><circle cx="8" cy="8" r="2.6"/><path d="M8 1.5v1.6M8 12.9v1.6M1.5 8h1.6M12.9 8h1.6M3.4 3.4l1.1 1.1M11.5 11.5l1.1 1.1M3.4 12.6l1.1-1.1M11.5 4.5l1.1-1.1"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 16 16"><path d="M13 9.6A5.6 5.6 0 016.4 3 5.6 5.6 0 1013 9.6z"/></symbol>
+    <symbol id="i-auto" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.5"/><path fill="currentColor" stroke="none" d="M8 2.5a5.5 5.5 0 010 11z"/></symbol>
+    <symbol id="i-info" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/><path d="M8 7.3v3.6"/><circle fill="currentColor" stroke="none" cx="8" cy="5" r=".9"/></symbol>
+    <symbol id="i-chev" viewBox="0 0 16 16"><path d="M4.5 6.5L8 10l3.5-3.5"/></symbol>
+    <symbol id="i-play" viewBox="0 0 16 16"><path fill="currentColor" stroke="none" d="M5 3.2l7.5 4.8L5 12.8z"/></symbol>
+    <symbol id="i-pause" viewBox="0 0 16 16"><path fill="currentColor" stroke="none" d="M4.5 3.5h2.4v9H4.5zM9.1 3.5h2.4v9H9.1z"/></symbol>
+    <symbol id="i-back" viewBox="0 0 16 16"><path fill="currentColor" stroke="none" d="M11 3.2L3.5 8l7.5 4.8z"/></symbol>
+    <symbol id="i-fwd" viewBox="0 0 16 16"><path fill="currentColor" stroke="none" d="M4 3.2L11.5 8 4 12.8z"/><path d="M12.6 3.5v9"/></symbol>
+    <symbol id="i-first" viewBox="0 0 16 16"><path d="M2.8 3.5v9"/><path fill="currentColor" stroke="none" d="M9 3.2L4 8l5 4.8zM14 3.2L9 8l5 4.8z"/></symbol>
+    <symbol id="i-last" viewBox="0 0 16 16"><path d="M13.2 3.5v9"/><path fill="currentColor" stroke="none" d="M7 3.2L12 8l-5 4.8zM2 3.2L7 8l-5 4.8z"/></symbol>
+    <symbol id="i-live" viewBox="0 0 16 16"><circle fill="currentColor" stroke="none" cx="8" cy="8" r="3.2"/></symbol>
+    <symbol id="i-left" viewBox="0 0 16 16"><path d="M9.5 4.5L6 8l3.5 3.5"/></symbol>
+    <symbol id="i-right" viewBox="0 0 16 16"><path d="M6.5 4.5L10 8l-3.5 3.5"/></symbol>
+  </defs>
+</svg>
+<div class="page">
+<header class="top">
+  <h1><span class="mark">紬</span> Tsumugi — one rule per element</h1>
+  <button class="btn theme-btn" onclick="const r=document.documentElement;r.dataset.theme=r.dataset.theme==='dark'?'light':'dark'">Switch light / dark</button>
+</header>
+<p class="lead">Reference sheet for docs/superpowers/specs/2026-11-10-polish-pass-design.md. Each box shows what the app does today on the left and the agreed rule on the right. Everything on the right is live: hover it, and use the button above to see it in dark. Nothing here changes layout, widths or animation; those come later.</p>
+
+<section class="rule">
+  <h2>1 · Buttons</h2>
+  <p class="say">Four kinds and three sizes replace the eleven styles in use. Corners are 8px; small buttons 4px. Hover never changes what a button means: plain buttons get a pale wash, filled buttons go one step lighter.</p>
+  <div class="cols">
+    <div class="col old"><h3>Today</h3>
+      <div class="row"><button class="t t-gen">Generate</button><button class="t t-stop">Stop</button></div>
+      <div class="row"><button class="t t-load">Load the real model</button><button class="t t-measure">Measure all 30 layers</button></div>
+      <div class="row"><button class="t t-explore">Explore all heads (270)</button><button class="t t-run">Run with MLP 29 off and compare</button><button class="t t-run">Copy link</button></div>
+      <div class="row"><button class="t t-hdr">⇄ Compare</button><button class="t t-hdr">⇧ Import</button><button class="t t-hdr">◐</button><button class="t t-hdr" style="font-weight:600">?</button></div>
+      <div class="row"><button class="t t-ctl">|◀◀</button><button class="t t-ctl">◀</button><button class="t t-ctl">▶</button><button class="t t-ctl">▶|</button><button class="t t-ctl">▶▶|</button><button class="t t-ctl">⏺ Live</button></div>
+      <div class="row"><span class="lbl">steppers, two sizes</span><button class="t t-base">◀</button><button class="t t-base">▶</button><button class="t t-step">◀</button><button class="t t-step">▶</button></div>
+    </div>
+    <div class="col new"><h3>Proposed</h3>
+      <div class="row"><span class="lbl">Accent (Generate only)</span><button class="btn danger lg">Stop</button><button class="btn accent lg" disabled><svg><use href="#i-live"/></svg>Generating…</button><span class="lbl" style="min-width:0">at rest:</span><button class="btn accent lg">Generate</button></div>
+      <div class="row"><span class="lbl">Main action</span><button class="btn primary">Load the real model</button><button class="btn primary">Measure all 30 layers</button></div>
+      <div class="row"><span class="lbl">Plain</span><button class="btn">Explore all heads (270)</button><button class="btn">Run with MLP 29 off and compare</button><button class="btn"><svg><use href="#i-link"/></svg>Copy link</button></div>
+      <div class="row"><span class="lbl">Header</span><button class="btn"><svg><use href="#i-compare"/></svg>Compare</button><button class="btn"><svg><use href="#i-up"/></svg>Import</button><button class="btn icon" title="Theme: auto"><svg><use href="#i-auto"/></svg></button><button class="btn icon" style="font-weight:600">?</button></div>
+      <div class="row"><span class="lbl">Playback</span><button class="btn icon"><svg><use href="#i-first"/></svg></button><button class="btn icon"><svg><use href="#i-back"/></svg></button><button class="btn icon"><svg><use href="#i-play"/></svg></button><button class="btn icon"><svg><use href="#i-fwd"/></svg></button><button class="btn icon"><svg><use href="#i-last"/></svg></button><button class="btn"><svg><use href="#i-live"/></svg>Live</button></div>
+      <div class="row"><span class="lbl">Quiet (text)</span><button class="btn quiet">Examples <svg><use href="#i-chev"/></svg></button><button class="btn quiet">System prompt <svg><use href="#i-chev"/></svg></button><button class="btn quiet">Reset to default</button></div>
+      <div class="row"><span class="lbl">Small (in cards)</span><button class="btn icon sm"><svg><use href="#i-left"/></svg></button><button class="btn icon sm"><svg><use href="#i-right"/></svg></button><button class="btn icon sm" disabled><svg><use href="#i-right"/></svg></button></div>
+      <div class="row"><span class="lbl">Shown hovered</span><button class="btn accent hov">Generate</button><button class="btn primary hov">Measure all 30 layers</button><button class="btn hov">Compare</button><button class="btn danger hov">Stop</button></div>
+      <p class="why">Stop is as tall as Generate and sits to its left, so it never lands under the pointer when Generate turns into “Generating…”.</p>
+    </div>
+  </div>
+</section>
+
+<section class="rule">
+  <h2>2 · What “selected” looks like</h2>
+  <p class="say">Three meanings, three looks, used the same way everywhere. <b>Filled indigo</b>: which view you are in. <b>Indigo outline on a pale wash</b>: which item you picked to inspect. <b>Coral</b>: what the model chose, and the stage you are on. Today these are mixed.</p>
+  <div class="cols">
+    <div class="col old"><h3>Today</h3>
+      <div class="row"><span class="t-seg"><span>Simulated</span><span class="on">Real model · 250 MB</span></span><span class="t-mlpseg"><span class="on">MLP</span><span>attention</span></span></div>
+      <div class="row"><span class="t-nav on">Overview</span><span class="t-nav">Attention</span><span class="t-nav">Votes</span><span class="t-tick">0</span><span class="t-tick">1</span><span class="t-tick on">2</span><span class="t-tick">3</span></div>
+      <div class="row"><span class="t-head on">previous-token L16·H0</span><span class="t-head">induction L17·H4</span></div>
+      <div class="row"><span class="t-cand on">&lt;|im_end|&gt;</span><span class="t-cand">␣It</span><span class="t-cand">␣Paris</span><span class="t-chip h3" style="border:1px solid var(--shu);box-shadow:0 0 0 2px var(--shu-wash)">␣fell <small>6641</small></span></div>
+    </div>
+    <div class="col new"><h3>Proposed</h3>
+      <div class="row"><span class="lbl">Which view</span><span class="sw"><button>Simulated</button><button class="on">Real model</button></span><span class="sw"><button class="on">MLP</button><button>attention</button><button>both</button></span><span class="sw"><button class="on">side by side</button><button>combined</button></span></div>
+      <div class="row"><span class="lbl"></span><button class="pill on">Overview</button><button class="pill">Attention</button><button class="pill">Votes</button><button class="num">0</button><button class="num">1</button><button class="num on">2</button><button class="num fork">3</button></div>
+      <div class="row"><span class="lbl">Picked item</span><button class="pill pick">previous-token <small>L16·H0</small></button><button class="pill">induction <small>L17·H4</small></button><button class="tok pick">&lt;|im_end|&gt;</button><button class="tok">␣It</button><button class="tok">␣Paris</button></div>
+      <div class="row"><span class="lbl">Model’s choice</span><span class="tok chosen">␣asleep</span><span class="bar chosen" style="width:120px"></span><span class="val">94%</span></div>
+      <p class="why">“· 250 MB” leaves the switch once the model is loaded. A coral outline no longer means “picked”; it only marks what the model chose.</p>
+    </div>
+  </div>
+</section>
+
+<section class="rule">
+  <h2>3 · Tokens</h2>
+  <p class="say">The token strip stays as it is: it is the text being written. Everywhere else a token is one chip: a pill with the token in the monospace font. Today there are seven looks.</p>
+  <div class="cols">
+    <div class="col old"><h3>Today</h3>
+      <div class="row"><span class="lbl">strip</span><span><span class="t-tok">The</span><span class="t-tok">␣cat</span><span class="t-tok gen">␣closed</span><span class="t-tok gen cur">␣asleep</span></span></div>
+      <div class="row"><span class="lbl">Embeddings</span><span class="t-chip h0">The <small>504</small></span><span class="t-chip h1">␣cat <small>2644</small></span><span class="t-chip h2">␣sat <small>2643</small></span></div>
+      <div class="row"><span class="lbl">Logits, Softmax</span><span class="t-chip h0 mono">␣asleep</span><span class="t-chip h1 mono">␣on</span><span class="t-chip h2 mono">␣had</span></div>
+      <div class="row"><span class="lbl">Votes, neurons</span><span class="t-cand on">&lt;|im_end|&gt;</span><span class="t-cand">␣It</span><span class="t-cand">␣Paris</span></div>
+      <div class="row"><span class="lbl">Neuron list</span><span class="t-neu">Changing</span><span class="t-neu">multiply</span><span class="t-neu" style="background:var(--shu-wash)">away from</span></div>
+      <div class="row"><span class="lbl">Compare</span><span class="t-cmp">␣they</span><span class="t-cmp">␣if</span><span class="lbl" style="min-width:0">Sampler</span><span style="color:var(--shu);font-weight:600">→ chose "␣asleep"</span></div>
+    </div>
+    <div class="col new"><h3>Proposed</h3>
+      <div class="opt"><b>Decided · Colour only tells neighbouring prompt tokens apart; candidates carry no colour</b>
+        <div class="row"><span class="lbl">Prompt tokens</span><span class="tok d0">The <small>504</small></span><span class="tok d1">␣cat <small>2644</small></span><span class="tok d2">␣sat <small>2643</small></span><span class="tok d3 pick">␣on <small>335</small></span></div>
+        <div class="row"><span class="lbl">Candidates</span><span class="tok chosen">␣asleep</span><span class="tok">␣on</span><span class="tok">␣had</span><span class="tok">␣there</span></div>
+        <div class="row"><span class="lbl">Votes, neurons</span><button class="tok pick">&lt;|im_end|&gt;</button><button class="tok">␣It</button><button class="tok">␣Paris</button></div>
+        <div class="row"><span class="lbl">Neuron list</span><span class="tok sm">Changing</span><span class="tok sm">multiply</span><span class="tok sm away">away from</span></div><div class="row"><span class="lbl">Sampler</span><span>chose <span class="tok chosen">␣asleep</span> (id 16394)</span></div>
+      </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="rule">
+  <h2>4 · Bars</h2>
+  <p class="say">One bar: 10px high, working indigo, coral for the chosen or top row. Replaces three blues and four shapes (cards, popover, compare, tables).</p>
+  <div class="cols">
+    <div class="col old"><h3>Today</h3>
+      <div class="row"><span class="lbl">Softmax card</span><span style="width:120px;height:12px;background:var(--ai)"></span></div>
+      <div class="row"><span class="lbl">Token popover</span><span style="width:120px;height:8px;border-radius:2px;background:var(--ai)"></span></div>
+      <div class="row"><span class="lbl">Compare</span><span style="width:120px;height:.55rem;border-radius:3px;background:var(--ai-soft)"></span></div>
+      <div class="row"><span class="lbl">Votes table</span><span style="width:120px;height:8px;border-radius:1px;background:var(--vote-pos)"></span></div>
+      <div class="row"><span class="lbl">Neuron size</span><span style="width:120px;height:10px;background:var(--ink-soft)"></span></div>
+    </div>
+    <div class="col new"><h3>Proposed</h3>
+      <div class="bars">
+        <span class="tok chosen">␣asleep</span><span><span class="bar chosen" style="display:block;width:94%"></span></span><span class="val">94%</span>
+        <span class="tok">␣on</span><span><span class="bar" style="display:block;width:4%"></span></span><span class="val">4%</span>
+        <span class="tok">␣had</span><span><span class="bar" style="display:block;width:1%"></span></span><span class="val">1%</span>
+        <span class="tok">␣there</span><span><span class="bar" style="display:block;width:1px"></span></span><span class="val">&lt;1%</span>
+      </div>
+      <p class="why">Positive and negative bars in the vote tables keep blue and coral, drawn in this same shape.</p>
+    </div>
+  </div>
+</section>
+
+<section class="rule">
+  <h2>5 · Tooltips and pop-ups</h2>
+  <p class="say">One surface for everything that floats: the card colour, a hairline border, 8px corners, the pop-up shadow. It reads the same in light and dark, which also fixes the light glossary tooltip in the dark theme and the coral glow on the neuron tooltip.</p>
+  <div class="cols">
+    <div class="col old"><h3>Today</h3>
+      <div class="row"><div class="t-tip1">Picking the next token from the probabilities. <em>Click to read more.</em></div><div class="t-tip2"><b>N1479</b><br>g 9.25 → SiLU 9.25</div></div>
+      <div class="row"><div class="t-tip3">MLP 29 — “&lt;|im_end|&gt;” 37% → 0%</div><div class="t-tip4">sampled from (T=0.8)<br>id 6370</div></div>
+    </div>
+    <div class="col new"><h3>Proposed</h3>
+      <div class="row" style="align-items:flex-start"><div class="tip">Picking the next token from the probabilities, by a weighted random draw or by taking the top one. <span class="more">Click to read more.</span></div>
+      <div class="tip"><b>N1479</b><br>g 9.25 → SiLU 9.25<br>× u 3.78 = h 34.94</div></div>
+      <p class="why">The browser’s own yellow tooltips stay only on chart cells, where they give the exact number.</p>
+    </div>
+  </div>
+</section>
+
+<section class="rule">
+  <h2>6 · Icons</h2>
+  <p class="say">A small drawn set replaces text symbols and the two colour emoji. Drawn icons have the same weight and size on every system; text symbols change with the fonts installed.</p>
+  <div class="cols">
+    <div class="col old"><h3>Today</h3>
+      <div class="row"><span class="glyphs">📌 🔗 ⇩ × ⇧ ⇄ ◐ ☀ ☾ ⓘ ▾ |◀◀ ◀ ▶ ⏸ ▶| ▶▶| ⏺</span></div>
+    </div>
+    <div class="col new"><h3>Proposed</h3>
+      <div class="row" style="gap:.8rem">
+        <svg class="ico"><use href="#i-pin"/></svg><svg class="ico" style="color:var(--shu)"><use href="#i-pinned"/></svg><svg class="ico"><use href="#i-link"/></svg><svg class="ico"><use href="#i-down"/></svg><svg class="ico"><use href="#i-close"/></svg><svg class="ico"><use href="#i-up"/></svg><svg class="ico"><use href="#i-compare"/></svg>
+        <svg class="ico"><use href="#i-auto"/></svg><svg class="ico"><use href="#i-sun"/></svg><svg class="ico"><use href="#i-moon"/></svg><svg class="ico" style="color:var(--ai)"><use href="#i-info"/></svg><svg class="ico"><use href="#i-chev"/></svg>
+        <svg class="ico"><use href="#i-first"/></svg><svg class="ico"><use href="#i-back"/></svg><svg class="ico"><use href="#i-play"/></svg><svg class="ico"><use href="#i-pause"/></svg><svg class="ico"><use href="#i-fwd"/></svg><svg class="ico"><use href="#i-last"/></svg><svg class="ico"><use href="#i-live"/></svg>
+      </div>
+      <div class="row"><span class="lbl">On a run chip</span>
+        <span style="display:inline-flex;align-items:center;height:2rem;border-radius:999px;background:var(--fill);color:var(--on-ai);padding:0 .5rem 0 .8rem;gap:.5rem;font-size:var(--t-cap)">#8 · 2 + 2
+          <span style="display:inline-flex;gap:.45rem;border-left:1px solid var(--ai-mute);padding-left:.5rem"><svg class="ico"><use href="#i-pin"/></svg><svg class="ico"><use href="#i-link"/></svg><svg class="ico"><use href="#i-down"/></svg><svg class="ico"><use href="#i-close"/></svg></span></span>
+        <span style="display:inline-flex;align-items:center;height:2rem;border-radius:999px;background:var(--card);border:1px solid var(--line);color:var(--ink-soft);padding:0 .8rem;gap:.4rem;font-size:var(--t-cap)">#6 · Hello <svg class="ico" style="color:var(--shu);width:.8rem;height:.8rem"><use href="#i-pinned"/></svg></span>
+      </div>
+      <p class="why">All chips in the runs row get one height, so the active one no longer stands taller.</p>
+    </div>
+  </div>
+</section>
+
+<section class="rule">
+  <h2>7 · Titles, notes and messages</h2>
+  <p class="say">Titles in sentence case; a card inside a card gets a smaller title. Notes are upright grey text (no italics, no indigo); the finest print is one step smaller. Errors look like errors. Text lines stop at about 72 characters in every card.</p>
+  <div class="cols">
+    <div class="col old"><h3>Today</h3>
+      <p class="h-card">Transformer layers</p>
+      <div class="inner" style="margin-bottom:.5rem"><p class="h-card">How much each layer changes the vector</p>
+        <p style="margin:0;color:var(--ink-soft);font-style:italic">Real model only: simulated runs have no MLP to measure. <button class="t t-load" style="font-size:var(--t-body);font-style:italic">Load the real model</button></p></div>
+      <p class="h-card" style="margin-top:.6rem">cycle 2 · distributions</p>
+      <p style="font-size:var(--t-cap);color:var(--ink-soft);font-style:italic;margin:.1rem 0">different prompts — aligned by generation cycle</p>
+      <p style="font-size:var(--t-cap);color:var(--ai-deep);margin:.1rem 0">64 of 576 dimensions (PCA-reduced, offline).</p>
+      <p style="font-size:var(--t-label);color:var(--ink-faint);margin:.1rem 0">not valid JSON</p>
+    </div>
+    <div class="col new"><h3>Proposed</h3>
+      <p class="h-card">Layers</p>
+      <div class="inner" style="margin-bottom:.5rem"><p class="h-inner">How much each layer changes the vector</p>
+        <p class="note" style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap">Real model only: simulated runs have no MLP to measure. <button class="btn primary">Load the real model</button></p></div>
+      <p class="h-card" style="margin-top:.6rem">Cycle 2 · Distributions</p>
+      <p class="note">The prompts differ, so the runs are lined up by generation cycle.</p>
+      <p class="note">64 of 576 dimensions (PCA-reduced, offline).</p>
+      <p class="readout">Hover a cell to see one layer’s vote.</p>
+      <p class="err" style="margin-top:.4rem"><svg class="ico"><use href="#i-info"/></svg>This file is not a Tsumugi run: it is not valid JSON.</p>
+      <p class="why">Card titles start with the stage’s name: “Layers”, “Sampler (top-k)”.</p>
+    </div>
+  </div>
+</section>
+
+<section class="rule">
+  <h2>8 · Numbers</h2>
+  <p class="say">One formatter for the whole app.</p>
+  <div class="cols">
+    <div class="col old" style="grid-column: 1 / -1">
+      <table class="fmt">
+        <tr><th>What</th><th>Today</th><th>Proposed</th><th>Rule</th></tr>
+        <tr><td>Large counts</td><td class="bad">49 152 · 1,536 · 1416 · 1536</td><td class="good">49 152 · 1536 · 1416</td><td>Thin space from 10 000 up; four digits stay together. No commas.</td></tr>
+        <tr><td>Negative numbers</td><td class="bad">−0.15 · -0.51 · ~-79%</td><td class="good">−0.15 · −0.51 · ≈ −79 pts</td><td>A real minus sign; “≈” for approximate; differences between percentages are points.</td></tr>
+        <tr><td>Percentages</td><td class="bad">94% · 90 % · 0% (for 0.3%)</td><td class="good">94% · 90% · &lt;1%</td><td>No space; “0%” only for an exact zero.</td></tr>
+        <tr><td>Decimals</td><td class="bad">T=0.8 beside a field showing 0,8</td><td class="good">0.8 everywhere</td><td>A decimal point on every system, also in the Temperature field.</td></tr>
+        <tr><td>Votes and changes</td><td class="bad">+4.29 · 16.36 · +63 pts</td><td class="good">+4.29 · 16.36 · +63 pts</td><td>Unchanged: a sign on anything that is a push or a change, none on a total.</td></tr>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section class="rule">
+  <h2>9 · Small things</h2>
+  <div class="cols">
+    <div class="col old"><h3>Today</h3>
+      <div class="row"><label style="display:inline-flex;gap:.3rem;align-items:center;font-size:var(--t-cap);color:var(--ink-soft)"><input type="checkbox" checked> Show system prompt</label>
+        <select style="font:inherit;background:var(--card);border:1px solid var(--line-strong);border-radius:6px;padding:.1rem .25rem;font-size:var(--t-cap)"><option>layer</option></select></div>
+      <div class="row"><span><strong>You are watching a simulation.</strong> · <code>&lt;|im_start|&gt;user</code></span></div>
+    </div>
+    <div class="col new"><h3>Proposed</h3>
+      <div class="row"><label style="display:inline-flex;gap:.4rem;align-items:center;font-size:var(--t-cap);color:var(--ink-soft)"><input class="ck" type="checkbox" checked> Show system prompt</label>
+        <select class="sel"><option>layer</option></select></div>
+      <div class="row"><span><b style="font-weight:600">You are watching a simulation.</b> · <code class="c">&lt;|im_start|&gt;user</code></span></div>
+      <p class="why">Tick boxes in indigo, drop-downs sized like buttons, bold at the app’s semibold weight, code in the app’s monospace font.</p>
+    </div>
+  </div>
+</section>
+</div>
+</body>
+</html>
