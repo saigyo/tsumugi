@@ -20,16 +20,17 @@ export function divFill(v: number, peak: number): string {
     : `color-mix(in hsl, var(--div-neg) ${p}%, var(--div-neg-lo))`
 }
 
-// the canvas colour function the ends are read and written in (kept out of a literal so the colour-literal guard stays strict)
+// the canvas colour function the result is written in (kept out of a literal so the colour-literal guard stays strict)
 const CANVAS_FN = 'rgb'
 
-type Rgb = [number, number, number]
+type Hsl = [number, number, number]   // degrees, 0..1, 0..1
+type Rgb = [number, number, number]       // 0..255
 
-function parseRgb(css: string): Rgb {
-  const n = css.match(/-?\d*\.?\d+/g)?.slice(0, 3).map(Number)
-  return n && n.length === 3 ? [n[0], n[1], n[2]] : [0, 0, 0]
-}
-function toHsl([r, g, b]: Rgb): Rgb {
+const NUM = '(-?\\d*\\.?\\d+)'
+const HSL_RE = new RegExp(`^hsla?\\(\\s*${NUM}(?:deg)?[\\s,]+${NUM}%[\\s,]+${NUM}%`, 'i')
+const RGB_RE = new RegExp(`^rgba?\\(\\s*${NUM}[\\s,]+${NUM}[\\s,]+${NUM}`, 'i')
+
+function rgbToHsl([r, g, b]: Rgb): Hsl {
   r /= 255; g /= 255; b /= 255
   const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min
   const l = (max + min) / 2
@@ -38,7 +39,7 @@ function toHsl([r, g, b]: Rgb): Rgb {
   const h = max === r ? ((g - b) / d + 6) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4
   return [h * 60, s, l]
 }
-function fromHsl([h, s, l]: Rgb): Rgb {
+function hslToRgb([h, s, l]: Hsl): Rgb {
   const a = s * Math.min(l, 1 - l)
   const f = (n: number) => {
     const k = (n + h / 30) % 12
@@ -47,24 +48,54 @@ function fromHsl([h, s, l]: Rgb): Rgb {
   return [f(0), f(8), f(4)]
 }
 
-// for canvas: the same mixing done in JS from end colours read off the document ('rgb(r, g, b)')
+// hsl() is taken as written, so the hue and saturation of a pale end are not
+// disturbed by an 8-bit round trip; rgb() and #hex go through rgb. Anything else is null.
+function parseColour(css: string): Hsl | null {
+  const c = css.trim()
+  const hsl = HSL_RE.exec(c)
+  if (hsl) return [((Number(hsl[1]) % 360) + 360) % 360, Number(hsl[2]) / 100, Number(hsl[3]) / 100]
+  const rgb = RGB_RE.exec(c)
+  if (rgb) return rgbToHsl([Number(rgb[1]), Number(rgb[2]), Number(rgb[3])])
+  const hex = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(c)?.[1]
+  if (hex) {
+    const full = hex.length === 3 ? [...hex].map((x) => x + x).join('') : hex
+    return rgbToHsl([0, 2, 4].map((i) => parseInt(full.slice(i, i + 2), 16)) as Rgb)
+  }
+  return null
+}
+
+// the light theme's ends, used when a custom property holds something unparseable
+const FALLBACK_LO: Hsl = [211, 0.3, 0.94]
+const FALLBACK_HI: Hsl = [211, 0.55, 0.24]
+
+// for canvas: the same mixing as the CSS ramp, done in JS from the end colours
+// (hsl(), rgb() or #hex); an unparseable end falls back to the light theme's.
 export function seqRgb(t: number, lo: string, hi: string): string {
   const u = clamp01(t)
-  const a = toHsl(parseRgb(lo)), b = toHsl(parseRgb(hi))
+  const a = parseColour(lo) ?? FALLBACK_LO
+  const b = parseColour(hi) ?? FALLBACK_HI
   // a grey end has no hue of its own: take the other's, as CSS does
   const ha = a[1] === 0 ? b[0] : a[0], hb = b[1] === 0 ? a[0] : b[0]
   const dh = ((hb - ha + 540) % 360) - 180
-  const m: Rgb = [(ha + dh * u + 360) % 360, a[1] + (b[1] - a[1]) * u, a[2] + (b[2] - a[2]) * u]
-  const [r, g, bl] = fromHsl(m).map((x) => Math.round(Math.min(255, Math.max(0, x))))
+  const m: Hsl = [(ha + dh * u + 360) % 360, a[1] + (b[1] - a[1]) * u, a[2] + (b[2] - a[2]) * u]
+  const [r, g, bl] = hslToRgb(m).map((x) => Math.round(Math.min(255, Math.max(0, x))))
   return `${CANVAS_FN}(${r}, ${g}, ${bl})`
 }
 
-// the two ramp end points as the browser resolves them right now ('rgb(...)')
+// The two ramp end points as the custom properties are written (full precision).
+// A value this file cannot parse (oklch(), color(), var(...)) is resolved by the
+// browser to an rgb colour instead; failing that, seqRgb's fallback applies.
 export function readRampEnds(): { lo: string; hi: string } {
-  const probe = document.createElement('span')
-  document.body.appendChild(probe)
-  const read = (v: string) => { probe.style.color = `var(${v})`; return getComputedStyle(probe).color }
+  const root = getComputedStyle(document.documentElement)
+  let probe: HTMLElement | null = null
+  const read = (name: string) => {
+    const raw = root.getPropertyValue(name).trim()
+    if (parseColour(raw)) return raw
+    probe ??= document.body.appendChild(document.createElement('span'))
+    probe.style.color = `var(${name})`
+    return getComputedStyle(probe).color
+  }
   const ends = { lo: read('--ramp-lo'), hi: read('--ramp-hi') }
-  probe.remove()
+  ;(probe as HTMLElement | null)?.remove()
   return ends
 }
