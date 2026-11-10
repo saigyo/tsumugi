@@ -52,7 +52,7 @@ export function ResidualStreamDiagram({ seqLen, dims, layers }: {
         <path d="M262 58 h30 v30" fill="none" className="rs-branch" />
         <circle cx="292" cy="88" r="7" className="rs-adder" />
         <text x="292" y="92" textAnchor="middle" className="rs-plus">+</text>
-        <text x="190" y="30" textAnchor="middle" className="rs-note">mixes across tokens — heatmap rows are the weights</text>
+        <text x="170" y="30" textAnchor="middle" className="rs-note">mixes across tokens — heatmap rows are the weights</text>
         {/* + MLP branch */}
         <path d="M330 88 v-30 h26" fill="none" className="rs-branch" />
         <g data-testid="rs-term-mlp" {...boxProps('mlp')}>
@@ -62,7 +62,7 @@ export function ResidualStreamDiagram({ seqLen, dims, layers }: {
         <path d="M444 58 h26 v30" fill="none" className="rs-branch" />
         <circle cx="470" cy="88" r="7" className="rs-adder" />
         <text x="470" y="92" textAnchor="middle" className="rs-plus">+</text>
-        <text x="440" y="30" textAnchor="middle" className="rs-note">each position independently</text>
+        <text x="400" y="30" textAnchor="middle" className="rs-note">each position independently</text>
       </svg>
       {tip && (
         <span role="tooltip" data-testid="gl-tip" className="gl-tip gl-tip-svg" style={{ left: TIP_X[tip], top: 78 }}>

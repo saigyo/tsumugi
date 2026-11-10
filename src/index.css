@@ -7,6 +7,7 @@
   color-scheme: light;
 
   --washi: #f6f3ea;        /* page ground */
+  --seg-ground: #f1eee4;   /* the track behind a two-way switch */
   --card: #fcfbf6;         /* raised surfaces */
   --white: #ffffff;
   --on-ai: #ffffff;        /* text on an indigo fill */
@@ -148,12 +149,12 @@ input[type="number"] { width: 4rem; }
   background: var(--washi); white-space: nowrap; }
 .chip label { display: inline-flex; align-items: center; gap: .3rem; font-size: var(--t-cap); color: var(--ink-soft); }
 .chip input {
-  width: 4ch; padding: .05rem .2rem; border: 1px solid transparent; background: transparent;
+  width: 4ch; field-sizing: content; min-width: 2ch; padding: .05rem .2rem; border: 1px solid transparent; background: transparent;
   color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; border-radius: 4px;
   text-align: left; -moz-appearance: textfield; appearance: textfield;
 }
 .chip input::-webkit-inner-spin-button, .chip input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
-.chip input.seed-input { width: 12ch; }
+.chip input.seed-input { width: 12ch; field-sizing: fixed; }
 .chip input::placeholder { color: var(--ink-faint); font-weight: 400; }
 .chip input:hover { border-color: var(--line-strong); }
 .chip:has(input:focus) { background: var(--white); box-shadow: 0 0 0 1.5px var(--ai); }
@@ -363,27 +364,28 @@ input[type="number"] { width: 4rem; }
   color: var(--ink-faint); font-weight: 600; }
 .run-row { display: flex; flex-wrap: nowrap; align-items: center; gap: .4rem; min-width: 0;
   overflow-x: auto; padding: 2px 0; scrollbar-width: thin; }
-.run-chip { flex: none; display: inline-flex; align-items: center; border: 1px solid var(--line);
+.run-chip { position: relative; flex: 0 1 auto; min-width: 8.5rem; display: inline-flex; align-items: center; border: 1px solid var(--line);
   border-radius: 999px; background: var(--card); color: var(--ink-soft); white-space: nowrap; }
 .run-chip:hover, .run-chip:focus-within { border-color: var(--ai); color: var(--ink); }
-.run-chip[data-active="true"] { background: var(--ai-deep); border-color: var(--ai-deep); color: var(--on-ai); }
+.run-chip[data-active="true"] { background: var(--ai-deep); border-color: var(--ai-deep); color: var(--on-ai); flex-shrink: 0; }
 .run-chip[data-role="a"], .run-chip[data-role="b"] { border-color: var(--shu); background: var(--shu-wash); color: var(--ink); }
 .run-chip[data-role="a"] .run-chip-main::before, .run-chip[data-role="b"] .run-chip-main::before {
   font-weight: 600; margin-right: .3rem; }
 .run-chip[data-role="a"] .run-chip-main::before { content: "A"; }
 .run-chip[data-role="b"] .run-chip-main::before { content: "B"; }
 .run-chip-main { font: inherit; font-size: var(--t-cap); background: none; border: none; cursor: pointer;
-  padding: .3rem .7rem; color: inherit; border-radius: 999px; }
+  padding: .3rem .7rem; color: inherit; border-radius: 999px; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+/* the chip and the list row carry the hover state themselves; the global button hover must not tint the label button */
+.run-chip-main:hover:not(:disabled), .run-list-main:hover:not(:disabled) { background: none; border-color: transparent; }
 .run-chip-glyph { color: var(--ai-mute); margin-right: .35rem; }
 .run-chip[data-active="true"] .run-chip-glyph { color: var(--on-ai); }
 .run-chip[data-role] .run-chip-glyph { color: var(--ai-mute); }
-.run-chip-pinmark { font-size: var(--t-tick); margin: 0 .5rem 0 -.3rem; }
-.run-chip-actions { display: none; align-items: center; margin: .15rem .35rem .15rem 0; padding-left: .3rem;
+.run-chip-pinmark { flex: none; font-size: var(--t-tick); margin: 0 .5rem 0 -.3rem; }
+.run-chip-actions { flex: none; display: none; align-items: center; margin: .15rem .35rem .15rem 0; padding-left: .3rem;
   border-left: 1px solid var(--line); }
 .run-chip[data-active="true"] .run-chip-actions { border-left-color: var(--ai-mute); }
 .run-chip[data-active="true"] .run-chip-actions, .run-chip:hover .run-chip-actions,
 .run-chip:focus-within .run-chip-actions { display: inline-flex; }
-.run-chip:hover .run-chip-pinmark, .run-chip:focus-within .run-chip-pinmark,
 .run-chip[data-active="true"] .run-chip-pinmark { display: none; }
 .run-chip-action { font: inherit; font-size: var(--t-cap); background: none; border: none; cursor: pointer; border-radius: 999px;
   color: var(--ink-faint); padding: .1rem .25rem; }
@@ -528,7 +530,9 @@ input[type="number"] { width: 4rem; }
 /* one grid for the whole list, so the chip column is as wide as the widest chip and every bar starts on the same line */
 .softmax-bars { display: grid; grid-template-columns: minmax(6rem, max-content) 200px 3rem auto; gap: .3rem .5rem;
   align-items: center; margin: .6rem 0 .4rem; }
-.softmax-candidate { display: contents; }
+.softmax-candidate { display: grid; grid-template-columns: subgrid; grid-column: 1 / -1; align-items: center;
+  border: 1px solid transparent; border-radius: 6px; padding: .1rem .3rem; }
+.softmax-candidate[data-top="true"] { border-color: var(--shu); background: var(--shu-wash); box-shadow: 0 0 0 2px var(--shu-wash); }
 .softmax-logit { font-variant-numeric: tabular-nums; font-size: var(--t-label); color: var(--ink-faint); }
 .readout-equation { display: grid; grid-template-columns: auto auto auto auto minmax(0, 1fr);
   gap: .6rem .8rem; align-items: start; overflow-x: auto; }
@@ -544,7 +548,7 @@ input[type="number"] { width: 4rem; }
 .readout-candidate[data-selected="true"] { border-color: var(--shu); background: var(--shu-wash); box-shadow: 0 0 0 2px var(--shu-wash); }
 .readout-candidate[data-selected="true"] .bar-rect, .softmax-candidate[data-top="true"] .bar-rect { fill: var(--shu); }
 .readout-candidate .token-chip, .softmax-candidate .token-chip { justify-self: start; max-width: 9rem; overflow: hidden; }
-.readout-candidate .chip-text, .softmax-candidate .chip-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.readout-candidate .chip-text, .softmax-candidate .chip-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: var(--mono); }
 .readout-nostrip { display: inline-block; width: 128px; height: 10px; border-bottom: 1px dotted var(--ai-soft); }
 .readout-bench { border-top: 1px solid var(--line); margin-top: .8rem; padding-top: .6rem; }
 .readout-bench-rows { display: grid; grid-template-columns: 4.5rem auto; gap: .35rem .6rem; align-items: center; }
@@ -741,7 +745,7 @@ math { font-family: var(--math); color: var(--ink); }
   background: var(--card); font-size: var(--t-label); line-height: 1.35; box-shadow: var(--shadow-accent); pointer-events: none;
   display: grid; z-index: 1; }
 .step-box-labels { color: var(--ink-soft); }
-.step-strip-mono { font-variant-numeric: tabular-nums; }
+.step-strip-mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
 .step-strip-sum { font-weight: 600; color: var(--ink); }
 .step-bar-pos { fill: var(--ai); } .step-bar-neg { fill: var(--shu); }
 .step-squash { fill: var(--dye-2); fill-opacity: .35; }
@@ -750,7 +754,7 @@ math { font-family: var(--math); color: var(--ink); }
 .step-curve { fill: none; stroke: var(--ink); stroke-width: 1.5; }
 .step-axis { font-size: var(--t-tick); fill: var(--ink-soft); }
 .step-note { font-size: var(--t-tick); fill: var(--note-ink); }
-.step-name { font-size: var(--t-tick); fill: var(--ink); }
+.step-name { font-family: var(--mono); font-size: var(--t-tick); fill: var(--ink); }
 @media (max-width: 700px) { .step-row { grid-template-columns: minmax(0, 1fr); } }
 .mlp-tick { font-size: var(--t-tick); fill: var(--ink-faint); }
 .mlp-grid-line { stroke: var(--line); stroke-width: .6; }
@@ -808,9 +812,10 @@ math { font-family: var(--math); color: var(--ink); }
 .mlp-fold { border-style: dashed; color: var(--ink-soft); }
 .mlp-cells-empty { min-height: 1px; }
 
-.seg { display: inline-flex; align-items: center; border: 1px solid var(--ai-soft); border-radius: 6px; overflow: hidden; }
-.seg > button { border: 0; border-radius: 0; background: var(--card); color: var(--ai); padding: .35rem .7rem; font-size: var(--t-cap); }
-.seg > button[aria-pressed="true"] { background: var(--ai); color: var(--on-ai); }
+.seg { display: inline-flex; align-items: center; gap: 2px; padding: 2px; border-radius: 8px; background: var(--seg-ground); }
+.seg > button { border: 0; border-radius: 6px; background: transparent; color: var(--ink-soft); padding: .2rem .65rem; font-size: var(--t-cap); }
+.seg > button:hover:not([aria-pressed="true"]) { color: var(--ink); }
+.seg > button[aria-pressed="true"] { background: var(--ai-deep); color: var(--on-ai); }
 .seg > button[aria-busy="true"] { background: var(--ai-wash); }
 .seg > button[aria-pressed="true"] .mode-note { color: var(--ai-wash-strong); }
 .seg .gl-term-wrap { padding: 0 .4rem; }

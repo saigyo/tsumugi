@@ -114,7 +114,7 @@ function VotesBody({ candidates, selected, onSelect, onLayer }: {
 }
 
 // The running-score chart's frame, in viewBox units.
-const W = 440, H = 190, X0 = 34, X1 = 380, Y0 = 160, TOP = 12
+const W = 470, H = 190, X0 = 34, X1 = 380, Y0 = 160, TOP = 12
 
 function RunningScore({ candidates, selected }: { candidates: VotedCandidate[]; selected: number }) {
   const series = candidates.map((c) => layerTotals(c.votes))
@@ -133,7 +133,7 @@ function RunningScore({ candidates, selected }: { candidates: VotedCandidate[]; 
   const named = new Set([selected, ...series.map((s, r) => ({ r, end: s.at(-1)! }))
     .sort((a, b) => b.end - a.end).slice(0, 4).map((e) => e.r)])
   const ends = series.map((s, r) => ({ r, y: y(s.at(-1)!) })).filter((e) => named.has(e.r)).sort((a, b) => a.y - b.y)
-  for (let i = 1; i < ends.length; i++) ends[i].y = Math.max(ends[i].y, ends[i - 1].y + 10)
+  for (let i = 1; i < ends.length; i++) ends[i].y = Math.max(ends[i].y, ends[i - 1].y + 12)
   const sel = candidates[selected]
   return (
     <figure className="mlp-chart-fig">

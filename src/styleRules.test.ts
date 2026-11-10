@@ -31,7 +31,7 @@ test('no colour literals outside :root', () => {
 })
 
 test.each([
-  ['--ink', '--washi'], ['--ink-soft', '--washi'], ['--ink-soft', '--card'],
+  ['--ink', '--washi'], ['--ink-soft', '--washi'], ['--ink-soft', '--card'], ['--ink-soft', '--seg-ground'],
   ['--ink-faint', '--washi'], ['--ink-faint', '--card'],
   ['--ai-mute', '--white'], ['--ai-mute', '--washi'], ['--ai-mute', '--card'],
   ['--on-ai', '--ai-deep'], ['--on-ai', '--shu'], ['--ai-deep', '--ai-wash'], ['--note-ink', '--card'],
