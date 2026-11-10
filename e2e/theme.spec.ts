@@ -25,6 +25,19 @@ test('the inline script in index.html sets the theme before the app module runs'
   await page.goto('/', { waitUntil: 'domcontentloaded' })
   expect(await page.evaluate(() => document.documentElement.dataset.theme)).toBe('dark')
   expect(await page.getByTestId('theme-toggle').count()).toBe(0) // the app did not start
-  const bg = await page.evaluate(() => getComputedStyle(document.body).backgroundColor)
-  expect(bg).not.toBe('rgb(255, 255, 255)')
+  // Only the attribute is provable here: under the dev server the stylesheet is imported by the
+  // blocked module, so no CSS is loaded and the body background says nothing about the theme.
+})
+
+test('the body background follows the theme', async ({ page }) => {
+  await page.goto('/', { waitUntil: 'domcontentloaded' })
+  await page.evaluate(() => localStorage.clear())
+  await page.reload({ waitUntil: 'domcontentloaded' })
+  const toggle = page.getByTestId('theme-toggle')
+  const bodyBg = () => page.evaluate(() => getComputedStyle(document.body).backgroundColor)
+  await expect(toggle).toBeVisible()
+  expect(await bodyBg()).toBe('rgb(15, 23, 38)') // dark --washi (#0f1726), system dark
+  await toggle.click() // light
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light')
+  expect(await bodyBg()).toBe('rgb(246, 243, 234)') // light --washi (#f6f3ea)
 })

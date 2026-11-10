@@ -16,9 +16,15 @@ const hexVars = (block: string) => {
 }
 const themes: Record<string, Record<string, string>> = { light: hexVars(rootBlock), dark: hexVars(darkBlock) }
 // Colour variables: those whose light value holds a colour literal or a shadow.
+// Colour literals: hex and every colour function except color-mix (which mixes variables).
+const colourLiteral = new RegExp(`#[0-9a-fA-F]{3,8}\\b|(?<![\\w-])(?:rgba?|hsla?|oklch|oklab|lab|lch|hwb|color)\\(`)
+const NAMED = 'white|black|red|blue|green|gray|grey|orange|yellow|purple|pink'
+const COLOUR_PROPS = '(?:color|background|background-color|border[\\w-]*|outline[\\w-]*|fill|stroke|box-shadow|text-decoration-color|caret-color|accent-color)'
+// a named colour as a whole word in the value of a colour-taking property
+const namedColourDecl = new RegExp(`(?:^|[;{\\s])${COLOUR_PROPS}\\s*:[^;}]*(?<![\\w-])(?:${NAMED})(?![\\w-])`, 'gm')
 const colourNames = (block: string) =>
   [...block.matchAll(/(--[\w-]+)\s*:\s*([^;]+);/g)]
-    .filter((m) => /#[0-9a-fA-F]{3,8}\b|\brgba?\(|\bhsla?\(/.test(m[2]))
+    .filter((m) => colourLiteral.test(m[2]))
     .map((m) => m[1])
     .sort()
 
@@ -42,7 +48,26 @@ test('there are exactly two variable blocks: :root and :root[data-theme="dark"]'
 })
 
 test('no colour literals outside the two variable blocks', () => {
-  expect(rest.match(/#[0-9a-fA-F]{3,8}\b|\brgba?\(|\bhsla?\(/g) ?? []).toEqual([])
+  expect(rest.match(new RegExp(colourLiteral, 'g')) ?? []).toEqual([])
+})
+
+test('no named colours in colour-taking declarations outside the two variable blocks', () => {
+  expect(rest.match(namedColourDecl) ?? []).toEqual([])
+})
+
+test('the colour guards flag literals and let variables and keywords through', () => {
+  const flagged = (text: string) => colourLiteral.test(text) || new RegExp(namedColourDecl.source, 'm').test(text)
+  for (const bad of ['color: white', 'fill: oklch(0.7 0.1 200)', 'background: #fff', 'border: 1px solid red', 'box-shadow: 0 0 2px rgb(0 0 0)',
+    'stroke: color(srgb 1 0 0)', 'outline-color: hwb(200 10% 10%)', 'x: lab(50% 20 30)'])
+    expect(flagged(bad), bad).toBe(true)
+  for (const ok of ['color-mix(in hsl, var(--a) 50%, var(--b))', 'background: transparent', 'white-space: nowrap', 'color: currentColor',
+    'border: none', 'color: inherit', 'background: var(--white)', 'fill: var(--ink)'])
+    expect(flagged(ok), ok).toBe(false)
+})
+
+test('the example chip tag keeps its own card ground', () => {
+  const tag = blocks.find((b) => b.selector === '.example-chip-tag')
+  expect(tag && backgroundOf(tag.body)).toEqual(['var(--card)'])
 })
 
 test('the dark block defines exactly the colour variables of the light block', () => {
@@ -56,6 +81,7 @@ const pairs: [string, string][] = [
   ['--ink-faint', '--washi'], ['--ink-faint', '--card'],
   ['--ai-mute', '--white'], ['--ai-mute', '--washi'], ['--ai-mute', '--card'],
   ['--ai', '--washi'], ['--ai', '--card'],   // links and text in --ai
+  // .example-chip-tag is --ai on its own --card ground (guarded below), so the chip's hover wash is not behind its text
   ['--ai-deep', '--card'], ['--ai-deep', '--ai-wash'], ['--note-ink', '--card'],
   ['--ink', '--ai-wash-strong'],          // .head-score (active head chip)
   ['--ai-deep', '--ai-wash-strong'],      // active head chip, lit layer block
@@ -142,7 +168,7 @@ function sourceFiles(dir: string): string[] {
 }
 
 test('no colour literals in TypeScript source', () => {
-  const colour = /#[0-9a-fA-F]{3,8}\b|\brgba?\(|\bhsla?\(/
+  const colour = colourLiteral
   const offenders = sourceFiles('src')
     .filter((f) => colour.test(readFileSync(f, 'utf8').replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, '')))
   expect(offenders).toEqual([])
