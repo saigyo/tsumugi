@@ -43,10 +43,37 @@ test.each([
   ['--ink-soft', '--ai-wash'],            // .run-chip-action on a hovered list row
   ['--ink-soft', '--shu-wash'],           // .run-chip-action on a compare A/B chip
   ['--on-ai', '--ai'],                    // hovered action on the active chip or row
+  ['--on-ai', '--fill'], ['--on-ai', '--fill-hover'], ['--on-shu', '--shu'],   // text on the split fill roles
 ])('%s on %s reaches 4.5:1', (fg, bg) => {
   expect(vars[fg], fg).toBeDefined()
   expect(vars[bg], bg).toBeDefined()
   expect(contrast(vars[fg], vars[bg])).toBeGreaterThanOrEqual(4.5)
+})
+
+// Fill roles: text on indigo fills uses --on-ai over --fill / --fill-hover; text on vermillion uses --on-shu.
+const blocks = [...rest.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map((m) => ({ selector: m[1].trim().replace(/\s+/g, ' '), body: m[2] }))
+const backgroundOf = (body: string) =>
+  [...body.matchAll(/(?:^|[;\s])background(?:-color)?\s*:\s*([^;]+)/g)].map((m) => m[1].trim())
+
+test('--on-ai text sits on --fill or --fill-hover, never on --ai-deep, --ai or --shu', () => {
+  const bad = blocks
+    .filter((b) => /color\s*:\s*var\(--on-ai\)/.test(b.body.replace(/background-color/g, '')))
+    .filter((b) => backgroundOf(b.body).some((v) => /var\(--(ai-deep|ai|shu)\)/.test(v)))
+    .map((b) => b.selector)
+  expect(bad).toEqual([])
+})
+
+test('--on-shu text sits only on --shu', () => {
+  const bad = blocks
+    .filter((b) => /(?:^|[;\s])color\s*:\s*var\(--on-shu\)/.test(b.body))
+    .filter((b) => backgroundOf(b.body).some((v) => v !== 'var(--shu)'))
+    .map((b) => b.selector)
+  expect(bad).toEqual([])
+})
+
+test('--on-ai is not used as a colour on vermillion', () => {
+  const bad = blocks.filter((b) => /var\(--on-ai\)/.test(b.body) && backgroundOf(b.body).includes('var(--shu)'))
+  expect(bad.map((b) => b.selector)).toEqual([])
 })
 
 // Type rules: everything outside :root and @font-face must use the shared variables.
