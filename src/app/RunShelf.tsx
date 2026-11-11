@@ -141,7 +141,7 @@ export function RunShelf(p: RunShelfProps) {
             <button ref={moreBtn} data-testid="run-more" className="run-more pill" aria-expanded={listOpen}
               onClick={() => setOpen((o) => !o)}>+{hidden} more <Icon name="chevron" /></button>
             {listOpen && (
-              <div data-testid="run-list" className="run-list">
+              <div data-testid="run-list" className="run-list pop">
                 {[...p.records].reverse().map((r) => (
                   <div key={r.id} data-testid="run-list-row" className={`run-list-row${stateClass(r.id)}`}
                     data-active={String(r.id === p.activeId)} data-pinned={String(r.meta.pinned)} data-role={role(r.id) || undefined}>

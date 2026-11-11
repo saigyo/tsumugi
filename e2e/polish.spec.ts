@@ -252,7 +252,7 @@ test.fixme('chart labels are not cut', async ({ page }) => {
   expect(problems).toEqual([])
 })
 
-test.fixme('tooltip text stays inside its box', async ({ page }) => {
+test('tooltip text stays inside its box', async ({ page }) => {
   const problems: string[] = []
   await inEachTheme(page, async (theme, state) => {
     if (state !== 'settings-tip' && state !== 'term-tip') return

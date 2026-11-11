@@ -6,7 +6,7 @@ type SampleEvent = Extract<TraceEvent, { type: 'sample' }>
 
 export function TokenPopover({ softmax, sample, note }: { softmax: SoftmaxEvent; sample: SampleEvent; note?: string }) {
   return (
-    <div data-testid="token-popover" className="token-popover" role="tooltip">
+    <div data-testid="token-popover" className="token-popover pop" role="tooltip">
       <div className="popover-title">sampled from (T={softmax.temperature})</div>
       {note && <div data-testid="popover-note" className="popover-note">{note}</div>}
       {softmax.topK.map((c) => (

@@ -172,7 +172,7 @@ function HoverBox({ s, hover, weights }: { s: LayerSteps; hover: Hover; weights:
     if (dy) el.style.translate = `0 ${dy}px`
   }, [hover, labels.length])
   return (
-    <div ref={ref} data-testid="steps-box" className="step-box" role="status" style={style}>
+    <div ref={ref} data-testid="steps-box" className="step-box pop" role="status" style={style}>
       <b>N{i}</b>
       <span>g {f2(s.gate[i])} → SiLU {f2(silu(s.gate[i]))}</span>
       <span>× u {f2(s.up[i])} = h {f2(s.h[i])}</span>

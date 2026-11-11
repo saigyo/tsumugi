@@ -65,7 +65,7 @@ export function ResidualStreamDiagram({ seqLen, dims, layers }: {
         <text x="400" y="30" textAnchor="middle" className="rs-note">each position independently</text>
       </svg>
       {tip && (
-        <span role="tooltip" data-testid="gl-tip" className="gl-tip gl-tip-svg" style={{ left: TIP_X[tip], top: 78 }}>
+        <span role="tooltip" data-testid="gl-tip" className="gl-tip pop gl-tip-svg" style={{ left: TIP_X[tip], top: 78 }}>
           {getEntry(tip)?.summary} <em>Click to read more.</em>
         </span>
       )}

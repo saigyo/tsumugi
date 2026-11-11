@@ -276,3 +276,24 @@ test('the light chart ramp end points are today\'s colours', () => {
   expect(get('--div-neg-lo')).toBe('hsl(13 55% 90%)')
   expect(get('--div-neg')).toBe('hsl(13 55% 50%)')
 })
+
+test('the coral glow is used only by the main accent button and the active stage card', () => {
+  const users = blocks.filter((b) => /var\(--shadow-accent\)/.test(b.body)).map((b) => b.selector)
+  expect(users.sort()).toEqual(['.btn-accent', '.stage-card[data-active="true"], .stage-card[data-active="true"][data-clickable="true"]:hover'].sort())
+})
+
+test('the tooltip shadow variable is gone and the floating surface is one rule', () => {
+  expect(rest).not.toContain('--shadow-tip')
+  const body = blocks.find((b) => b.selector === '.pop')?.body ?? ''
+  expect(body).toMatch(/background: var\(--card\)/)
+  expect(body).toMatch(/color: var\(--ink\)/)
+  expect(body).toMatch(/font-weight: 400/)
+  expect(body).toMatch(/border: 1px solid var\(--line-strong\)/)
+  expect(body).toMatch(/border-radius: 8px/)
+  expect(body).toMatch(/box-shadow: var\(--shadow-pop\)/)
+  expect(body).toMatch(/white-space: normal/)
+  for (const sel of ['.gl-tip', '.step-box', '.token-popover', '.run-list']) {
+    const own = blocks.find((b) => b.selector === sel)?.body ?? ''
+    expect(own, sel).not.toMatch(/background|box-shadow|border/)
+  }
+})

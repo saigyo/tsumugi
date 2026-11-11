@@ -58,7 +58,7 @@ export function Term({ id, section, variant = 'text', label, testId, tip: tipTex
         {children}
       </button>
       {tip && (
-        <span ref={tipRef} role="tooltip" id={tipId} data-testid="gl-tip" className="gl-tip" style={{ left: tip.left, top: tip.top }}>
+        <span ref={tipRef} role="tooltip" id={tipId} data-testid="gl-tip" className="gl-tip pop" style={{ left: tip.left, top: tip.top }}>
           {tipText ?? entry.summary} <em>Click to read more.</em>
         </span>
       )}
