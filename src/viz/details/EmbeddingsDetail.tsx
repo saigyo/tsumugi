@@ -43,7 +43,7 @@ export function EmbeddingsDetail({ events, cursor }: { events: TraceEvent[]; cur
       </p>
       <EmbeddingLookup tokens={tokens} dims={dims} vocabSize={vocab} selected={selected} onSelect={setPicked}
         vectorFor={vectorFor} source={source}
-        missingNote={pending ? 'loading vocabulary geometry…' : 'vector values unavailable'} />
+        missingNote={pending ? 'Loading vocabulary geometry…' : 'vector values unavailable'} />
       <EmbeddingGeometry tokens={tokens} selected={selected} vectorFor={vectorFor} asset={asset}
         loading={pending} error={geoError} retry={geo.retry} canRetry={geo.status === 'error'} source={source} />
     </div>

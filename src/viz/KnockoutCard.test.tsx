@@ -170,7 +170,7 @@ test('a failed measurement for this record and cycle shows a note above the butt
   card()
   const err = screen.getByTestId('knockout-error')
   expect(err).toHaveTextContent('Measuring failed: out of memory')
-  expect(err).toHaveClass('mlp-note')
+  expect(err).toHaveClass('error')
   expect(screen.getByRole('button', { name: 'Measure all 30 layers' })).not.toBeDisabled()
 })
 

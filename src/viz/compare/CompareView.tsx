@@ -80,8 +80,8 @@ function CombinedDist({ rows, chosenA, chosenB, sort, nameA, nameB }: {
         </div>
       ))}
       {rows.some((r) => r.approx) && (
-        <p data-testid="cmp-approx-note" className="attn-note">tokens outside a run's stored top-k
-          count as 0% — those deltas are lower bounds</p>
+        <p data-testid="cmp-approx-note" className="fine attn-note">Tokens outside a run's stored top-k
+          count as 0%, so those deltas are lower bounds.</p>
       )}
     </div>
   )
@@ -108,12 +108,12 @@ function AttnSide({ events, head, pair, name, cycle, lastCycle }: {
       {thumb ? (
         <div data-testid="cmp-fallback" className="cmp-fallback">
           <Thumb thumb={thumb} />
-          <p className="attn-note">not among this run's detected heads at this cycle — run-level thumbnail shown
-            (full matrices are kept only for each cycle's showcase heads)</p>
+          <p className="note">Not among this run's detected heads at this cycle; run-level thumbnail shown
+            (full matrices are kept only for each cycle's showcase heads).</p>
         </div>
       ) : (
-        <p data-testid="cmp-fallback" className="cmp-fallback attn-note">not among this run's detected heads
-          at this cycle — no full matrix captured</p>
+        <p data-testid="cmp-fallback" className="cmp-fallback note">Not among this run's detected heads
+          at this cycle; no full matrix captured.</p>
       )}
     </div>
   )
@@ -167,11 +167,11 @@ export function CompareView({ a, b, initialCycle }: { a: RunRecord; b: RunRecord
         <MetaRow label="ended" a={a.meta.reason} b={b.meta.reason} />
       </div>
       {!aligned.samePrompt && (
-        <p data-testid="cmp-badge" className="cmp-badge">different prompts — aligned by generation cycle</p>
+        <p data-testid="cmp-badge" className="note">The prompts differ, so the runs are lined up by generation cycle.</p>
       )}
       {aligned.samePrompt && aligned.forkCycle === null
         && aligned.chosenA.length === aligned.chosenB.length && (
-        <p data-testid="cmp-note" className="cmp-badge">identical outputs</p>
+        <p data-testid="cmp-note" className="note">Identical outputs.</p>
       )}
       {stream('a')}
       {stream('b')}
@@ -184,7 +184,7 @@ export function CompareView({ a, b, initialCycle }: { a: RunRecord; b: RunRecord
       </div>
       {cycle !== null && (
         <>
-          <h3>cycle {cycle} · distributions</h3>
+          <h3>Cycle {cycle} · Distributions</h3>
           {(() => {
             const combined = distMode === 'combined' ? combinedDistribution(a.events, b.events, cycle) : undefined
             // prefixes are identical up to and including the fork cycle's input;
@@ -213,10 +213,10 @@ export function CompareView({ a, b, initialCycle }: { a: RunRecord; b: RunRecord
                   )}
                 </div>
                 {combined && diverged && (
-                  <p data-testid="cmp-divergence-note" className="cmp-badge">
+                  <p data-testid="cmp-divergence-note" className="note">
                     {aligned.samePrompt
-                      ? `the runs' prefixes differ from cycle ${(aligned.forkCycle ?? 0) + 1} on — each distribution conditions on its own text`
-                      : 'the prompts differ — the distributions condition on different text'}
+                      ? `The runs' prefixes differ from cycle ${(aligned.forkCycle ?? 0) + 1} on, so each distribution conditions on its own text.`
+                      : 'The prompts differ, so the distributions condition on different text.'}
                   </p>
                 )}
                 {combined ? (
@@ -231,9 +231,9 @@ export function CompareView({ a, b, initialCycle }: { a: RunRecord; b: RunRecord
               </>
             )
           })()}
-          <h3>cycle {cycle} · attention</h3>
+          <h3>Cycle {cycle} · Attention</h3>
           {heads.length === 0 ? (
-            <p className="attn-note">no detected heads recorded at this cycle</p>
+            <p className="fine attn-note">No detected heads recorded at this cycle.</p>
           ) : (
             <>
               <div className="head-chip-row">

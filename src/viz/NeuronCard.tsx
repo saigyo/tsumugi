@@ -43,15 +43,15 @@ export function NeuronCard({ data, candidates, note, noteAction, run }: {
   const removed = removedLayerNoteFor(run, layer)
   return (
     <section data-testid="neuron-card" className="mlp-card">
-      <h4 data-testid="neuron-title">Inside one MLP{layer !== null ? `: layer ${layer}` : ''}{layer !== null && (
+      <h4 className="sub-title" data-testid="neuron-title">Inside one MLP{layer !== null ? `: layer ${layer}` : ''}{layer !== null && (
         <span className="neuron-stepper">
           <button type="button" data-testid="neuron-prev" className="btn btn-icon btn-sm" aria-label="Previous layer" disabled={layer <= 0} onClick={() => step(-1)}><Icon name="prev" /></button>
           <button type="button" data-testid="neuron-next" className="btn btn-icon btn-sm" aria-label="Next layer" disabled={layer >= layers - 1} onClick={() => step(1)}><Icon name="next" /></button>
         </span>
       )}{' '}<Term id="mlp-neuron" variant="icon" label="About MLP neurons" testId="neuron-info"><Icon name="info" /></Term></h4>
-      {!ready || layer === null ? <p data-testid="neuron-note" className="mlp-note">{note} {noteAction}</p>
+      {!ready || layer === null ? <p data-testid="neuron-note" className="note">{note} {noteAction}</p>
         : <>
-          {removed && <p data-testid="removed-layer-note" className="mlp-note">{removed}</p>}
+          {removed && <p data-testid="removed-layer-note" className="note">{removed}</p>}
           <NeuronBody data={data} candidates={candidates} selected={sel} layer={layer} />
         </>}
     </section>
@@ -87,9 +87,9 @@ function NeuronBody({ data, candidates, selected, layer }: {
           </div>
         )}
       </div>
-      {state.status === 'loading' || state.status === 'idle' ? <p data-testid="neuron-loading" className="mlp-note">{LOADING}</p>
+      {state.status === 'loading' || state.status === 'idle' ? <p data-testid="neuron-loading" className="note">{LOADING}</p>
         : state.status === 'error' ? (
-          <p data-testid="neuron-error" className="mlp-note">Couldn’t load the MLP weights.{' '}
+          <p data-testid="neuron-error" className="error"><Icon name="info" />Couldn’t load the MLP weights.{' '}
             <button type="button" data-testid="neuron-retry" className="btn" onClick={state.retry}>Retry</button></p>
         ) : <NeuronTable data={data} asset={state.asset} weights={state.layer} layer={layer} mode={mode} cand={cand} />}
       <div className="embed-callouts">
@@ -115,7 +115,7 @@ function NeuronTable({ data, asset, weights, layer, mode, cand }: {
     return reconcile(behindTheVote(m, weights, acts, row, asset.g, data.invRms), cand.votes.mlp[layer])
   }, [acts, mode, rowB64, m, weights, asset.g, data.invRms, cand, layer])
   const sizeRows = useMemo(() => (acts && mode === 'size' ? firingMost(m, weights, acts) : null), [acts, mode, m, weights])
-  if (!acts) return <p data-testid="neuron-note" className="mlp-note">{MISMATCH}</p>
+  if (!acts) return <p data-testid="neuron-note" className="note">{MISMATCH}</p>
   const chips = (ids: number[]) => ids.map((id, j) => (
     <span key={j} data-testid="neuron-label" className="tok tok-sm">{visibleToken(asset.text(id))}</span>
   ))
@@ -135,7 +135,7 @@ function NeuronTable({ data, asset, weights, layer, mode, cand }: {
       </table>
     )
   }
-  if (!table) return <p data-testid="neuron-note" className="mlp-note">{NO_ROW}</p>
+  if (!table) return <p data-testid="neuron-note" className="note">{NO_ROW}</p>
   const name = visibleToken(cand)
   const peak = Math.max(...table.rows.map((r) => Math.abs(r.vote))) || 1
   return (
@@ -163,7 +163,7 @@ function NeuronTable({ data, asset, weights, layer, mode, cand }: {
               <span className="mlp-legend-note"> = the votes card’s cell</span>)}</td></tr>
         </tbody>
       </table>
-      {!table.exact && <p data-testid="neuron-approx-note" className="mlp-scale-note">{APPROX}</p>}
+      {!table.exact && <p data-testid="neuron-approx-note" className="fine">{APPROX}</p>}
     </>
   )
 }

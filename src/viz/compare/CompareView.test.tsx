@@ -13,7 +13,7 @@ const divergentB = () => makeRunRecord(2, { chosen: [{ id: 100, text: ' sat' }, 
 test('identical runs: no badge, identical-outputs note, no fork marks', () => {
   render(<CompareView a={makeRunRecord(1)} b={makeRunRecord(2)} />)
   expect(screen.queryByTestId('cmp-badge')).toBeNull()
-  expect(screen.getByTestId('cmp-note')).toHaveTextContent('identical outputs')
+  expect(screen.getByTestId('cmp-note')).toHaveTextContent('Identical outputs.')
   expect(screen.getAllByTestId('cmp-token').every((t) => t.dataset.fork === 'false')).toBe(true)
 })
 
@@ -36,10 +36,17 @@ test('fork cycle is marked on both streams and the ruler', () => {
   expect(screen.queryByTestId('cmp-note')).toBeNull()
 })
 
+test('the section titles are capitalised', () => {
+  render(<CompareView a={makeRunRecord(1)} b={divergentB()} />)
+  fireEvent.click(screen.getAllByTestId('cmp-tick')[1])
+  const titles = screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent)
+  expect(titles).toEqual(expect.arrayContaining(['Cycle 1 · Distributions', 'Cycle 1 · Attention']))
+})
+
 test('different prompts show the badge instead of a fork', () => {
   const b = makeRunRecord(2, { prompt: 'A dog', promptTokens: [{ id: 20, text: 'A' }, { id: 21, text: ' dog' }] })
   render(<CompareView a={makeRunRecord(1)} b={b} />)
-  expect(screen.getByTestId('cmp-badge')).toHaveTextContent('different prompts')
+  expect(screen.getByTestId('cmp-badge')).toHaveTextContent('The prompts differ')
 })
 
 test('clicking a ruler tick opens paired distributions with the chosen token marked', () => {
@@ -76,7 +83,7 @@ test('paired attention: shared heads render two heatmaps; a missing head falls b
   expect(chips.map((c) => c.textContent)).toEqual(['attention-sink L0·H3', 'previous-token L2·H1'])
   // default selection = first chip (L0·H3): A side full heatmap, B side sim fallback note
   expect(screen.getAllByTestId('attention-heatmap')).toHaveLength(1)
-  expect(screen.getByTestId('cmp-fallback')).toHaveTextContent("not among this run's detected heads")
+  expect(screen.getByTestId('cmp-fallback')).toHaveTextContent("Not among this run's detected heads")
   // select the shared head: both sides render full heatmaps
   fireEvent.click(chips[1])
   expect(screen.getAllByTestId('attention-heatmap')).toHaveLength(2)

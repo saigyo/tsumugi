@@ -69,7 +69,7 @@ export function ResidualStreamDiagram({ seqLen, dims, layers }: {
           {getEntry(tip)?.summary} <em>Click to read more.</em>
         </span>
       )}
-      <p className="rs-caption">
+      <p className="note rs-caption">
         × {layers} <Term id="layer">layers</Term> — every layer <em>adds</em> its <Term id="edit">edits</Term> onto
         the same matrix; the original embedding stays underneath.
       </p>

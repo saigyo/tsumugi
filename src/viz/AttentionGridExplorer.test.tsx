@@ -15,7 +15,7 @@ test('layer sort renders one row per layer with an aggregate and all cells', () 
   expect(screen.getAllByTestId('grid-aggregate')).toHaveLength(2)
   expect(screen.getAllByTestId('grid-cell')).toHaveLength(4)
   expect(screen.getAllByTestId('grid-cell')[0]).toHaveTextContent('L0·H0')
-  expect(screen.getByTestId('grid-explorer')).toHaveTextContent('attention accumulated over the whole run')
+  expect(screen.getByTestId('grid-explorer')).toHaveTextContent('Attention accumulated over the whole run.')
 })
 
 test('sorting by distinctive reorders cells and drops aggregates', () => {

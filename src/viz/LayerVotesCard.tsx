@@ -37,9 +37,9 @@ export function LayerVotesCard({ candidates, note, noteAction, onLayer }: {
   const select = useCandidateSelection((s) => s.select)
   return (
     <section data-testid="votes-card" className="mlp-card">
-      <h4>What each layer voted for{' '}
+      <h4 className="sub-title">What each layer voted for{' '}
         <Term id="votes" variant="icon" label="About per-layer votes" testId="votes-info"><Icon name="info" /></Term></h4>
-      {!candidates || candidates.length === 0 ? <p data-testid="votes-note" className="mlp-note">{note} {noteAction}</p> : (
+      {!candidates || candidates.length === 0 ? <p data-testid="votes-note" className="note">{note} {noteAction}</p> : (
         <VotesBody candidates={candidates} selected={selectedCandidate(pick, candidates)}
           onSelect={(i) => select(candidates, i)} onLayer={onLayer} />
       )}
@@ -105,7 +105,7 @@ function VotesBody({ candidates, selected, onSelect, onLayer }: {
           <span />
         </div>
       </div>
-      <p data-testid="vote-readout" className="votes-readout" aria-live="polite">{hover ?? 'Hover a cell to see one layer’s vote.'}</p>
+      <p data-testid="vote-readout" className="readout votes-readout" aria-live="polite">{hover ?? 'Hover a cell to see one layer’s vote.'}</p>
       <div className="votes-split">
         <RunningScore candidates={candidates} selected={selected} />
         <Breakdown candidate={candidates[selected]} layers={layers} />
@@ -163,7 +163,7 @@ function RunningScore({ candidates, selected }: { candidates: VotedCandidate[]; 
             className={r === selected ? 'mlp-tick vote-label-selected' : 'mlp-tick'}>{visibleToken(candidates[r])}</text>
         ))}
       </svg>
-      <p className="mlp-scale-note">Each layer adds its attention and MLP votes; the selected candidate overtakes
+      <p className="fine">Each layer adds its attention and MLP votes; the selected candidate overtakes
         its rivals where its line crosses theirs.</p>
     </figure>
   )

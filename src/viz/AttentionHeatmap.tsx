@@ -144,13 +144,13 @@ export function AttentionHeatmap({ heads, tokens, focus, chat, foldToggle = true
             x={LABEL_W + hovered.c * cell} y={DIAG_PAD + hovered.r * cell} width={cell - 1} height={cell - 1} />
         )}
       </svg>
-      <p data-testid="attn-readout" className="attn-readout">
+      <p data-testid="attn-readout" className="readout attn-readout">
         {hovered
           ? `${rowLabel(hovered.r)} → ${colLabel(hovered.c)}: ${Math.round(folded.values[hovered.r][hovered.c] * 100)}%`
           : ' '}
       </p>
-      <p data-testid="attn-hint" className="attn-hint">{HINTS[head.label]}{chat && head.label === 'induction' ? ' In Chat mode the template’s markers (<|im_start|>, ↵, <|im_end|>) repeat, and those repeats count too.' : ''}</p>
-      <p data-testid="attn-note" className="attn-note">
+      <p data-testid="attn-hint" className="note attn-hint">{HINTS[head.label]}{chat && head.label === 'induction' ? ' In Chat mode the template’s markers (<|im_start|>, ↵, <|im_end|>) repeat, and those repeats count too.' : ''}</p>
+      <p data-testid="attn-note" className="fine attn-note">
         {head.label === 'pinned' || head.score != null
           ? head.score != null
             ? 'Measured on this prompt — head roles detected from the attention weights, not labeled by the model.'

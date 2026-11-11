@@ -60,12 +60,12 @@ export function EmbeddingGeometry({ tokens, selected, vectorFor, asset, loading,
   const h = DIAG_PAD + shown.length * CELL + 4
   return (
     <div data-testid="embed-geometry" className="embed-geometry">
-      <h4>Geometry: meaning is distance</h4>
+      <h4 className="sub-title">Geometry: meaning is distance</h4>
       {loading && !asset && (
-        <p data-testid="embed-geometry-loading" className="embed-caption">Loading vocabulary geometry…</p>
+        <p data-testid="embed-geometry-loading" className="fine embed-caption">Loading vocabulary geometry…</p>
       )}
       {error && !asset && (
-        <p data-testid="embed-geometry-error" className="notice">
+        <p data-testid="embed-geometry-error" className="error"><Icon name="info" />
           Vocabulary geometry couldn't be loaded{' '}
           {canRetry && (
             <button type="button" data-testid="embed-geometry-retry" className="btn" onClick={retry}>retry</button>
@@ -74,7 +74,7 @@ export function EmbeddingGeometry({ tokens, selected, vectorFor, asset, loading,
       )}
       {neighbors && token && (
         <div data-testid="embed-neighbors" className="embed-neighbors">
-          <div className="embed-caption">
+          <div className="fine embed-caption">
             Nearest to <span className={`tok tok-sm tok-wash-${washIndexes(tokens.map((t) => t.id))[selected]}`}><span className="chip-text">{visibleToken(token)}</span></span> in E — click any token above to change
             {' '}<span data-testid="embed-space-note" className="embed-callout rs-hover" title={SPACE_NOTE}><Icon name="info" /> {SPACE_MARKER}</span>
           </div>
@@ -91,7 +91,7 @@ export function EmbeddingGeometry({ tokens, selected, vectorFor, asset, loading,
       )}
       {matrix && (
         <div className="embed-sim">
-          <div className="embed-caption">
+          <div className="fine embed-caption">
             Tokens vs. each other (cosine, before any context)
             {start > 0 && <span data-testid="embed-sim-cap"> — showing the last {MATRIX_CAP} of {tokens.length}</span>}
             {range && (
@@ -131,7 +131,7 @@ export function EmbeddingGeometry({ tokens, selected, vectorFor, asset, loading,
         </div>
       )}
       {(neighbors != null || matrix != null) && (
-        <p data-testid="embed-provenance" className="embed-caption">
+        <p data-testid="embed-provenance" className="fine embed-caption">
           {source === 'model'
             ? 'Exact rows from the running model.'
             : 'Real SmolLM2 embedding rows, reduced to 64 dimensions offline; similarities are approximate.'}

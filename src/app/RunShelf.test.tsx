@@ -25,6 +25,20 @@ test('an empty archive still shows the notes line', () => {
   expect(screen.getByTestId('import-error')).toHaveTextContent('bad file')
 })
 
+test('an armed compare asks for a second run; otherwise there is no hint', () => {
+  const { rerender } = render(<RunShelf {...props({ records: [makeRunRecord(7), makeRunRecord(8)], activeId: 'run-8', armed: true })} />)
+  expect(screen.getByTestId('compare-hint')).toHaveTextContent('Pick a second run to compare with #8.')
+  rerender(<RunShelf {...props({ activeId: 'run-8', armed: false })} />)
+  expect(screen.queryByTestId('compare-hint')).toBeNull()
+  rerender(<RunShelf {...props({ armed: true, compare: { aId: 'run-1', bId: 'run-2' } })} />)
+  expect(screen.queryByTestId('compare-hint')).toBeNull()
+})
+
+test('the import error has the error look', () => {
+  render(<RunShelf {...props({ importError: 'This file is not a Tsumugi run: not valid JSON.' })} />)
+  expect(screen.getByTestId('import-error')).toHaveClass('error')
+})
+
 test('the shelf no longer holds import or compare buttons', () => {
   render(<RunShelf {...props()} />)
   expect(screen.queryByTestId('btn-import')).toBeNull()

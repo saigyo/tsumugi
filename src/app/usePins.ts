@@ -2,7 +2,7 @@ import { useCallback, useRef, useState } from 'react'
 import type { HeadData } from '../engine/transformers/TransformersEngine'
 import type { AttentionHead } from '../trace/types'
 
-const STALE_NOTE = 'run data no longer available — regenerate to explore heads'
+const STALE_NOTE = 'Run data no longer available; regenerate to explore heads.'
 const MAX_PINS = 5
 
 // Pinned heads are run-scoped UI state: App resets them when a new run

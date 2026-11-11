@@ -179,7 +179,7 @@ test('compare arms from the shelf, opens the view, and exits', async () => {
   fireEvent.click(screen.getByTestId('btn-compare-arm'))
   fireEvent.click(screen.getAllByTestId('run-chip-main')[1])
   expect(screen.getByTestId('compare-view')).toBeInTheDocument()
-  expect(screen.getByTestId('cmp-badge')).toHaveTextContent('different prompts')
+  expect(screen.getByTestId('cmp-badge')).toHaveTextContent('The prompts differ')
   expect(screen.queryByTestId('stage-card')).toBeNull()          // player stack hidden
   fireEvent.click(screen.getByTestId('btn-compare-exit'))
   expect(screen.queryByTestId('compare-view')).toBeNull()
@@ -217,6 +217,14 @@ test('when the archive refuses an imported run, the shelf says why instead of bl
     fireEvent.change(screen.getByTestId('import-input'), { target: { files: [file] } })
     expect(await screen.findByTestId('import-error')).toHaveTextContent('could not add the run: storage quota exceeded')
   } finally { useRunsStore.setState({ importRecord: original }) }
+})
+
+test('a file that is not JSON gets a full-sentence error', async () => {
+  render(<App />)
+  fireEvent.change(screen.getByTestId('import-input'), { target: { files: [new File(['{nope'], 'x.json', { type: 'application/json' })] } })
+  const err = await screen.findByTestId('import-error')
+  expect(err).toHaveTextContent('This file is not a Tsumugi run: not valid JSON.')
+  expect(err).toHaveClass('error')
 })
 
 test('a share link fills the prompt bar and clears the hash', async () => {

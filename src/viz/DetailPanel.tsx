@@ -12,15 +12,18 @@ import { visibleTokens } from './selectors'
 import { shareableRun } from '../app/shareLink'
 import { StagePill } from './StagePill'
 
-export function DetailPanel({ events, cursor, mode, pinnedHeads, onPin, pinNote }: {
-  events: TraceEvent[]; cursor: number; mode: Mode
+export function DetailPanel({ events, cursor, mode, generating, pinnedHeads, onPin, pinNote }: {
+  events: TraceEvent[]; cursor: number; mode: Mode; generating: boolean
   pinnedHeads?: AttentionHead[]
   onPin?: (layer: number, head: number) => void
   pinNote?: string | null
 }) {
   const current = eventAt(events, cursor)
   const stage = activeStage(current)
-  const empty = <div data-testid="detail-empty" className="detail">Press Generate, then step through the pipeline.</div>
+  const emptyText = events.length > 0 ? 'Press play or step forward to walk through this run.'
+    : generating ? 'Generating… the first token will appear here.'
+    : 'Press Generate, then step through the pipeline.'
+  const empty = <div data-testid="detail-empty" className="detail">{emptyText}</div>
 
   if (current?.type === 'run-end') {
     const { prompt, generated } = visibleTokens(events, cursor)

@@ -79,7 +79,7 @@ export function EmbeddingLookup({ tokens, dims, vocabSize, selected, onSelect, v
           <div data-testid="embed-strip-missing" className="embed-strip-missing">{missingNote}</div>
         )}
         {cells.length > 0 && (
-          <div className="embed-caption">
+          <div className="fine embed-caption">
             {source === 'model'
               ? `${dims} values, mean-pooled into ${STRIP_CELLS} cells; blue positive, red negative`
               : `${cells.length} of ${dims} dimensions (PCA-reduced, offline) — these are PCA components, ordered by variance, so the first cells are always the strongest; blue positive, red negative`}
@@ -109,7 +109,7 @@ export function EmbeddingLookup({ tokens, dims, vocabSize, selected, onSelect, v
             )
           })}
         </svg>
-        <div className="embed-caption">
+        <div className="fine embed-caption">
           one row per token, each a miniature of its vector; the newest was added this cycle
         </div>
       </div>

@@ -81,7 +81,7 @@ export function AttentionGridExplorer({ grid, onPin }: {
   return (
     <div data-testid="grid-explorer" className="grid-explorer">
       <div className="grid-explorer-header">
-        <span className="grid-semantics">attention accumulated over the whole run</span>
+        <span className="note">Attention accumulated over the whole run.</span>
         <label className="grid-sort-label">sort{' '}
           <select data-testid="grid-sort" className="btn" value={sort}
             onChange={(e) => setSort(e.target.value as SortKey)}>

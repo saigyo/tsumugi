@@ -191,6 +191,12 @@ test('font weights are 400, 600 or 800, and font: is only ever inherit', () => {
   expect(declared('font').filter((v) => v !== 'inherit')).toEqual([])
 })
 
+test('italic is declared for no selector except em and i', () => {
+  const bad = blocks.filter((b) => /font-style:\s*italic/.test(b.body)).map((b) => b.selector)
+    .filter((sel) => !sel.split(',').every((s) => /^(em|i)$/.test(s.trim())))
+  expect(bad).toEqual([])
+})
+
 test('the type variables exist with the specified sizes', () => {
   const get = (name: string) => rootBlock.match(new RegExp(`${name}\\s*:\\s*([^;]+);`))?.[1].trim()
   expect(get('--t-title')).toBe('1.25rem')

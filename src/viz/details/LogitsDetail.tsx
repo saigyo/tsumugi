@@ -29,7 +29,7 @@ export function LogitsDetail({ events, cursor }: { events: TraceEvent[]; cursor:
   const asset = covered ? geo.asset : undefined
   const assetRowFor = (id: number) =>
     asset && id >= 0 && id < asset.manifest.vocabSize ? asset.vector(id) : undefined
-  const assetNote = geo.status === 'loading' ? 'loading vocabulary geometry…' : 'vector values unavailable'
+  const assetNote = geo.status === 'loading' ? 'Loading vocabulary geometry…' : 'vector values unavailable'
   return (
     <div data-testid="detail-logits" className="detail">
       <h3>Logits <Term id="logit" variant="icon" label="About this stage" testId="stage-info"><Icon name="info" /></Term></h3>

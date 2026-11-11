@@ -374,7 +374,7 @@ export default function App() {
   const handleImportFile = (file: File) => {
     void file.text().then((text) => {
       const parsed = parseRunFile(text)
-      if (!parsed.ok) { setImportError(parsed.error); return }
+      if (!parsed.ok) { setImportError(`This file is not a Tsumugi run: ${parsed.error}.`); return }
       try {
         archiveImport({ meta: parsed.meta, events: parsed.events, ...(parsed.sweeps ? { sweeps: parsed.sweeps } : {}) })
         setImportError(parsed.note ?? null)
@@ -399,7 +399,7 @@ export default function App() {
       <PromptBar mode={mode} onModeChange={chooseMode} onGenerate={handleGenerate}
         busy={mode === 'real' && !realReady} realLoaded={realReady} generating={generating} activity={activity} onStop={handleStop}
         hasRuns={records.length > 0} examples={[...CURATED_EXAMPLES, CHAT_EXAMPLE]} initial={shared ?? undefined} />
-      {linkNote && <p className="mlp-note link-note" data-testid="link-note">{linkNote}</p>}
+      {linkNote && <p className="note link-note" data-testid="link-note">{linkNote}</p>}
       <ModelSlot mode={mode} loading={loading} fromCache={fromCache} progress={progress} error={modelError}
         bannerClosed={bannerClosed} onLoad={() => { void chooseMode('real') }}
         onClose={() => { writeFlag('tsumugi.simBannerClosed', true); setBannerClosed(true) }}
@@ -425,7 +425,7 @@ export default function App() {
               usePlayerStore.getState().dispatch({ type: 'pause' })
             }} />
             <Controls />
-            <DetailPanel events={events} cursor={cursor} mode={viewMode}
+            <DetailPanel events={events} cursor={cursor} mode={viewMode} generating={generating}
               pinnedHeads={pins} onPin={handlePin} pinNote={pinNote} />
           </>
         )

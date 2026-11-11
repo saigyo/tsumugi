@@ -43,9 +43,9 @@ export function EditSizeCard({ rows: all, note, noteAction, onLayer, chat }: { r
   const sel = picked !== null && items.some((it) => it.kind === 'token' && it.index === picked) ? picked : last
   return (
     <section data-testid="edit-size-card" className="mlp-card">
-      <h4>How much each layer changes the vector{' '}
+      <h4 className="sub-title">How much each layer changes the vector{' '}
         <Term id="edit" variant="icon" label="About edit sizes" testId="edit-size-info"><Icon name="info" /></Term></h4>
-      {!all ? <p data-testid="edit-size-note" className="mlp-note">{note} {noteAction}</p> : (
+      {!all ? <p data-testid="edit-size-note" className="note">{note} {noteAction}</p> : (
         <>
           <p className="mlp-caption">Every block adds an <Term id="edit">edit</Term> to the{' '}
             <Term id="residual-stream">residual stream</Term>. The colour shows how big that edit is compared with
@@ -63,7 +63,7 @@ export function EditSizeCard({ rows: all, note, noteAction, onLayer, chat }: { r
           </div>
           <EditHeatmap rows={all} items={items} open={open} onToggle={() => setOpen(!open)} block={block} selected={sel} onSelect={setPicked} onLayer={onLayer} />
           {shown < folded.filter((it) => it.kind === 'token').length && (
-            <p data-testid="edit-rows-note" className="mlp-scale-note">
+            <p data-testid="edit-rows-note" className="fine">
               showing the last {shown} of {n} tokens</p>
           )}
           <EditBars rows={all} index={sel} onLayer={onLayer} />

@@ -58,18 +58,18 @@ export function KnockoutCard({ run, cycle, seqLen, chosen, votes, sweep, running
   const failure = useKnockoutRequest((s) => s.error)
   const select = useMlpLayer((s) => s.select)
   const [picked, setPicked] = useState<number | null>(null)
-  const title = <h4>Which layers the chosen token depends on{' '}
+  const title = <h4 className="sub-title">Which layers the chosen token depends on{' '}
     <Term id="knockout" variant="icon" label="About knockouts" testId="knockout-info"><Icon name="info" /></Term></h4>
 
   const eligible = knockoutEligibility(run, seqLen, model)
   if (!eligible.ok) {
     const n = noteFor(eligible.reason, run)
     return <section data-testid="knockout-card" className="mlp-card">{title}
-      <p data-testid="knockout-note" className="mlp-note">{n.text} {n.action && noteAction}</p></section>
+      <p data-testid="knockout-note" className="note">{n.text} {n.action && noteAction}</p></section>
   }
   if (!chosen || !recordId) {
     return <section data-testid="knockout-card" className="mlp-card">{title}
-      <p data-testid="knockout-note" className="mlp-note">{KNOCKOUT_PENDING_NOTE}</p></section>
+      <p data-testid="knockout-note" className="note">{KNOCKOUT_PENDING_NOTE}</p></section>
   }
 
   const runningHere = running !== null && running.recordId === recordId && running.cycle === cycle
@@ -92,18 +92,18 @@ export function KnockoutCard({ run, cycle, seqLen, chosen, votes, sweep, running
       <p className="mlp-caption">Removes one layer’s MLP at a time and asks the model again for this cycle’s next
         token: {LAYERS + 1} passes over the whole text, about two seconds for a short text on a graphics card.</p>
       {run.params.temperature === 0 && (
-        <p data-testid="knockout-greedy-note" className="mlp-scale-note">This run uses temperature 0, which always
+        <p data-testid="knockout-greedy-note" className="fine">This run uses temperature 0, which always
           picks the top token at 100%. To show how sure the model is, the percentages here are taken at temperature 1.</p>
       )}
       {failure && failure.recordId === recordId && failure.cycle === cycle && (
-        <p data-testid="knockout-error" className="mlp-note">Measuring failed: {failure.message}</p>
+        <p data-testid="knockout-error" className="error"><Icon name="info" />Measuring failed: {failure.message}</p>
       )}
       {(!sweep || runningHere) && (
         <div><button type="button" className="btn btn-main" disabled={busy || !measure}
           onClick={() => measure?.(cycle)}>Measure all 30 layers</button></div>
       )}
-      {sweep && !runningHere && <p className="mlp-scale-note">done for this cycle</p>}
-      {runningHere && <p className="mlp-scale-note" aria-live="polite">Measuring… {byLayer.size} of {LAYERS} layers</p>}
+      {sweep && !runningHere && <p className="fine">Done for this cycle.</p>}
+      {runningHere && <p className="fine" aria-live="polite">Measuring… {byLayer.size} of {LAYERS} layers</p>}
       <div className="knockout-grid">
         <div className="knockout-row knockout-bars-row">
           <span className="knockout-label">{quoted(chosen)} without this layer</span>

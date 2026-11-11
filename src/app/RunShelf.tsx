@@ -76,8 +76,8 @@ export function RunShelf(p: RunShelfProps) {
   })
   const notes = (
     <>
-      {p.importError && <span data-testid="import-error" className="run-shelf-note">{p.importError}</span>}
-      {p.persistFailed && <span data-testid="shelf-note" className="run-shelf-note">archive not persisted in this browser</span>}
+      {p.importError && <span data-testid="import-error" className="error"><Icon name="info" />{p.importError}</span>}
+      {p.persistFailed && <span data-testid="shelf-note" className="fine">Archive not persisted in this browser.</span>}
     </>
   )
   if (p.records.length === 0) {
@@ -159,7 +159,10 @@ export function RunShelf(p: RunShelfProps) {
         )}
       </div>
       <div className="run-notes">
-        {shown?.kind === 'copied' && <span role="status" data-testid="share-copied" className="run-shelf-note">Link copied</span>}
+        {p.armed && p.compare === null && (
+          <span data-testid="compare-hint" className="note">Pick a second run to compare with #{p.records.find((r) => r.id === aId)?.meta.seq}.</span>
+        )}
+        {shown?.kind === 'copied' && <span role="status" data-testid="share-copied" className="fine">Link copied</span>}
         {shown?.kind === 'failed' && (
           <input readOnly data-testid="share-link-text" className="share-link-text" value={shown.link}
             aria-label="Share link" onFocus={(e) => e.currentTarget.select()} />

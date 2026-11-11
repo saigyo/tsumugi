@@ -10,7 +10,7 @@ export function SamplerDetail({ softmax, sample }: { softmax: SoftmaxEvent; samp
   let offset = 0
   return (
     <div data-testid="detail-sampler" className="detail">
-      <h3>Sampling {sample && `(${sample.method})`} <Term id="sampling" variant="icon" label="About this stage" testId="stage-info"><Icon name="info" /></Term></h3>
+      <h3>Sampler{sample && ` (${sample.method})`} <Term id="sampling" variant="icon" label="About this stage" testId="stage-info"><Icon name="info" /></Term></h3>
       {sample?.method === 'forced'
         ? <p>Copied from the original run (knockout replay): no <Term id="sampling">draw</Term>.</p>
         : <p>A weighted <Term id="sampling">draw</Term> across the probability strip picks the next token.</p>}

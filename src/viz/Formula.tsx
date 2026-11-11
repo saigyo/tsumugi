@@ -1,3 +1,4 @@
+import { Icon } from '../ui/Icon'
 import { texToMathML } from './tex'
 
 // A formula written in LaTeX, rendered as native MathML. Invalid LaTeX shows
@@ -15,7 +16,7 @@ export function Formula({ tex, inline = false, testId, className }: {
     html = texToMathML(tex, inline)
   } catch (err) {
     console.error('Formula: invalid LaTeX', tex, err)
-    return <Tag data-testid={testId} data-formula-error="" className="formula formula-error"><code>{tex}</code></Tag>
+    return <Tag data-testid={testId} data-formula-error="" className="formula formula-error error"><Icon name="info" /><code>{tex}</code></Tag>
   }
   return <Tag data-testid={testId} className={`formula${inline ? ' formula-inline' : ''}${className ? ` ${className}` : ''}`}
     dangerouslySetInnerHTML={{ __html: html }} />

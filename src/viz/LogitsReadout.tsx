@@ -54,7 +54,7 @@ export function LogitsReadout({ candidates, lastHidden, dims, vocabSize, selecte
               ariaLabel="the last token’s final vector, pooled"
               titleFor={(c, v) => `dims ${c * per}–${c * per + per - 1}: mean ${v.toFixed(2)}`} />
           ) : missingX}
-          <div className="embed-caption">the last position after the final layer and norm</div>
+          <div className="fine embed-caption">the last position after the final layer and norm</div>
         </div>
         <div className="readout-op" aria-hidden="true">·</div>
         <svg data-testid="readout-matrix" className="embed-matrix" width="150" height="110" viewBox="0 0 150 110" role="img"
@@ -115,12 +115,12 @@ export function LogitsReadout({ candidates, lastHidden, dims, vocabSize, selecte
             )}
           </div>
           {exact ? (
-            <div data-testid="readout-sum" className="readout-sum">
+            <div data-testid="readout-sum" className="note readout-sum">
               Σ of the {READOUT_CELLS} cells = {dotSum!.toFixed(1)} — the logit on the bar
               {Math.abs(dotSum! - sel.logit) > 0.05 ? ` (logit ${sel.logit.toFixed(1)})` : ''}
             </div>
           ) : (
-            <div data-testid="readout-sum" className="readout-sum">
+            <div data-testid="readout-sum" className="note readout-sum">
               {assetCells ? `${assetCells.length} of ${dims} dimensions (PCA-reduced, offline). ` : ''}
               {lastHidden
                 ? 'This candidate’s row was not among the 16 rows the model exported (a tie at the cut), so its products are not available.'
@@ -128,7 +128,7 @@ export function LogitsReadout({ candidates, lastHidden, dims, vocabSize, selecte
             </div>
           )}
           {exact && (
-            <div className="embed-caption">
+            <div className="fine embed-caption">
               {READOUT_CELLS} cells of {per} dimensions; blue cells add to the score, red cells subtract.
             </div>
           )}

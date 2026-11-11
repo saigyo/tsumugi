@@ -9,7 +9,7 @@ export function ModelSlot({ mode, loading, fromCache, progress, error, bannerClo
   bannerClosed: boolean; onLoad(): void; onClose(): void; onFallback(): void
 }) {
   if (error) return (
-    <div role="status" data-testid="model-error" className="model-slot model-error">
+    <div role="status" data-testid="model-error" className="model-slot error"><Icon name="info" />
       Real model unavailable: {error}
       <button data-testid="btn-fallback" className="btn" onClick={onFallback}>Continue in Simulated mode</button>
     </div>

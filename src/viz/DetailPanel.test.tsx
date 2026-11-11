@@ -22,7 +22,7 @@ vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(null as neve
 vi.mock('../geometry/useGeometry', () => ({ useGeometry: () => ({ status: 'loading', retry: () => {} }) }))
 
 test('tokenizer detail shows token chips with ids', () => {
-  render(<DetailPanel events={trace} cursor={1} mode="sim" />)
+  render(<DetailPanel events={trace} cursor={1} mode="sim" generating={false} />)
   expect(screen.getByTestId('detail-tokenizer')).toHaveTextContent('The')
   expect(screen.getByTestId('detail-tokenizer')).toHaveTextContent('10')  // token id
   // ' cat' carries a leading space: shown as a marker, and explained once
@@ -31,20 +31,20 @@ test('tokenizer detail shows token chips with ids', () => {
 })
 
 test('embeddings detail shows the embedding-table shape', () => {
-  render(<DetailPanel events={trace} cursor={2} mode="sim" />)
+  render(<DetailPanel events={trace} cursor={2} mode="sim" generating={false} />)
   expect(screen.getByTestId('detail-embeddings')).toHaveTextContent('49 152 × 576')
   expect(screen.getAllByTestId('embed-token')).toHaveLength(2)
 })
 
 test('the picked token chip in Embeddings has the picked look and keeps its hue', () => {
-  render(<DetailPanel events={trace} cursor={2} mode="sim" />)
+  render(<DetailPanel events={trace} cursor={2} mode="sim" generating={false} />)
   const chips = screen.getAllByTestId('embed-token')
   expect(chips.map((c) => c.classList.contains('is-picked'))).toEqual(chips.map((c) => c.dataset.selected === 'true'))
   expect(chips.find((c) => c.classList.contains('is-picked'))?.className).toMatch(/tok-wash-\d/)
 })
 
 test('layers detail lights the active layer; sim shows norms', () => {
-  render(<DetailPanel events={trace} cursor={4} mode="sim" />)  // layer index 1 of 3
+  render(<DetailPanel events={trace} cursor={4} mode="sim" generating={false} />)  // layer index 1 of 3
   const blocks = screen.getAllByTestId('layer-block')
   expect(blocks).toHaveLength(3)
   expect(blocks[1].dataset.lit).toBe('true')
@@ -57,7 +57,7 @@ test('real mode labels layers as schematic when the run has no attention data', 
   // current cycle's attention event has fired (see the cursor-6/cursor-4-with-
   // attention cases below).
   const noAttn = trace.filter((e) => e.type !== 'attention')
-  render(<DetailPanel events={noAttn} cursor={4} mode="real" />)
+  render(<DetailPanel events={noAttn} cursor={4} mode="real" generating={false} />)
   expect(screen.getByTestId('detail-layers')).toHaveTextContent(/schematic/i)
 })
 
@@ -65,12 +65,21 @@ test('real mode drops the schematic tag pre-emptively when the run will produce 
   // cursor 4 is a layer event in cycle 0, before cycle 0's own attention event
   // (cursor 6) — but the full run does produce attention data later, so the tag
   // must not appear even this early.
-  render(<DetailPanel events={trace} cursor={4} mode="real" />)
+  render(<DetailPanel events={trace} cursor={4} mode="real" generating={false} />)
   expect(screen.getByTestId('detail-layers')).not.toHaveTextContent(/schematic/i)
 })
 
+test('the empty card says what is happening', () => {
+  const { rerender } = render(<DetailPanel events={[]} cursor={-1} mode="sim" generating={false} />)
+  expect(screen.getByTestId('detail-empty')).toHaveTextContent('Press Generate, then step through the pipeline.')
+  rerender(<DetailPanel events={[]} cursor={-1} mode="sim" generating={true} />)
+  expect(screen.getByTestId('detail-empty')).toHaveTextContent('Generating… the first token will appear here.')
+  rerender(<DetailPanel events={trace} cursor={-1} mode="sim" generating={false} />)
+  expect(screen.getByTestId('detail-empty')).toHaveTextContent('Press play or step forward to walk through this run.')
+})
+
 test('no relevant event renders empty state', () => {
-  render(<DetailPanel events={trace} cursor={-1} mode="sim" />)
+  render(<DetailPanel events={trace} cursor={-1} mode="sim" generating={false} />)
   expect(screen.getByTestId('detail-empty')).toBeInTheDocument()
 })
 
@@ -78,30 +87,36 @@ test('truncated tokenize event shows a notice', () => {
   const t = makeFixtureTrace()
   const tok = t[1]
   if (tok.type === 'tokenize') tok.truncated = true
-  render(<DetailPanel events={t} cursor={1} mode="sim" />)
+  render(<DetailPanel events={t} cursor={1} mode="sim" generating={false} />)
   expect(screen.getByTestId('truncation-notice')).toBeInTheDocument()
 })
 
 // makeFixtureTrace cycle 0: index 7=logits, 8=softmax, 9=sample, 10=append
 test('logits detail shows one bar per candidate', () => {
-  render(<DetailPanel events={trace} cursor={7} mode="sim" />)
+  render(<DetailPanel events={trace} cursor={7} mode="sim" generating={false} />)
   expect(screen.getAllByTestId('logit-bar')).toHaveLength(3)
   expect(screen.getByTestId('detail-logits')).toHaveTextContent('sat')
 })
 
 test('softmax cursor shows the Softmax card with probabilities', () => {
-  render(<DetailPanel events={trace} cursor={8} mode="sim" />)
+  render(<DetailPanel events={trace} cursor={8} mode="sim" generating={false} />)
   expect(screen.queryByTestId('detail-logits')).toBeNull()
   expect(screen.getByTestId('detail-softmax')).toHaveTextContent('70%')  // 0.7 → 70%
 })
 
 test('sampler detail marks the chosen token', () => {
-  render(<DetailPanel events={trace} cursor={9} mode="sim" />)
+  render(<DetailPanel events={trace} cursor={9} mode="sim" generating={false} />)
   expect(screen.getByTestId('chosen-marker')).toHaveTextContent('sat')
+  expect(screen.getByRole('heading', { level: 3 }).textContent).toMatch(/^Sampler \(/)
+})
+
+test('a stage card title starts with the stage name', () => {
+  render(<DetailPanel events={trace} cursor={4} mode="sim" generating={false} />)
+  expect(screen.getByRole('heading', { level: 3 }).textContent).toMatch(/^Layers/)
 })
 
 test('run-end cursor shows a run summary, not the idle hint', () => {
-  render(<DetailPanel events={trace} cursor={trace.length - 1} mode="sim" />)
+  render(<DetailPanel events={trace} cursor={trace.length - 1} mode="sim" generating={false} />)
   const summary = screen.getByTestId('detail-run-end')
   expect(summary).toHaveTextContent(/max-tokens/)
   expect(summary).toHaveTextContent('2')          // generated token count
@@ -110,23 +125,23 @@ test('run-end cursor shows a run summary, not the idle hint', () => {
 })
 
 test('attention cursor maps to layers stage and shows the heatmap', () => {
-  render(<DetailPanel events={trace} cursor={6} mode="sim" />)
+  render(<DetailPanel events={trace} cursor={6} mode="sim" generating={false} />)
   expect(screen.getByTestId('detail-layers')).toBeInTheDocument()
   expect(screen.getByTestId('attention-heatmap')).toBeInTheDocument()
 })
 
 test('real mode drops the schematic tag when attention data exists', () => {
-  render(<DetailPanel events={trace} cursor={6} mode="real" />)  // cursor on attention event
+  render(<DetailPanel events={trace} cursor={6} mode="real" generating={false} />)  // cursor on attention event
   expect(screen.getByTestId('detail-layers')).not.toHaveTextContent(/schematic/i)
 })
 
 test('mid-layer cursor before the cycle attention has no heatmap', () => {
-  render(<DetailPanel events={trace} cursor={4} mode="sim" />)
+  render(<DetailPanel events={trace} cursor={4} mode="sim" generating={false} />)
   expect(screen.queryByTestId('attention-heatmap')).not.toBeInTheDocument()
 })
 
 test('layers detail shows the residual-stream diagram with live shapes', () => {
-  render(<DetailPanel events={trace} cursor={4} mode="sim" />)
+  render(<DetailPanel events={trace} cursor={4} mode="sim" generating={false} />)
   const diagram = screen.getByTestId('residual-diagram')
   expect(diagram).toHaveTextContent('[2×576]')
   expect(diagram).toHaveTextContent('× 3 layers')
@@ -136,7 +151,7 @@ test('layers detail shows the residual-stream diagram with live shapes', () => {
 })
 
 test('logits detail frames scores as a dot-product readout', () => {
-  render(<DetailPanel events={trace} cursor={7} mode="sim" />)
+  render(<DetailPanel events={trace} cursor={7} mode="sim" generating={false} />)
   const formula = screen.getByTestId('logits-formula')
   expect(texOf(formula)).toContain('[1 \\times 576]')
   expect(texOf(formula)).toContain('[576 \\times 49\\,152]')
@@ -150,7 +165,7 @@ function traceWithGrid() {
 }
 
 test('layers detail offers the explorer toggle when the run has a grid', () => {
-  render(<DetailPanel events={traceWithGrid()} cursor={3} mode="real" />)
+  render(<DetailPanel events={traceWithGrid()} cursor={3} mode="real" generating={false} />)
   const toggle = screen.getByTestId('btn-explore-heads')
   expect(toggle).toHaveTextContent('Explore all heads (4)')
   fireEvent.click(toggle)
@@ -158,14 +173,14 @@ test('layers detail offers the explorer toggle when the run has a grid', () => {
 })
 
 test('no explorer toggle without a grid event', () => {
-  render(<DetailPanel events={trace} cursor={3} mode="sim" />)
+  render(<DetailPanel events={trace} cursor={3} mode="sim" generating={false} />)
   expect(screen.queryByTestId('btn-explore-heads')).toBeNull()
 })
 
 test('cell clicks reach onPin and pinned heads render as chips', () => {
   const onPin = vi.fn()
   const pinned: AttentionHead[] = [{ layer: 1, head: 1, label: 'pinned', matrix: [[1], [0.5, 0.5]] }]
-  render(<DetailPanel events={traceWithGrid()} cursor={6} mode="real"
+  render(<DetailPanel events={traceWithGrid()} cursor={6} mode="real" generating={false}
     pinnedHeads={pinned} onPin={onPin} pinNote={null} />)
   fireEvent.click(screen.getByTestId('btn-explore-heads'))
   fireEvent.click(screen.getAllByTestId('grid-cell')[0])
@@ -179,7 +194,7 @@ test('the last pinned head is focused (selected) in the viewer', () => {
     { layer: 1, head: 1, label: 'pinned', matrix: [[1], [0.5, 0.5]] },
     { layer: 2, head: 2, label: 'pinned', matrix: [[1], [0.4, 0.6]] },
   ]
-  render(<DetailPanel events={trace} cursor={6} mode="real" pinnedHeads={pinned} />)
+  render(<DetailPanel events={trace} cursor={6} mode="real" generating={false} pinnedHeads={pinned} />)
   const chips = screen.getAllByTestId('head-chip')
   const lastPinChip = chips.find((c) => c.textContent?.includes('L2') && c.textContent?.includes('H2'))
   expect(lastPinChip).toBeDefined()
@@ -192,15 +207,15 @@ test('pinned-head rows are labeled with run tokens, not indices', () => {
   // cursor 3: a layer event before the cycle's attention event, so the cycle
   // contributes no token sizing (rows = 0) — labels must come from the run
   const pinned: AttentionHead[] = [{ layer: 0, head: 0, label: 'pinned', matrix: [[1], [0.5, 0.5]] }]
-  render(<DetailPanel events={trace} cursor={3} mode="real" pinnedHeads={pinned} />)
+  render(<DetailPanel events={trace} cursor={3} mode="real" generating={false} pinnedHeads={pinned} />)
   expect(screen.getAllByText('The').length).toBeGreaterThan(0)
   expect(screen.getAllByText('cat').length).toBeGreaterThan(0)
   expect(screen.queryByText('#0')).toBeNull()
 })
 
 test('the stale-pin note renders', () => {
-  render(<DetailPanel events={traceWithGrid()} cursor={3} mode="real"
-    pinNote="run data no longer available — regenerate to explore heads" />)
+  render(<DetailPanel events={traceWithGrid()} cursor={3} mode="real" generating={false}
+    pinNote="Run data no longer available; regenerate to explore heads." />)
   expect(screen.getByTestId('pin-note')).toHaveTextContent('regenerate')
 })
 
@@ -212,7 +227,7 @@ test('every stage card heading has an info icon that opens its entry, and captio
     [7, 'logit', 'logit'], [8, 'softmax', 'logit'], [9, 'sampling', 'sampling'],
   ]
   for (const [cursor, headingEntry, captionEntry] of cases) {
-    render(<DetailPanel events={events} cursor={cursor} mode="sim" />)
+    render(<DetailPanel events={events} cursor={cursor} mode="sim" generating={false} />)
     const info = screen.getByTestId('stage-info')
     expect(info.closest('h3'), `cursor ${cursor}`).not.toBeNull()
     expect(info.dataset.term, `cursor ${cursor}`).toBe(headingEntry)
@@ -222,7 +237,7 @@ test('every stage card heading has an info icon that opens its entry, and captio
 })
 
 test('real run with MLP data: both cards below the attention section', () => {
-  render(<DetailPanel events={buildFixtureTrace({ mlp: true, mode: 'real' })} cursor={4} mode="real" />)
+  render(<DetailPanel events={buildFixtureTrace({ mlp: true, mode: 'real' })} cursor={4} mode="real" generating={false} />)
   const layers = screen.getByTestId('detail-layers')
   expect(within(layers).getAllByTestId('edit-cell').length).toBeGreaterThan(0)
   expect(within(layers).getAllByTestId('vote-cell').length).toBeGreaterThan(0)
@@ -232,44 +247,44 @@ test('real run with MLP data: both cards below the attention section', () => {
 })
 
 test('simulated run: both cards show the real-model-only note', () => {
-  render(<DetailPanel events={buildFixtureTrace({ mlp: true })} cursor={4} mode="sim" />)
+  render(<DetailPanel events={buildFixtureTrace({ mlp: true })} cursor={4} mode="sim" generating={false} />)
   expect(screen.getByTestId('edit-size-note')).toHaveTextContent('Real model only: simulated runs have no MLP to measure.')
   expect(screen.getByTestId('votes-note')).toHaveTextContent('Real model only: simulated runs have no MLP to measure.')
 })
 
 test('real run recorded before MLP data: the older-data note on both cards', () => {
-  render(<DetailPanel events={buildFixtureTrace({ mode: 'real' })} cursor={4} mode="real" />)
+  render(<DetailPanel events={buildFixtureTrace({ mode: 'real' })} cursor={4} mode="real" generating={false} />)
   expect(screen.getByTestId('edit-size-note')).toHaveTextContent('This run was recorded before MLP data was exported.')
   expect(screen.getByTestId('votes-note')).toHaveTextContent('This run was recorded before MLP data was exported.')
 })
 
 test('live run before the cycle’s logits: the votes card says votes are coming', () => {
   const t = buildFixtureTrace({ mlp: true, mode: 'real' }).slice(0, 8)   // through cycle 0's edits
-  render(<DetailPanel events={t} cursor={4} mode="real" />)
+  render(<DetailPanel events={t} cursor={4} mode="real" generating={false} />)
   expect(screen.getByTestId('votes-note')).toHaveTextContent('Votes appear once this cycle’s scores are computed.')
   expect(screen.getAllByTestId('edit-cell').length).toBeGreaterThan(0)
 })
 
 test('live run before the cycle’s edits: the edit-size card says they are coming, not that the run is old', () => {
   const t = buildFixtureTrace({ mlp: true, mode: 'real' }).slice(0, 7)   // through cycle 0's attention
-  render(<DetailPanel events={t} cursor={4} mode="real" />)
+  render(<DetailPanel events={t} cursor={4} mode="real" generating={false} />)
   expect(screen.getByTestId('edit-size-note')).toHaveTextContent('Edit sizes appear once this cycle’s layers are measured.')
 })
 
 test('an ended run without the cycle’s scores shows the older-data note, not a pending one', () => {
   const t = [...buildFixtureTrace({ mlp: true, mode: 'real' }).slice(0, 8), { type: 'run-end', reason: 'error' } as const]
-  render(<DetailPanel events={t} cursor={4} mode="real" />)
+  render(<DetailPanel events={t} cursor={4} mode="real" generating={false} />)
   expect(screen.getByTestId('votes-note')).toHaveTextContent('This run was recorded before MLP data was exported.')
 })
 
 test('real mode: the Layers detail shows the neuron card under the two MLP cards; sim mode shows its note', () => {
   const real = buildFixtureTrace({ mode: 'real', mlp: true, neurons: true })
   const at = real.findIndex((e) => e.type === 'layer')
-  const { unmount } = render(<DetailPanel events={real} cursor={at} mode="real" />)
+  const { unmount } = render(<DetailPanel events={real} cursor={at} mode="real" generating={false} />)
   const cards = screen.getByTestId('mlp-cards').querySelectorAll('section')
   expect([...cards].map((s) => s.dataset.testid)).toEqual(['edit-size-card', 'votes-card', 'knockout-card', 'neuron-card', 'steps-card'])
   unmount()
-  render(<DetailPanel events={real} cursor={at} mode="sim" />)
+  render(<DetailPanel events={real} cursor={at} mode="sim" generating={false} />)
   expect(screen.getByTestId('neuron-note')).toHaveTextContent('Real model only: simulated runs have no neurons to show.')
 })
 
@@ -277,11 +292,11 @@ test('the step-by-step card: a simulated run shows its note, a real run without 
   vi.spyOn(asset, 'loadNeuronAsset').mockResolvedValue(fixtureNeuronAsset())
   vi.spyOn(asset, 'loadNeuronLayer').mockImplementation(async (l) => fixtureNeuronLayer(l))
   const sim = buildFixtureTrace({ mode: 'sim' })
-  const { unmount } = render(<DetailPanel events={sim} cursor={sim.findIndex((e) => e.type === 'layer')} mode="sim" />)
+  const { unmount } = render(<DetailPanel events={sim} cursor={sim.findIndex((e) => e.type === 'layer')} mode="sim" generating={false} />)
   expect(screen.getByTestId('steps-note')).toHaveTextContent(STEPS_SIM_NOTE)
   unmount()
   const old = buildFixtureTrace({ mode: 'real', mlp: true, neurons: true, steps: false })
-  render(<DetailPanel events={old} cursor={old.findIndex((e) => e.type === 'layer')} mode="real" />)
+  render(<DetailPanel events={old} cursor={old.findIndex((e) => e.type === 'layer')} mode="real" generating={false} />)
   expect(screen.getByTestId('steps-note')).toHaveTextContent(STEPS_OLD_NOTE)
   expect(STEPS_OLD_NOTE).toBe('This run has no step-by-step data (recorded before it existed, or left out because it was damaged).')
   await waitFor(() => expect(screen.getAllByTestId('neuron-row').length).toBeGreaterThan(0))
@@ -290,7 +305,7 @@ test('the step-by-step card: a simulated run shows its note, a real run without 
 
 test('the tokenizer detail of a chat run says how many tokens the template added and folds the system turn', () => {
   const events = buildFixtureTrace({ chat: true, mode: 'real' })
-  render(<DetailPanel events={events} cursor={1} mode="real" />)
+  render(<DetailPanel events={events} cursor={1} mode="real" generating={false} />)
   expect(screen.getByTestId('tokenizer-chat-note')).toHaveTextContent('30 of the 37 tokens were added by the template')
   expect(screen.getByTestId('tokenizer-chat-note').querySelector('[data-term="chat-template"]')).not.toBeNull()
   expect(screen.getByTestId('system-fold')).toHaveTextContent('system prompt · 20 tokens')
@@ -301,7 +316,7 @@ test('in a simulated run the real-model-only notes offer to load the real model'
   act(() => { useRealModel.setState({ request, loading: false }) })
   const events = buildFixtureTrace()
   const layer = events.findIndex((e) => e.type === 'layer')
-  render(<DetailPanel events={events} cursor={layer} mode="sim" />)
+  render(<DetailPanel events={events} cursor={layer} mode="sim" generating={false} />)
   const buttons = screen.getAllByTestId('load-real')
   expect(buttons.length).toBeGreaterThanOrEqual(4)
   fireEvent.click(buttons[0])
@@ -315,19 +330,19 @@ test('the Layers folds stay as set while scrubbing through the run, and close fo
   const attnAt = events.flatMap((e, i) => (e.type === 'attention' ? [i] : []))
   const softmaxAt = events.findIndex((e) => e.type === 'softmax')
   expect(attnAt.length).toBeGreaterThan(1)
-  const { rerender } = render(<DetailPanel events={events} cursor={attnAt[0]} mode="real" />)
+  const { rerender } = render(<DetailPanel events={events} cursor={attnAt[0]} mode="real" generating={false} />)
   fireEvent.click(screen.getByTestId('attn-show-system'))
   fireEvent.click(screen.getByTestId('edit-fold'))
   // the matrix is gone during a cycle's layer steps, the whole Layers detail during Softmax
-  rerender(<DetailPanel events={events} cursor={attnAt[0] - 1} mode="real" />)
+  rerender(<DetailPanel events={events} cursor={attnAt[0] - 1} mode="real" generating={false} />)
   expect(screen.queryByTestId('attn-show-system')).toBeNull()
-  rerender(<DetailPanel events={events} cursor={softmaxAt} mode="real" />)
+  rerender(<DetailPanel events={events} cursor={softmaxAt} mode="real" generating={false} />)
   expect(screen.queryByTestId('detail-layers')).toBeNull()
-  rerender(<DetailPanel events={events} cursor={attnAt[1]} mode="real" />)
+  rerender(<DetailPanel events={events} cursor={attnAt[1]} mode="real" generating={false} />)
   expect(screen.getByTestId('attn-show-system')).toBeChecked()
   expect(screen.getByTestId('edit-fold')).toHaveAttribute('aria-expanded', 'true')
   const next = buildFixtureTrace({ chat: true, mode: 'real', mlp: true })
-  rerender(<DetailPanel events={next} cursor={attnAt[1]} mode="real" />)
+  rerender(<DetailPanel events={next} cursor={attnAt[1]} mode="real" generating={false} />)
   expect(screen.getByTestId('attn-show-system')).not.toBeChecked()
   expect(screen.getByTestId('edit-fold')).toHaveAttribute('aria-expanded', 'false')
 })
@@ -342,18 +357,18 @@ test('the Knockouts card reads the active record\'s sweep for the viewed cycle, 
   useRunsStore.setState({ activeId: 'r', records: [{ id: 'r', meta: meta as never, events: real, sweeps: [sweep] }] })
   useKnockoutRequest.setState({ model: { knockout: true, revision: 'v7' } })
   const at = real.findIndex((e) => e.type === 'layer')
-  const { unmount } = render(<DetailPanel events={real} cursor={at} mode="real" />)
+  const { unmount } = render(<DetailPanel events={real} cursor={at} mode="real" generating={false} />)
   expect(screen.getAllByTestId('knockout-bar')).toHaveLength(30)
   unmount()
   // another run (its own run-start object) does not pick up the record's sweep
-  render(<DetailPanel events={[{ ...real[0] }, ...real.slice(1)]} cursor={at} mode="real" />)
+  render(<DetailPanel events={[{ ...real[0] }, ...real.slice(1)]} cursor={at} mode="real" generating={false} />)
   expect(screen.queryAllByTestId('knockout-bar')).toHaveLength(0)
   useRunsStore.setState({ activeId: null, records: [] })
 })
 
 test('the Stage n of 6 pill appears once, at the stage views, and not at the empty state or run-end', () => {
   const pillAt = (cursor: number) => {
-    const { unmount } = render(<DetailPanel events={trace} cursor={cursor} mode="sim" />)
+    const { unmount } = render(<DetailPanel events={trace} cursor={cursor} mode="sim" generating={false} />)
     const pills = screen.queryAllByTestId('stage-pill').map((p) => p.textContent)
     unmount()
     return pills
@@ -362,7 +377,7 @@ test('the Stage n of 6 pill appears once, at the stage views, and not at the emp
   expect(pillAt(3)).toEqual(['Stage 3 of 6'])
   expect(pillAt(1)).toEqual(['Stage 1 of 6'])
   expect(pillAt(trace.length - 1)).toEqual([])
-  render(<DetailPanel events={[]} cursor={-1} mode="sim" />)
+  render(<DetailPanel events={[]} cursor={-1} mode="sim" generating={false} />)
   expect(screen.getByTestId('detail-empty')).toBeInTheDocument()
   expect(screen.queryByTestId('stage-pill')).toBeNull()
 })

@@ -142,7 +142,7 @@ export function PipelineBand({ events, cursor, onStageClick }: {
       )}
     </div>
     {showNote && (
-      <p data-testid="tokenizer-note" role="status" className="tokenizer-note">The tokenizer runs once, before the
+      <p data-testid="tokenizer-note" role="status" className="note tokenizer-note">The tokenizer runs once, before the
         loop. Generated tokens come straight from the Sampler as IDs and are never tokenized.</p>
     )}
     </>

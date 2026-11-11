@@ -34,7 +34,7 @@ test('an empty matrix sets the stale note and adds nothing', async () => {
   const { result } = renderHook(() => usePins(async (l, h) => data(l, h, { matrix: [] })))
   await act(() => result.current.pin(0, 0))
   expect(result.current.pins).toHaveLength(0)
-  expect(result.current.note).toBe('run data no longer available — regenerate to explore heads')
+  expect(result.current.note).toBe('Run data no longer available; regenerate to explore heads.')
 })
 
 test('the sixth pin evicts the first (FIFO cap of 5)', async () => {

@@ -13,7 +13,7 @@ test('runs archive to the shelf, compare opens and exits', async ({ page }) => {
   await page.getByTestId('btn-compare-arm').click()
   await page.getByTestId('run-chip-main').last().click()
   await expect(page.getByTestId('compare-view')).toBeVisible()
-  await expect(page.getByTestId('cmp-badge')).toContainText('different prompts')
+  await expect(page.getByTestId('cmp-badge')).toContainText('The prompts differ')
 
   await page.getByTestId('btn-compare-exit').click()
   await expect(page.getByTestId('compare-view')).not.toBeVisible()

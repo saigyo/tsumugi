@@ -36,15 +36,15 @@ export function MlpStepsCard({ data, candidates, note, noteAction, run }: {
   const removed = removedLayerNoteFor(run, layer)
   return (
     <section data-testid="steps-card" className="mlp-card">
-      <h4 data-testid="steps-title">The MLP, step by step{layer !== null ? `: layer ${layer}` : ''}{layer !== null && (
+      <h4 className="sub-title" data-testid="steps-title">The MLP, step by step{layer !== null ? `: layer ${layer}` : ''}{layer !== null && (
         <span className="neuron-stepper">
           <button type="button" data-testid="steps-prev" className="btn btn-icon btn-sm" aria-label="Previous layer" disabled={layer <= 0} onClick={() => step(-1)}><Icon name="prev" /></button>
           <button type="button" data-testid="steps-next" className="btn btn-icon btn-sm" aria-label="Next layer" disabled={layer >= layers - 1} onClick={() => step(1)}><Icon name="next" /></button>
         </span>
       )}{' '}<Term id="mlp" variant="icon" label="About the MLP" testId="steps-info"><Icon name="info" /></Term></h4>
-      {!ready || layer === null ? <p data-testid="steps-note" className="mlp-note">{note} {noteAction}</p>
+      {!ready || layer === null ? <p data-testid="steps-note" className="note">{note} {noteAction}</p>
         : <>
-          {removed && <p data-testid="removed-layer-note" className="mlp-note">{removed}</p>}
+          {removed && <p data-testid="removed-layer-note" className="note">{removed}</p>}
           <StepsBody data={data} candidates={candidates} selected={selected} layer={layer} />
         </>}
     </section>
@@ -71,15 +71,15 @@ function StepsBody({ data, candidates, selected, layer }: { data: NeuronData; ca
   // per-layer summaries: computed once per layer, not on every hover
   const sum = useMemo(() => s && { domain: gateDomain(s.gate), counts: gateCounts(s.gate), product: productSummary(s.h) }, [s])
   const named = useMemo(() => s ? [...marked].sort((a, b) => Math.abs(s.h[b]) - Math.abs(s.h[a])).slice(0, 3) : [], [s, marked])
-  if (!s || !sum) return <p data-testid="steps-note" className="mlp-note">{INCONSISTENT}</p>
+  if (!s || !sum) return <p data-testid="steps-note" className="note">{INCONSISTENT}</p>
   const box = (chart: Hover['chart']) => hover?.chart === chart
     ? <HoverBox s={s} hover={hover} weights={weights} /> : null
   const pending = state.status === 'ready'
-    ? <p data-testid="steps-mismatch" className="mlp-note">{MISMATCH}</p>
+    ? <p data-testid="steps-mismatch" className="note">{MISMATCH}</p>
     : state.status === 'error'
-    ? <p data-testid="steps-error" className="mlp-note">Couldn’t load the MLP weights.{' '}
+    ? <p data-testid="steps-error" className="error"><Icon name="info" />Couldn’t load the MLP weights.{' '}
         <button type="button" data-testid="steps-retry" className="btn" onClick={state.retry}>Retry</button></p>
-    : <p data-testid="steps-loading" className="mlp-note">{LOADING}</p>
+    : <p data-testid="steps-loading" className="note">{LOADING}</p>
   return (
     <>
       <p className="mlp-caption">What layer {layer}’s MLP computes for the last token, in the order it computes it. Same layer as the
@@ -91,7 +91,7 @@ function StepsBody({ data, candidates, selected, layer }: { data: NeuronData; ca
       <Step n={2} name="Gate and up" tex={String.raw`g = W_{\text{gate}} \cdot n \quad u = W_{\text{up}} \cdot n`}
         text="Two different weight matrices turn n into two lists of 1,536 numbers, one pair per neuron. Each dot is one neuron.">
         <GateUpScatter gate={s.gate} up={s.up} domain={sum.domain} marked={marked} named={named} hover={hover} onHover={setHover} box={box('scatter')} />
-        {named.length > 0 && <p data-testid="steps-scatter-note" className="mlp-scale-note">{namedNote(named.length)}</p>}
+        {named.length > 0 && <p data-testid="steps-scatter-note" className="fine">{namedNote(named.length)}</p>}
       </Step>
       <Step n={3} name="SiLU" tex={String.raw`\operatorname{SiLU}(g) = g \cdot \sigma(g)`}
         text="The gate goes through SiLU. Same gate axis as above: each dot slides straight down onto the curve.">
@@ -129,7 +129,7 @@ const NormStrips = memo(function NormStrips({ s, w, eps }: { s: LayerSteps; w: F
       <StepStrip values={s.x} lim={2 * rms(s.x)} label="x, into the MLP" testId="strip-x" />
       <StepStrip values={w} lim={peakW} label={`÷ rms(x) = ${r.toFixed(1)}, ⊙ w`} testId="strip-w" />
       <StepStrip values={n} lim={2 * rms(n)} label="n, normalized" testId="strip-n" />
-      <p className="mlp-scale-note">{s.x.length} numbers each; blue positive, red negative; x and n clipped at 2× their typical size, w scaled to its largest value.</p>
+      <p className="fine">{s.x.length} numbers each; blue positive, red negative; x and n clipped at 2× their typical size, w scaled to its largest value.</p>
     </div>
   )
 })
@@ -143,9 +143,9 @@ const DownStrips = memo(function DownStrips({ s, layer, dims, marked, ring }: { 
       {/* the wrapper carries the ring, so a hover leaves the strip itself (and its cells) untouched */}
       {top.map(({ i, values }) => <div key={i} className={i === ring ? 'step-row-ring' : undefined}>
         <StepStrip values={values} lim={lim} label={`N${i}: ${f2(s.h[i])} × column`} testId={`strip-c${i}`} labelClass="step-strip-mono" /></div>)}
-      <div className="step-strip-row"><span className="step-strip-label">+ {s.h.length - top.length} more</span><span className="mlp-note">…</span></div>
+      <div className="step-strip-row"><span className="step-strip-label">+ {s.h.length - top.length} more</span><span className="note">…</span></div>
       <StepStrip values={s.edit} lim={lim} label="= edit" testId="strip-edit" labelClass="step-strip-sum" />
-      <p data-testid="steps-ratio" className="mlp-scale-note">‖edit‖ = {Math.hypot(...s.edit).toFixed(0)},{' '}
+      <p data-testid="steps-ratio" className="fine">‖edit‖ = {Math.hypot(...s.edit).toFixed(0)},{' '}
         {editRatio(s.edit, s.x).toFixed(2)} of the stream’s length (the edit size card’s cell). Same colour scale on every row.</p>
     </div>
   )

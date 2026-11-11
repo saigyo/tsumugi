@@ -63,7 +63,7 @@ export function LayersDetail({ event, mode, attention, attentionInRun, tokens, s
   const focus = lastPin ? { layer: lastPin.layer, head: lastPin.head, label: lastPin.label } : undefined
   return (
     <div data-testid="detail-layers" className="detail">
-      <h3>Transformer layers <Term id="layer" variant="icon" label="About this stage" testId="stage-info"><Icon name="info" /></Term>{' '}
+      <h3>Layers <Term id="layer" variant="icon" label="About this stage" testId="stage-info"><Icon name="info" /></Term>{' '}
         {mode === 'real' && !attentionInRun && <em>(schematic — real internals not exposed)</em>}</h3>
       <LayersNav candidates={mode === 'real' && votes?.status === 'ok' ? votes.candidates : undefined} run={run}
         showStepper={mode === 'real' && votes?.status === 'ok'} />
@@ -83,7 +83,7 @@ export function LayersDetail({ event, mode, attention, attentionInRun, tokens, s
       </div>
       <div id="layers-attention" className="layers-section">
       {heads.length > 0 && tokens && <AttentionHeatmap heads={heads} tokens={tokens} focus={focus} chat={chat} />}
-      {pinNote && <p data-testid="pin-note" className="attn-note">{pinNote}</p>}
+      {pinNote && <p data-testid="pin-note" className="fine attn-note">{pinNote}</p>}
       {grid && (
         <button data-testid="btn-explore-heads" className="btn explore-heads"
           onClick={() => setExplore((v) => !v)}>
