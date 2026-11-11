@@ -256,8 +256,6 @@ input[type="number"] { width: 4rem; }
 .token-end { border-color: var(--shu); color: var(--shu-deep); background: var(--shu-wash); font-family: var(--mono); font-size: var(--t-cap); }
 .token-fold { border: 1px dashed var(--line-strong); color: var(--ink-soft); background: var(--washi); font: inherit; cursor: pointer; }
 .token-fold:hover, .token-fold:focus-visible { border-color: var(--ai); }
-.tok.token-template { border: 1px dashed var(--line-strong); background: transparent; }
-.tok.token-special { border: 1px dashed var(--ai-soft); color: var(--ai); background: transparent; }
 
 .token-popover {
   position: absolute; top: calc(100% + 4px); left: 0; z-index: 10; background: var(--card);
@@ -407,6 +405,9 @@ button.tok:hover:not(:disabled) { border-color: var(--ai); }
 .tok-wash-5 { --wash: var(--dye-5); }
 .tok[class*="tok-wash-"] { background: var(--wash); border-color: transparent; }
 .tok.tok-away { background: var(--shu-wash); border-color: transparent; }
+/* chat-template and special tokens stay dashed and unwashed; after the wash rules, which have the same weight */
+.tok.token-template, .tok.token-template[class*="tok-wash-"] { border: 1px dashed var(--line-strong); background: transparent; }
+.tok.token-special, .tok.token-special[class*="tok-wash-"] { border: 1px dashed var(--ai-soft); color: var(--ai); background: transparent; }
 
 .grid-explorer { margin-top: .6rem; border-top: 1px dashed var(--line); padding-top: .5rem; }
 .grid-explorer-header { display: flex; justify-content: space-between; align-items: baseline; gap: .8rem; flex-wrap: wrap; }
@@ -498,6 +499,7 @@ button.tok:hover:not(:disabled) { border-color: var(--ai); }
 /* the two token rows look like the token strip (token, token-generated); the fork keeps its coral */
 .cmp-token { font-size: var(--t-cap); }
 button.cmp-token { cursor: pointer; }
+button.cmp-token:hover:not(:disabled, .is-picked) { border-color: var(--ai); }
 .cmp-token[data-fork="true"]:not(.is-picked) { border-color: var(--shu); background: var(--shu-wash); font-weight: 600; }
 .cmp-meta-head { margin-bottom: .15rem; }
 /* the embedded single-head heatmap's own chip row duplicates the union chips above */
@@ -568,7 +570,7 @@ button.cmp-token { cursor: pointer; }
 .embed-stack-placeholder { fill: var(--ai-soft); }
 .embed-stack-frame { fill: none; stroke: none; stroke-width: 1; }
 .embed-stack-row[data-newest="true"] .embed-stack-frame { stroke: var(--ai-deep); }
-.embed-stack-row[data-selected="true"] .embed-stack-frame { stroke: var(--ai); stroke-width: 1.5; }
+.embed-stack-row[data-selected="true"] .embed-stack-frame { stroke: var(--ai); stroke-width: 2; }
 .embed-callouts { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: .4rem 1.2rem;
   font-size: var(--t-cap); color: var(--ai-deep); }
 .embed-callout { border-bottom: 1px dotted var(--ai-soft); }
@@ -755,7 +757,7 @@ math { font-family: var(--math); color: var(--ink); }
 .mlp-axis > span { white-space: nowrap; overflow: visible; }
 .mlp-tok { justify-self: end; font: inherit; font-size: var(--t-cap); white-space: pre; border-radius: 999px;
   padding: .02rem .55rem; border: 1px solid transparent; background: transparent; color: var(--ink-soft); }
-.votes-grid-row .tok { justify-self: end; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.votes-grid-row .tok { justify-self: end; max-width: 100%; overflow: hidden; }
 .edit-bar-clickable, .votes-cells > div, .mlp-cells > div[data-testid="edit-cell"] { cursor: pointer; }
 .votes-total-cell { font-size: var(--t-cap); display: inline-flex; align-items: center; gap: .4rem; font-variant-numeric: tabular-nums; }
 .votes-swatch { display: inline-block; width: 14px; height: 14px; border-radius: 2px; }
@@ -893,4 +895,4 @@ math { font-family: var(--math); color: var(--ink); }
 .is-picked, .is-picked:hover:not(:disabled) { border-color: var(--ai); background: var(--ai-wash-strong); color: var(--ai-deep); font-weight: 600; }
 .is-chosen, .is-chosen:hover:not(:disabled) { border-color: var(--shu); background: var(--shu-wash); color: var(--ink); }
 /* a picked prompt-token chip keeps its wash and its ink */
-.tok[class*="tok-wash-"].is-picked, .tok[class*="tok-wash-"].is-picked:hover:not(:disabled) { background: var(--wash); color: var(--ink); }
+.tok[class*="tok-wash-"].is-picked, .tok[class*="tok-wash-"].is-picked:hover:not(:disabled) { background: var(--wash); color: var(--ink); border-color: var(--ai); }
