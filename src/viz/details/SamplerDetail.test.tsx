@@ -28,6 +28,9 @@ test('the token popover shows whitespace tokens as glyphs', () => {
   const rows = screen.getAllByTestId('popover-row')
   expect(rows.every((r) => r.querySelector('.tok.tok-sm') !== null)).toBe(true)
   expect(rows.map((r) => r.querySelector('.bar')!.classList.contains('bar-chosen'))).toEqual(rows.map((r) => r.dataset.chosen === 'true'))
+  // the chosen row's chip is the one with is-chosen
+  expect(rows.map((r) => r.querySelector('.tok')!.classList.contains('is-chosen'))).toEqual(rows.map((r) => r.dataset.chosen === 'true'))
+  expect(rows.filter((r) => r.querySelector('.is-chosen'))).toHaveLength(1)
 })
 
 test('a forced sample says it was copied, not drawn', () => {

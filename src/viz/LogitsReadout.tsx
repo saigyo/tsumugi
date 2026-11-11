@@ -2,7 +2,6 @@ import { poolRow } from '../geometry/math'
 import { logitsCallouts } from '../glossary/callouts'
 import { Term } from '../glossary/Term'
 import { READOUT_CELLS, type LogitCandidate } from '../trace/types'
-import { thousands } from './selectors'
 import { readableTokenText } from '../engine/tokenBytes'
 import { visibleToken } from './tokenText'
 import { rowMarkY } from './stripMath'
@@ -33,7 +32,7 @@ const sum = (a: number[]) => a.reduce((s, v) => s + v, 0)
 // that lays the selected candidate's dot product out cell by cell. Pure
 // presentation; the container resolves vectors and owns the selection.
 export function LogitsReadout({ candidates, lastHidden, dims, vocabSize, selected, onSelect, assetRowFor, assetNote }: LogitsReadoutProps) {
-  const vocab = vocabSize ? thousands(vocabSize) : '?'
+  const vocab = vocabSize ? count(vocabSize) : '?'
   const xCells = lastHidden ? poolRow(lastHidden, READOUT_CELLS) : undefined
   const per = Math.round(dims / READOUT_CELLS)
   const maxLogit = Math.max(...candidates.map((c) => c.logit))

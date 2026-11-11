@@ -1,5 +1,5 @@
 import temml from 'temml'
-import { thousands } from './selectors'
+import { count } from '../ui/format'
 
 // LaTeX → MathML for the Formula component. Kept apart from the component so
 // that file exports only components. Results are cached: the formulas are a
@@ -17,8 +17,8 @@ export function texToMathML(tex: string, inline = false): string {
   return html
 }
 
-// 49152 → '49\,152': thousands grouped with a thin space, as in the cards' text.
-export const texNumber = (n: number) => thousands(n).replace(/ /g, '\\,')
+// 49152 → '49\,152': groups of three carry a TeX thin space, as in the cards' text (count() uses U+202F).
+export const texNumber = (n: number) => count(n).replace(/\u202f/g, '\\,')
 
 // The cards' formula lines, with the run's own sizes: the formula on the first
 // row, the shapes (or the top-k note) on the second, so the line never gets

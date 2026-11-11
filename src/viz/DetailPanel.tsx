@@ -20,8 +20,8 @@ export function DetailPanel({ events, cursor, mode, generating, pinnedHeads, onP
 }) {
   const current = eventAt(events, cursor)
   const stage = activeStage(current)
-  const emptyText = events.length > 0 ? 'Press play or step forward to walk through this run.'
-    : generating ? 'Generating… the first token will appear here.'
+  const emptyText = generating ? 'Generating… the first token will appear here.'
+    : events.length > 0 ? 'Press play or step forward to walk through this run.'
     : 'Press Generate, then step through the pipeline.'
   const empty = <div data-testid="detail-empty" className="detail">{emptyText}</div>
 

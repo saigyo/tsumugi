@@ -1,8 +1,8 @@
-import { thousands } from '../../viz/selectors'
 import { Section } from '../Section'
 import { Term } from '../Term'
 import type { GlossaryEntry } from '../types'
 import { Formula } from '../../viz/Formula'
+import { count } from '../../ui/format'
 
 export const logit: GlossaryEntry = {
   id: 'logit',
@@ -33,6 +33,6 @@ export const logit: GlossaryEntry = {
     </>
   ),
   inRun: (run) => run.vocabSize
-    ? <p>{thousands(run.vocabSize)} scores were computed for each token of this run; the trace kept the top {run.params.topK}.</p>
+    ? <p>{count(run.vocabSize)} scores were computed for each token of this run; the trace kept the top {run.params.topK}.</p>
     : null,
 }

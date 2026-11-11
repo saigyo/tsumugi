@@ -13,7 +13,7 @@ export function TokenPopover({ softmax, sample, note }: { softmax: SoftmaxEvent;
       {softmax.topK.map((c) => (
         <div key={c.id} data-testid="popover-row" data-chosen={String(c.id === sample.chosen.id)}
           className="popover-row">
-          <span className="popover-token"><span className="tok tok-sm">{visibleToken(c)}</span></span>
+          <span className="popover-token"><span className={`tok tok-sm${c.id === sample.chosen.id ? ' is-chosen' : ''}`}>{visibleToken(c)}</span></span>
           <span className={`bar${c.id === sample.chosen.id ? ' bar-chosen' : ''}`} style={{ width: `${Math.max(2, c.prob * 100)}px` }} />
           <span className="popover-pct">{percent(c.prob)}</span>
         </div>

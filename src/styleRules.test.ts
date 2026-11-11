@@ -96,10 +96,26 @@ const pairs: [string, string][] = [
   // text on the split fill roles
   ['--on-ai', '--fill'], ['--on-ai', '--fill-hover'], ['--on-shu', '--shu'],
 ]
+// --shu on the card is 4.35:1 in the light theme. Arrows are symbols, not text, and may keep it.
+const SHU = String.raw`var\(--shu\)(?![\w-])`
 test('coral is a fill and a border; as text it is --shu-deep', () => {
-  // --shu on the card is 4.35:1 in the light theme. Arrows are symbols, not text, and may keep it.
-  const asText = blocks.filter((b) => /(^|[;{\s])(color|fill):\s*var\(--shu\)/.test(b.body) && /label|marker|notice|badge|value|token|chip|delta|note|text|title/.test(b.selector))
-  expect(asText.map((b) => b.selector)).toEqual([])
+  // (a) no class used on SVG text sets its fill or colour to --shu
+  const textClasses = new Set<string>()
+  for (const file of sourceFiles('src')) {
+    const text = readFileSync(file, 'utf8').replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, '')
+    for (const tag of text.matchAll(/<(?:text|tspan)\b[^>]*?className=(?:"([^"]*)"|\{`([^`]*)`\}|\{'([^']*)'\})/g))
+      for (const name of (tag[1] ?? tag[2] ?? tag[3]).split(/\s+/)) if (/^[\w-]+$/.test(name)) textClasses.add(name)
+  }
+  expect(textClasses.size).toBeGreaterThan(5)
+  const coral = new RegExp(`(?:^|[;{\\s])(?:fill|color):\\s*${SHU}`)
+  const onText = blocks.filter((b) => coral.test(b.body) && [...textClasses].some((c) => new RegExp(`\\.${c}(?![\\w-])`).test(b.selector)))
+  expect(onText.map((b) => b.selector)).toEqual([])
+  // (b) no rule sets color: var(--shu), except arrows
+  const colored = blocks.filter((b) => new RegExp(`(?:^|[;{\\s])color:\\s*${SHU}`).test(b.body) && !/arrow/.test(b.selector))
+  expect(colored.map((b) => b.selector)).toEqual([])
+  // (c) no text colour variable is --shu
+  const vars = [...rest.matchAll(/(--[\w-]*-text)\s*:\s*([^;]+);/g)].filter((m) => new RegExp(SHU).test(m[2]))
+  expect(vars.map((m) => m[1])).toEqual([])
 })
 
 describe.each(Object.keys(themes))('%s theme contrast', (theme) => {
@@ -317,4 +333,9 @@ test('number formatting lives in src/ui/format.ts only', () => {
   expect(others(/\b(?:const|function|let)\s+(?:pct|signed|percent)\b/)).toEqual([])
   expect(others(/\* 100\)\}%/)).toEqual([])
   expect(others(/'~'/)).toEqual([])
+})
+
+test('no file but src/ui/format.ts groups digits', () => {
+  const others = filesWith(/\bthousands\b|\\B\(\?=\(\\d\{3\}\)\+|toLocaleString/).filter((f) => !f.endsWith('ui/format.ts'))
+  expect(others).toEqual([])
 })

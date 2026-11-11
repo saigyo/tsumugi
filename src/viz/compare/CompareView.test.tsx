@@ -60,6 +60,9 @@ test('clicking a ruler tick opens paired distributions with the chosen token mar
   const rows = screen.getAllByTestId('cmp-bar-row')
   expect(rows.map((r) => r.querySelector('.bar')!.classList.contains('bar-chosen'))).toEqual(rows.map((r) => r.dataset.chosen === 'true'))
   expect(rows.every((r) => r.querySelector('.tok.tok-sm') !== null && !/tok-wash-/.test(r.querySelector('.tok')!.className))).toBe(true)
+  // the chosen token's chip is marked, no other chip is
+  expect(rows.map((r) => r.querySelector('.tok')!.classList.contains('is-chosen'))).toEqual(rows.map((r) => r.dataset.chosen === 'true'))
+  expect(document.querySelectorAll('.cmp-dist-side .is-chosen')).toHaveLength(2)
 })
 
 test('a cycle past one run\'s end shows the run-ended side', () => {
@@ -114,6 +117,10 @@ test('distributions toggle switches to the combined token-aligned view and persi
   expect(rows.map((r) => r.dataset.token)).toEqual([' on', ' off', ' ran', ' was'])
   expect(rows[0].dataset.chosenA).toBe('true')
   expect(rows[1].dataset.chosenB).toBe('true')
+  // a chip is marked exactly when one of the runs chose its token
+  expect(rows.map((r) => r.querySelector('.tok')!.classList.contains('is-chosen')))
+    .toEqual(rows.map((r) => r.dataset.chosenA === 'true' || r.dataset.chosenB === 'true'))
+  expect(rows.filter((r) => r.querySelector('.is-chosen'))).toHaveLength(2)
   expect(rows[0].dataset.approx).toBe('true')                         // ' on' missing from B's top-k
   expect(rows[2].dataset.approx).toBe('false')
   expect(screen.getByTestId('cmp-approx-note')).toHaveTextContent('lower bounds')

@@ -12,7 +12,7 @@ export const token: GlossaryEntry = {
   related: ['embedding', 'sampling'],
   body: () => (
     <>
-      <p>The model never sees letters. The tokenizer splits text into pieces from a fixed vocabulary of 49 152
+      <p>The model never sees letters. The tokenizer splits text into pieces from a fixed vocabulary of 49 152
         entries and replaces each piece with its id. Common words are one token; rare words are split into
         several.</p>
       <p className="gl-example">“The cat sat” →{' '}

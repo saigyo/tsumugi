@@ -387,6 +387,26 @@ describe('Temperature field', () => {
     expect(generated(onGenerate)).toBe(0)
   })
 
+  test('full-width digits, point and comma and surrounding spaces are read', () => {
+    const { onGenerate, field } = setup()
+    fireEvent.change(field, { target: { value: '０．５' } })
+    expect(field).toHaveValue('0.5')
+    fireEvent.change(field, { target: { value: ' ０，７ ' } })
+    expect(field).toHaveValue('0.7')
+    expect(generated(onGenerate)).toBe(0.7)
+  })
+
+  test('arrow keys go to the next multiple of 0.1, not by 0.1 from an off-grid value', () => {
+    const { onGenerate, field } = setup()
+    fireEvent.change(field, { target: { value: '1.25' } })
+    fireEvent.keyDown(field, { key: 'ArrowUp' })
+    expect(field).toHaveValue('1.3')
+    fireEvent.change(field, { target: { value: '1.25' } })
+    fireEvent.keyDown(field, { key: 'ArrowDown' })
+    expect(field).toHaveValue('1.2')
+    expect(generated(onGenerate)).toBe(1.2)
+  })
+
   test('arrow keys step from the last good value after rejected or cleared text', () => {
     const { onGenerate, field } = setup()
     fireEvent.change(field, { target: { value: 'abc' } })

@@ -17,7 +17,7 @@ function props(over: Partial<LogitsReadoutProps> = {}): LogitsReadoutProps {
   return {
     candidates: real, lastHidden: fixtureLastHidden(0), dims: 576, vocabSize: 49152,
     selected: 0, onSelect: vi.fn(), assetRowFor: (id) => (id < 256 ? [1, 2, 3, 4] : undefined),
-    assetNote: 'vector values unavailable', ...over,
+    assetNote: 'Vector values unavailable.', ...over,
   }
 }
 
@@ -70,7 +70,7 @@ test('sim/legacy run: placeholder x, asset rows, no products, one-liner', () => 
 
 test('asset row unavailable shows the note instead of a strip', () => {
   render(<LogitsReadout {...props({ candidates: sim, lastHidden: undefined, assetRowFor: () => undefined })} />)
-  expect(screen.getByTestId('readout-bench')).toHaveTextContent('vector values unavailable')
+  expect(screen.getByTestId('readout-bench')).toHaveTextContent('Vector values unavailable.')
 })
 
 test('bars carry the logit value, no derivation tooltip — that belongs to the Softmax card', () => {
@@ -85,9 +85,9 @@ test('matrix sketch marks every candidate and the callouts explain the tie', () 
   expect(matrix.querySelectorAll('[data-testid="readout-row-mark"]')).toHaveLength(3)
   // the box is labelled Eᵀ, so its shape must read transposed — the same shape the formula line shows
   expect(matrix).toHaveTextContent('Eᵀ')
-  expect(matrix).toHaveTextContent('[576 × 49 152]')
+  expect(matrix.textContent).toContain('[576 × 49 152]')
   const callouts = screen.getAllByTestId('embed-callout')
-  expect(callouts.map((c) => c.textContent?.trim())).toEqual(['tied with Embeddings', 'similar rows, similar scores', '49 152 scores, 3 shown'])
+  expect(callouts.map((c) => c.textContent?.trim())).toEqual(['tied with Embeddings', 'similar rows, similar scores', '49 152 scores, 3 shown'])
   expect(callouts.map((c) => c.dataset.section)).toEqual(['tied', 'similar-rows', 'top-k'])
   expect(callouts.every((c) => c.dataset.term === 'logit')).toBe(true)
 })

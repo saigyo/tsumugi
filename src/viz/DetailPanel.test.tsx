@@ -32,7 +32,7 @@ test('tokenizer detail shows token chips with ids', () => {
 
 test('embeddings detail shows the embedding-table shape', () => {
   render(<DetailPanel events={trace} cursor={2} mode="sim" generating={false} />)
-  expect(screen.getByTestId('detail-embeddings')).toHaveTextContent('49 152 × 576')
+  expect(screen.getByTestId('detail-embeddings').textContent).toContain('49 152 × 576')
   expect(screen.getAllByTestId('embed-token')).toHaveLength(2)
 })
 
@@ -73,6 +73,9 @@ test('the empty card says what is happening', () => {
   const { rerender } = render(<DetailPanel events={[]} cursor={-1} mode="sim" generating={false} />)
   expect(screen.getByTestId('detail-empty')).toHaveTextContent('Press Generate, then step through the pipeline.')
   rerender(<DetailPanel events={[]} cursor={-1} mode="sim" generating={true} />)
+  expect(screen.getByTestId('detail-empty')).toHaveTextContent('Generating… the first token will appear here.')
+  // a run that is being written, the cursor still before its first stage
+  rerender(<DetailPanel events={trace} cursor={-1} mode="sim" generating={true} />)
   expect(screen.getByTestId('detail-empty')).toHaveTextContent('Generating… the first token will appear here.')
   rerender(<DetailPanel events={trace} cursor={-1} mode="sim" generating={false} />)
   expect(screen.getByTestId('detail-empty')).toHaveTextContent('Press play or step forward to walk through this run.')

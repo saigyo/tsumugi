@@ -1,6 +1,6 @@
 // Display formats for numbers (rule R10). Display only: share links, exported files and anything parsed back keep plain number text.
 const MINUS = '−'
-const THIN = ' ' // narrow no-break space
+const THIN = '\u202f' // narrow no-break space
 
 /** Whole numbers; groups of three with a thin space from 10 000 up, four digits stay together. */
 export function count(n: number): string {

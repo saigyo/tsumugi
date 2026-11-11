@@ -3,8 +3,8 @@ import { count, fixed, percent, points, signed } from './format'
 
 describe('format', () => {
   it('count groups with a thin space from 10 000', () => {
-    expect(count(49152)).toBe('49 152'); expect(count(1536)).toBe('1536'); expect(count(9999)).toBe('9999')
-    expect(count(10000)).toBe('10 000'); expect(count(1234567)).toBe('1 234 567')
+    expect(count(49152)).toBe('49 152'); expect(count(1536)).toBe('1536'); expect(count(9999)).toBe('9999')
+    expect(count(10000)).toBe('10 000'); expect(count(1234567)).toBe('1 234 567')
   })
   it('fixed uses a real minus and no negative zero', () => {
     expect(fixed(-0.514, 2)).toBe('−0.51'); expect(fixed(-0.001, 2)).toBe('0.00'); expect(fixed(16.36, 2)).toBe('16.36')

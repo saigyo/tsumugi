@@ -4,8 +4,9 @@ import { useGeometry } from '../../geometry/useGeometry'
 import type { TraceEvent } from '../../trace/types'
 import { EmbeddingGeometry } from '../EmbeddingGeometry'
 import { EmbeddingLookup } from '../EmbeddingLookup'
-import { embeddingRows, latestOfType, thousands } from '../selectors'
+import { embeddingRows, latestOfType } from '../selectors'
 import { Term } from '../../glossary/Term'
+import { count } from '../../ui/format'
 import { Icon } from '../../ui/Icon'
 
 // Container: resolves where vectors come from (exact trace rows, else the
@@ -38,12 +39,12 @@ export function EmbeddingsDetail({ events, cursor }: { events: TraceEvent[]; cur
       <h3>Embeddings <Term id="embedding" variant="icon" label="About this stage" testId="stage-info"><Icon name="info" /></Term></h3>
       <p>
         A lookup, not a computation. Each token id selects one row of a learned matrix{' '}
-        <code>E [{vocab ? thousands(vocab) : '?'} × {dims}]</code>; the rows stacked up form the{' '}
+        <code>E [{vocab ? count(vocab) : '?'} × {dims}]</code>; the rows stacked up form the{' '}
         <Term id="residual-stream">residual stream</Term> <code>x [{tokens.length} × {dims}]</code>.
       </p>
       <EmbeddingLookup tokens={tokens} dims={dims} vocabSize={vocab} selected={selected} onSelect={setPicked}
         vectorFor={vectorFor} source={source}
-        missingNote={pending ? 'Loading vocabulary geometry…' : 'vector values unavailable'} />
+        missingNote={pending ? 'Loading vocabulary geometry…' : 'Vector values unavailable.'} />
       <EmbeddingGeometry tokens={tokens} selected={selected} vectorFor={vectorFor} asset={asset}
         loading={pending} error={geoError} retry={geo.retry} canRetry={geo.status === 'error'} source={source} />
     </div>

@@ -20,7 +20,7 @@ test('lists the visible tokens as chips with the newest selected', () => {
   const chips = screen.getAllByTestId('embed-token')
   expect(chips).toHaveLength(3)
   expect(chips[2].dataset.selected).toBe('true')
-  expect(screen.getByTestId('detail-embeddings')).toHaveTextContent('49 152 × 576')
+  expect(screen.getByTestId('detail-embeddings').textContent).toContain('49 152 × 576')
 })
 
 test('clicking a chip selects that row', () => {

@@ -27,7 +27,7 @@ export const howToRead: GlossaryEntry = {
         <li><strong>Detail panel.</strong> Below the controls: the card for the current step, with its actual
           numbers.</li>
       </ol>
-      <p className="gl-aside">Underlined words open their entry in this panel. The <Icon name="info" /> next to each card title opens
+      <p className="gl-aside">Underlined words open their entry in this panel. The info mark <Icon name="info" /> next to each card title opens
         the entry for that stage.</p>
     </>
   ),

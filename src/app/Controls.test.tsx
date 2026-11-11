@@ -55,9 +55,11 @@ test('Live looks picked while playback follows a run that is still being written
   // playing, with the cursor well behind the newest event: still following, so Live does not blink at each token
   expect(usePlayerStore.getState().cursor).toBeLessThan(unfinished.length - 1)
   expect(screen.getByTestId('btn-live')).toHaveClass('is-picked')
+  expect(screen.getByTestId('btn-live')).toHaveAttribute('aria-pressed', 'true')
   fireEvent.click(screen.getByTestId('btn-pause'))
   rerender(<Controls />)
   expect(screen.getByTestId('btn-live')).not.toHaveClass('is-picked')
+  expect(screen.getByTestId('btn-live')).toHaveAttribute('aria-pressed', 'false')
 })
 
 test('Live does not look picked when a finished run is replayed', () => {

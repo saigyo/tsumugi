@@ -43,7 +43,7 @@ export function Controls() {
       <select data-testid="speed" className="btn" aria-label="Playback speed" value={speed} onChange={(e) => dispatch({ type: 'setSpeed', speed: Number(e.target.value) })}>
         {[0.5, 1, 2, 4].map((s) => <option key={s} value={s}>{s}×</option>)}
       </select>
-      <button data-testid="btn-live" className={`btn${following ? ' is-picked' : ''}`} onClick={() => dispatch({ type: 'goLive' })} title="Jump to live"><Icon name="live" />Live</button>
+      <button data-testid="btn-live" className={`btn${following ? ' is-picked' : ''}`} aria-pressed={following} onClick={() => dispatch({ type: 'goLive' })} title="Jump to live"><Icon name="live" />Live</button>
     </div>
   )
 }

@@ -63,8 +63,8 @@ export function LayersDetail({ event, mode, attention, attentionInRun, tokens, s
   const focus = lastPin ? { layer: lastPin.layer, head: lastPin.head, label: lastPin.label } : undefined
   return (
     <div data-testid="detail-layers" className="detail">
-      <h3>Layers <Term id="layer" variant="icon" label="About this stage" testId="stage-info"><Icon name="info" /></Term>{' '}
-        {mode === 'real' && !attentionInRun && <em>(schematic — real internals not exposed)</em>}</h3>
+      <h3>Layers <Term id="layer" variant="icon" label="About this stage" testId="stage-info"><Icon name="info" /></Term></h3>
+      {mode === 'real' && !attentionInRun && <p className="note">Schematic: the simulation does not expose real internals.</p>}
       <LayersNav candidates={mode === 'real' && votes?.status === 'ok' ? votes.candidates : undefined} run={run}
         showStepper={mode === 'real' && votes?.status === 'ok'} />
       <div id="layers-overview" className="layers-section">

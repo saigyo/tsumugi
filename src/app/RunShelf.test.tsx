@@ -28,6 +28,7 @@ test('an empty archive still shows the notes line', () => {
 test('an armed compare asks for a second run; otherwise there is no hint', () => {
   const { rerender } = render(<RunShelf {...props({ records: [makeRunRecord(7), makeRunRecord(8)], activeId: 'run-8', armed: true })} />)
   expect(screen.getByTestId('compare-hint')).toHaveTextContent('Pick a second run to compare with #8.')
+  expect(screen.getByTestId('compare-hint')).toHaveAttribute('role', 'status')
   rerender(<RunShelf {...props({ activeId: 'run-8', armed: false })} />)
   expect(screen.queryByTestId('compare-hint')).toBeNull()
   rerender(<RunShelf {...props({ armed: true, compare: { aId: 'run-1', bId: 'run-2' } })} />)

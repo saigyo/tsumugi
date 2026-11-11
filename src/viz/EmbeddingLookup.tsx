@@ -1,12 +1,12 @@
 import { poolRow } from '../geometry/math'
 import type { EmbedSource, TokenInfo } from '../trace/types'
-import { thousands } from './selectors'
 import { readableTokenText } from '../engine/tokenBytes'
 import { visibleToken } from './tokenText'
 import { cellFill, peakOf, rowMarkY } from './stripMath'
 import { VectorStrip } from './VectorStrip'
 import { EMBEDDING_CALLOUTS } from '../glossary/callouts'
 import { Term } from '../glossary/Term'
+import { count } from '../ui/format'
 import { Icon } from '../ui/Icon'
 import { washIndexes } from '../ui/tokenWash'
 
@@ -38,7 +38,7 @@ export function EmbeddingLookup({ tokens, dims, vocabSize, selected, onSelect, v
   const washes = washIndexes(tokens.map((t) => t.id))
   const vec = token ? vectorFor(selected) : undefined
   const cells = vec ? poolRow(vec, STRIP_CELLS) : []
-  const vocab = vocabSize ? thousands(vocabSize) : '?'
+  const vocab = vocabSize ? count(vocabSize) : '?'
   const rowY = token ? rowMarkY(token.id) : 0   // a schematic position inside E
   const stackRows = tokens.map((_, i) => {
     const v = vectorFor(i)

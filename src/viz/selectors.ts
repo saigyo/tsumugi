@@ -1,4 +1,5 @@
 import type { ChatSpans, EmbedSource, LayerVotes, LogitCandidate, NeuronData, TokenInfo, TraceEvent } from '../trace/types'
+import { count } from '../ui/format'
 
 export type StageId = 'tokenizer' | 'embeddings' | 'layers' | 'logits' | 'softmax' | 'sampler' | null
 
@@ -58,8 +59,6 @@ export interface FlowShapes {
   loop?: string     // Sampler → token stream
 }
 
-export const thousands = (n: number) => n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
-
 export function flowShapes(events: TraceEvent[], cursor: number): FlowShapes {
   const shapes: FlowShapes = {}
   const tokenize = latestOfType(events, cursor, 'tokenize')
@@ -72,7 +71,7 @@ export function flowShapes(events: TraceEvent[], cursor: number): FlowShapes {
     shapes.lastRow = `[1×${embed.dims}]`
   }
   const runStart = latestOfType(events, cursor, 'run-start')
-  if (runStart?.vocabSize) shapes.vocab = `[${thousands(runStart.vocabSize)}]`
+  if (runStart?.vocabSize) shapes.vocab = `[${count(runStart.vocabSize)}]`
   if (runStart) shapes.probs = `[${runStart.params.topK}]`
   return shapes
 }

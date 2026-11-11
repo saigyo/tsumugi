@@ -52,6 +52,13 @@ test('one bar per candidate with its percentage and a derivation on its own numb
   expect(titles[1]).toMatch(/20%/)
 })
 
+test('only the top candidate\'s chip is marked as chosen', () => {
+  render(<SoftmaxDetail events={makeFixtureTrace()} cursor={8} />)
+  const rows = screen.getAllByTestId('softmax-candidate')
+  expect(rows.map((r) => r.querySelector('.tok')!.classList.contains('is-chosen'))).toEqual([true, false, false])
+  expect(rows.map((r) => r.dataset.top)).toEqual(['true', 'false', 'false'])
+})
+
 test('T=0 bars say the top score takes everything', () => {
   render(<SoftmaxDetail events={buildFixtureTrace({ temperature: 0 })} cursor={8} />)
   const titles = screen.getAllByTestId('prob-bar').map((b) => b.querySelector('title')?.textContent)

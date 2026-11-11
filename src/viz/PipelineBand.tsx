@@ -1,8 +1,8 @@
 import { useLayoutEffect, useRef, useState } from 'react'
 import type { TraceEvent } from '../trace/types'
 import { visibleToken } from './tokenText'
-import { activeStage, eventAt, flowShapes, latestOfType, stageEventIndex, thousands, viewedCycle, type FlowShapes, type StageId } from './selectors'
-import { percent } from '../ui/format'
+import { activeStage, eventAt, flowShapes, latestOfType, stageEventIndex, viewedCycle, type FlowShapes, type StageId } from './selectors'
+import { count, percent } from '../ui/format'
 
 // what travels along the connector INTO stage i (see FlowShapes)
 const CONNECTOR_SHAPE: Array<keyof FlowShapes> = ['ids', 'ids', 'stream', 'lastRow', 'vocab', 'probs']
@@ -26,7 +26,7 @@ function summaryFor(stage: Exclude<StageId, null>, events: TraceEvent[], cursor:
       const e = latestOfType(events, cursor, 'embed')
       if (!e) return null
       const vocab = latestOfType(events, cursor, 'run-start')?.vocabSize
-      return vocab ? `${thousands(vocab)} × ${e.dims}` : `${e.dims} dims`
+      return vocab ? `${count(vocab)} × ${e.dims}` : `${e.dims} dims`
     }
     case 'layers': {
       const e = latestOfType(events, cursor, 'layer')

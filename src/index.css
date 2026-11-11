@@ -168,7 +168,6 @@ h3 { margin-top: 0; color: var(--ai-deep); font-size: var(--t-title); font-weigh
 strong, b { font-weight: 600; }
 code { font-family: var(--mono); font-size: var(--t-cap); background: var(--washi); border: 1px solid var(--line); border-radius: 4px; padding: 0 .25rem; }
 input[type="checkbox"] { accent-color: var(--fill); }
-.num { font-variant-numeric: tabular-nums; }
 
 /* buttons start bare; every button either takes a kind below (.btn and its modifiers) or styles itself */
 button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
@@ -275,7 +274,6 @@ input[type="number"] { width: 4rem; }
 .popover-note { color: var(--ink-soft); font-size: var(--t-label); margin: -.2rem 0 .3rem; }
 .popover-title { color: var(--ink-soft); margin-bottom: .3rem; }
 .popover-row { display: flex; align-items: center; gap: .4rem; line-height: 1.5; }
-.popover-row[data-chosen="true"] .popover-token { font-weight: 600; color: var(--shu-deep); }
 .popover-token { min-width: 3.5rem; white-space: pre; display: inline-flex; }
 .popover-pct { color: var(--ink-soft); font-variant-numeric: tabular-nums; font-size: var(--t-label); }
 
@@ -337,7 +335,7 @@ input[type="number"] { width: 4rem; }
   letter-spacing: .08em; text-transform: uppercase; color: var(--ai-deep); background: var(--ai-wash);
   border-radius: 999px; padding: .15rem .6rem; }
 
-.residual-diagram { margin: .3rem 0 .8rem; overflow-x: auto; }
+.residual-diagram { position: relative; margin: .3rem 0 .8rem; overflow-x: auto; }
 .rs-stream { stroke: var(--ai); stroke-width: 2.5; }
 .rs-arrowhead { fill: var(--ai); }
 .rs-branch { stroke: var(--ai-soft); stroke-width: 1.5; }
@@ -384,8 +382,7 @@ input[type="number"] { width: 4rem; }
 }
 
 .notice { color: var(--shu-deep); }
-.model-slot.error { display: flex; }
-.model-progress { color: var(--ink-soft); font-size: var(--t-cap); }
+.model-slot.error { display: flex; padding: .6rem .9rem; }
 .mode-badge { display: inline-block; font-size: var(--t-tick); letter-spacing: .04em; text-transform: uppercase;
   border: 1px solid var(--line-strong); border-radius: 4px; padding: 0 .35rem; margin-left: .5rem; vertical-align: .2rem;
   color: var(--ink-soft); background: var(--card); }
@@ -399,7 +396,7 @@ input[type="number"] { width: 4rem; }
   .sim-banner { flex-wrap: wrap; }
   .sim-banner p { flex-basis: 100%; }
 }
-.model-progress { display: flex; gap: .6rem; align-items: center; border: 1px solid var(--line); background: var(--card); color: var(--ink-soft); }
+.model-progress { display: flex; gap: .6rem; align-items: center; border: 1px solid var(--line); background: var(--card); color: var(--ink-soft); font-size: var(--t-cap); }
 .model-progress progress { flex: 1; max-width: 16rem; height: .4rem; accent-color: var(--ai); }
 
 .tok-row { display: flex; flex-wrap: wrap; gap: .3rem; margin-top: .5rem; }
@@ -600,7 +597,6 @@ button.cmp-token:hover:not(:disabled, .is-picked) { border-color: var(--ai); }
   align-items: center; margin: .6rem 0 .4rem; }
 .softmax-candidate { display: grid; grid-template-columns: subgrid; grid-column: 1 / -1; align-items: center;
   border: 1px solid transparent; border-radius: 8px; padding: .1rem .3rem; }
-.softmax-candidate[data-top="true"] { border-color: var(--shu); background: var(--shu-wash); box-shadow: 0 0 0 2px var(--shu-wash); }
 .softmax-bar { display: block; max-width: 200px; }
 .softmax-logit { font-variant-numeric: tabular-nums; font-size: var(--t-label); color: var(--ink-faint); }
 .readout-equation { display: grid; grid-template-columns: auto auto auto auto minmax(0, 1fr);
@@ -675,7 +671,7 @@ button.cmp-token:hover:not(:disabled, .is-picked) { border-color: var(--ai); }
 .gl-vote-total { stroke: var(--ai-deep); stroke-width: 4; }
 .gl-vote-label { font-size: var(--t-tick); fill: var(--ink-soft); font-variant-numeric: tabular-nums; }
 .gl-vote-pos { fill: var(--vote-pos-deep); }
-.gl-vote-neg { fill: var(--shu); }
+.gl-vote-neg { fill: var(--shu-deep); }
 @media (prefers-reduced-motion: reduce) { .gl-section { transition: none; } }
 
 /* ── Glossary drawer ─────────────────────────────────────────────────── */
@@ -721,7 +717,6 @@ button.cmp-token:hover:not(:disabled, .is-picked) { border-color: var(--ai); }
   font-size: var(--t-cap); color: var(--ink-soft); background: var(--shu-wash); border: 1px solid var(--shu-soft);
   border-radius: 8px; padding: .2rem .3rem .2rem .6rem; display: inline-flex; align-items: center; gap: .3rem;
 }
-.residual-diagram { position: relative; }
 .gl-tip-svg { position: absolute; }
 .gl-svg-term:focus-visible { outline: 2px solid var(--ai); outline-offset: 2px; }
 
@@ -885,6 +880,8 @@ math { font-family: var(--math); color: var(--ink); }
 .knockout-bar-drop { background: var(--shu); }
 .knockout-bar-rise { background: var(--ai); }
 .knockout-bar-flips { outline: 2px solid var(--ink); }
+/* the flip mark is an outline, so the focused bar swaps it for the shared ring */
+.knockout-bar-flips:focus-visible { outline: 2px solid var(--ai); outline-offset: 2px; }
 .knockout-bar[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--card), 0 0 0 3px var(--ink); }
 .knockout-votes > div { height: 16px; border-radius: 2px; }
 .knockout-chips { display: flex; flex-wrap: wrap; gap: .4rem; }
@@ -892,8 +889,8 @@ math { font-family: var(--math); color: var(--ink); }
 /* the border carries the category colour; the text uses its readable form (coral as text is --shu-deep) */
 .knockout-chip { --category: var(--shu); --category-text: var(--shu-deep); border-color: var(--category); color: var(--category-text); }
 .knockout-chip:hover:not(:disabled) { border-color: var(--category); }
-.knockout-chip-compensated { --category: var(--ai); }
-.knockout-chip-dampening { --category: var(--ink-soft); }
+.knockout-chip-compensated { --category: var(--ai); --category-text: var(--ai); }
+.knockout-chip-dampening { --category: var(--ink-soft); --category-text: var(--ink-soft); }
 .knockout-tip { font-size: var(--t-cap); background: var(--card); border: 1px solid var(--line); border-radius: 8px; box-shadow: none; padding: .4rem .6rem; justify-self: start; }
 .run-end-actions { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
 .share-feedback { font-size: var(--t-cap); color: var(--ai); }

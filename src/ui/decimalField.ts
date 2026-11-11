@@ -1,8 +1,12 @@
 // Helpers for a text field that holds a decimal number and accepts a comma or a point.
 
-/** Comma becomes point. Returns null unless the result is empty or digits with at most one point. */
+/** Trims, maps full-width digits, full stop and comma to ASCII, then turns a comma into a point. Returns null unless the result is empty or digits with at most one point. */
 export function normaliseDecimal(text: string): string | null {
-  const t = text.replace(',', '.')
+  const t = text.trim()
+    .replace(/[\uff10-\uff19]/g, (c) => String(c.charCodeAt(0) - 0xff10))
+    .replace('\uff0e', '.')
+    .replace('\uff0c', ',')
+    .replace(',', '.')
   return /^\d*\.?\d*$/.test(t) ? t : null
 }
 
@@ -14,7 +18,11 @@ export function decimalValue(text: string, min: number, max: number): number | n
   return Number.isFinite(v) ? Math.min(max, Math.max(min, v)) : null
 }
 
-/** Adds delta, rounds to one decimal and clamps to the limits. */
+/** Steps to the next multiple of a tenth in the direction of delta (as a number field with step 0.1 does), within the limits. */
 export function stepDecimal(value: number, delta: number, min: number, max: number): number {
-  return Math.min(max, Math.max(min, Math.round((value + delta) * 10) / 10))
+  const tenths = value * 10
+  const nearest = Math.round(tenths)
+  const onTenth = Math.abs(tenths - nearest) < 1e-9
+  const next = delta > 0 ? (onTenth ? nearest + 1 : Math.ceil(tenths)) : (onTenth ? nearest - 1 : Math.floor(tenths))
+  return Math.min(max, Math.max(min, next / 10))
 }

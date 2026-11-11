@@ -26,7 +26,7 @@ export const embedding: GlossaryEntry = {
           queries and keys.</p>
       </Section>
       <Section id="tied" title="Tied with the readout">
-        <p>The same 49 152 × 576 matrix is used again at the end: the final vector is compared against every row
+        <p>The same 49 152 × 576 matrix is used again at the end: the final vector is compared against every row
           to score each token (see <Term id="logit">logit</Term>). The model learns one vocabulary geometry, not
           two. In the model config this is <code>tie_word_embeddings</code>.</p>
       </Section>

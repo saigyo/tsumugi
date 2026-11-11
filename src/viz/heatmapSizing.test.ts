@@ -48,3 +48,13 @@ test('the right margin covers a long label near the last column only', () => {
   expect(near.right).toBeGreaterThan(70)
   expect(far.right).toBe(70)
 })
+
+test('label widths follow the root font size', () => {
+  const html = document.documentElement
+  const before = html.style.fontSize
+  try {
+    expect(textWidth('abcdefghij')).toBe(Math.ceil(10 * 0.62 * 0.66 * 16))   // no root size in jsdom: 16 px
+    html.style.fontSize = '24px'
+    expect(textWidth('abcdefghij')).toBe(Math.ceil(10 * 0.62 * 0.66 * 24))
+  } finally { html.style.fontSize = before }
+})

@@ -1,5 +1,5 @@
 import type { TraceEvent } from '../../trace/types'
-import { latestOfType, thousands } from '../selectors'
+import { latestOfType } from '../selectors'
 import { shareDerivation, softmaxExplainer } from '../softmaxText'
 import { SOFTMAX_CALLOUTS } from '../../glossary/callouts'
 import { Term } from '../../glossary/Term'
@@ -7,7 +7,7 @@ import { visibleToken } from '../tokenText'
 import { Formula } from '../Formula'
 import { logitsTex, softmaxTex } from '../tex'
 import { Icon } from '../../ui/Icon'
-import { fixed, percent } from '../../ui/format'
+import { count, fixed, percent } from '../../ui/format'
 
 const BAR_W = 200
 
@@ -22,7 +22,7 @@ export function SoftmaxDetail({ events, cursor }: { events: TraceEvent[]; cursor
   if (!softmax) return null
   const T = softmax.temperature
   const dims = embed?.dims ?? 576
-  const vocab = runStart?.vocabSize ? thousands(runStart.vocabSize) : '?'
+  const vocab = runStart?.vocabSize ? count(runStart.vocabSize) : '?'
   const shown = softmax.topK.length
   // the logits of the same cycle, by id, for the per-bar derivation
   const logitOf = new Map((logits && logits.cycle === softmax.cycle ? logits.topK : []).map((c) => [c.id, c.logit]))
@@ -41,7 +41,7 @@ export function SoftmaxDetail({ events, cursor }: { events: TraceEvent[]; cursor
           const logit = logitOf.get(c.id)
           return (
             <div key={c.id} data-testid="softmax-candidate" data-top={String(i === 0)} className="softmax-candidate">
-              <span className="tok" title={visibleToken(c)}><span className="chip-text">{visibleToken(c)}</span></span>
+              <span className={`tok${i === 0 ? ' is-chosen' : ''}`} title={visibleToken(c)}><span className="chip-text">{visibleToken(c)}</span></span>
               <svg data-testid="prob-bar" data-token={c.text} className="softmax-bar" width="100%" height="14" viewBox={`0 0 ${BAR_W} 14`} preserveAspectRatio="none">
                 {logit !== undefined && <title>{shareDerivation(logit, top, T, c.prob)}</title>}
                 <rect y="2" width={BAR_W * c.prob} height="10" rx="2" className={`bar-svg${i === 0 ? ' bar-svg-chosen' : ''}`} style={{ transition: 'width .4s' }} />

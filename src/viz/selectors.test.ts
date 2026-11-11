@@ -65,7 +65,7 @@ test('flowShapes carry live tensor shapes once data exists', () => {
   expect(s.ids).toBe('[2]')
   expect(s.stream).toBe('[2×576]')
   expect(s.lastRow).toBe('[1×576]')
-  expect(s.vocab).toBe('[49 152]')
+  expect(s.vocab).toBe('[49 152]')
   expect(s.probs).toBe('[10]')       // Softmax → Sampler: the top-k the run keeps (run-start params)
   expect(s.loop).toBe('+1 token')
 })

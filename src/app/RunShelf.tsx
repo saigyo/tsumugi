@@ -163,7 +163,7 @@ export function RunShelf(p: RunShelfProps) {
       </div>
       <div className="run-notes">
         {p.armed && p.compare === null && (
-          <span data-testid="compare-hint" className="note">Pick a second run to compare with #{p.records.find((r) => r.id === aId)?.meta.seq}.</span>
+          <span data-testid="compare-hint" role="status" className="note">Pick a second run to compare with #{p.records.find((r) => r.id === aId)?.meta.seq}.</span>
         )}
         {shown?.kind === 'copied' && <span role="status" data-testid="share-copied" className="fine">Link copied</span>}
         {shown?.kind === 'failed' && (

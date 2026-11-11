@@ -41,7 +41,7 @@ test('error state shows the message and retry calls back; no matrix without vect
   const retry = vi.fn()
   render(<EmbeddingGeometry tokens={toks([1])} selected={0} vectorFor={() => undefined}
     loading={false} error="offline" retry={retry} source="asset" />)
-  expect(screen.getByTestId('embed-geometry-error')).toHaveTextContent("Vocabulary geometry couldn't be loaded")
+  expect(screen.getByTestId('embed-geometry-error')).toHaveTextContent("Vocabulary geometry could not be loaded.")
   fireEvent.click(screen.getByTestId('embed-geometry-retry'))
   expect(retry).toHaveBeenCalledTimes(1)
   expect(screen.queryByTestId('embed-similarity')).toBeNull()
