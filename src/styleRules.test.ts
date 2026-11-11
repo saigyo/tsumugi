@@ -98,6 +98,16 @@ const pairs: [string, string][] = [
 ]
 // --shu on the card is 4.35:1 in the light theme. Arrows are symbols, not text, and may keep it.
 const SHU = String.raw`var\(--shu\)(?![\w-])`
+test('no invisible space is typed into a source file', () => {
+  // a narrow or ordinary no-break space or a thin space is written as an escape (or comes from the formatter),
+  // so that a reader of the source can see it
+  const all = (dir: string): string[] => readdirSync(dir).flatMap((name) => {
+    const path = `${dir}/${name}`
+    return statSync(path).isDirectory() ? all(path) : /\.(tsx?|css)$/.test(name) ? [path] : []
+  })
+  expect([...all('src'), ...all('e2e')].filter((f) => /[\u202f\u00a0\u2009]/.test(readFileSync(f, 'utf8')))).toEqual([])
+})
+
 test('coral is a fill and a border; as text it is --shu-deep', () => {
   // (a) no class used on SVG text sets its fill or colour to --shu
   const textClasses = new Set<string>()

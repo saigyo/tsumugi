@@ -25,7 +25,7 @@ test('cards show micro-summaries once their data exists', () => {
   const summaryOf = (stage: string) =>
     screen.getAllByTestId('stage-card').find((c) => c.dataset.stage === stage)?.textContent
   expect(summaryOf('tokenizer')).toContain('2 tokens')
-  expect(summaryOf('embeddings')).toContain('49 152 × 576')
+  expect(summaryOf('embeddings')).toContain('49\u202f152 × 576')
   expect(summaryOf('layers')).toContain('3 layers')
   expect(summaryOf('logits')).toContain('on')      // top candidate of latest cycle
   expect(summaryOf('softmax')).toContain('70%')    // its probability after softmax
@@ -49,7 +49,7 @@ test('stage cards seek to the representative event when clickable', () => {
 test('connector labels show live tensor shapes', () => {
   render(<PipelineBand events={trace} cursor={7} />)
   const labels = screen.getAllByTestId('flow-shape').map((l) => l.textContent)
-  expect(labels).toEqual(['[2]', '[2×576]', '[1×576]', '[49 152]', '[10]'])   // the funnel: all scores → top-k → 1 token
+  expect(labels).toEqual(['[2]', '[2×576]', '[1×576]', '[49\u202f152]', '[10]'])   // the funnel: all scores → top-k → 1 token
   expect(screen.getByTestId('loop-label')).toHaveTextContent('+1 token')
 })
 
@@ -80,7 +80,7 @@ test('cards without a target are not clickable', () => {
 
 test('embeddings summary shows the embedding-table shape', () => {
   render(<PipelineBand events={makeFixtureTrace()} cursor={2} />)
-  expect(screen.getAllByTestId('stage-card')[1].textContent).toContain('49 152 × 576')
+  expect(screen.getAllByTestId('stage-card')[1].textContent).toContain('49\u202f152 × 576')
 })
 
 const tokenizerCard = () => screen.getAllByTestId('stage-card').find((c) => c.dataset.stage === 'tokenizer')!

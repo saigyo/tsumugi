@@ -32,7 +32,7 @@ test('tokenizer detail shows token chips with ids', () => {
 
 test('embeddings detail shows the embedding-table shape', () => {
   render(<DetailPanel events={trace} cursor={2} mode="sim" generating={false} />)
-  expect(screen.getByTestId('detail-embeddings').textContent).toContain('49 152 × 576')
+  expect(screen.getByTestId('detail-embeddings').textContent).toContain('49\u202f152 × 576')
   expect(screen.getAllByTestId('embed-token')).toHaveLength(2)
 })
 
