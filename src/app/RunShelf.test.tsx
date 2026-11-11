@@ -41,6 +41,21 @@ test('chips show seq labels and the active run is marked', () => {
   expect(chips[1].dataset.active).toBe('false')
 })
 
+test('the active chip has the view look, the others have none', () => {
+  render(<RunShelf {...props()} />)
+  const chips = screen.getAllByTestId('run-chip')
+  expect(chips.map((c) => c.classList.contains('is-view'))).toEqual([true, false])
+  expect(chips.some((c) => c.classList.contains('is-picked'))).toBe(false)
+})
+
+test('in a comparison the A and B chips are picked, not the view, even the active one', () => {
+  render(<RunShelf {...props({ compare: { aId: 'run-2', bId: 'run-1' } })} />)
+  for (const chip of screen.getAllByTestId('run-chip')) {
+    expect(chip).toHaveClass('is-picked')
+    expect(chip).not.toHaveClass('is-view')
+  }
+})
+
 test('main click activates when not armed', () => {
   const p = props()
   render(<RunShelf {...p} />)
@@ -203,6 +218,19 @@ test('an older active run stays in the row; without it the row goes back to five
   rerender(<RunShelf {...props({ records: many(8), activeId: null })} />)
   expect(screen.getAllByTestId('run-chip')).toHaveLength(5)
   expect(screen.getByTestId('run-more')).toHaveTextContent('+3 more')
+})
+
+test('in the list, the active row has the view look and compare rows the picked look', () => {
+  const { rerender } = render(<RunShelf {...props({ records: many(8), activeId: 'run-8' })} />)
+  fireEvent.click(screen.getByTestId('run-more'))
+  let rows = screen.getAllByTestId('run-list-row')
+  expect(rows.filter((r) => r.classList.contains('is-view'))).toHaveLength(1)
+  expect(rows.find((r) => r.classList.contains('is-view'))).toHaveAttribute('data-active', 'true')
+  rerender(<RunShelf {...props({ records: many(8), activeId: 'run-8', compare: { aId: 'run-8', bId: 'run-3' } })} />)
+  rows = screen.getAllByTestId('run-list-row')
+  expect(rows.filter((r) => r.classList.contains('is-picked')).map((r) => r.dataset.role)).toEqual(['a', 'b'])
+  expect(rows.some((r) => r.classList.contains('is-view'))).toBe(false)
+  expect(screen.getByTestId('run-more')).toHaveClass('pill')
 })
 
 test('the list shows every run; choosing one activates it and closes the list', () => {

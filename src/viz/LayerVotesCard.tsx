@@ -68,9 +68,9 @@ function VotesBody({ candidates, selected, onSelect, onLayer }: {
         from it. The votes of all pieces add up exactly to the score on the Logits card.</p>
       <Formula testId="votes-formula" className="card-formula" inline tex={String.raw`\displaystyle \begin{aligned} &\text{score}(c) = e \cdot E_c + \sum_{\ell} a_\ell \cdot E_c + \sum_{\ell} m_\ell \cdot E_c \\ &\text{final norm: every piece divided by the same number} \end{aligned}`} />
       <div className="mlp-controls">
-        <div className="mlp-seg" role="group" aria-label="Which blocks">
+        <div className="seg" role="group" aria-label="Which blocks">
           {(['mlp', 'attn', 'both'] as const).map((b) => (
-            <button key={b} type="button" data-testid="votes-block-toggle" className="seg-opt" aria-pressed={b === blocks}
+            <button key={b} type="button" data-testid="votes-block-toggle" className={`seg-opt${b === blocks ? ' is-view' : ''}`} aria-pressed={b === blocks}
               onClick={() => setBlocks(b)}>{BLOCKS_NAME[b]}</button>
           ))}
         </div>
@@ -84,7 +84,7 @@ function VotesBody({ candidates, selected, onSelect, onLayer }: {
         {candidates.map((c, r) => (
           <div key={c.id} className="votes-grid-row">
             <button type="button" data-testid="vote-row-label" aria-pressed={r === selected}
-              className="mlp-cand" onClick={() => onSelect(r)}>{visibleToken(c)}</button>
+              className={`mlp-cand${r === selected ? ' is-picked' : ''}`} onClick={() => onSelect(r)}>{visibleToken(c)}</button>
             <div className="mlp-cells votes-cells" style={columns}>
               {values[r].map((v, l) => (
                 <div key={l} data-testid="vote-cell" data-row={r} data-layer={l} data-value={v.toFixed(2)}

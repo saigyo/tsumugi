@@ -41,6 +41,18 @@ test('candidate without dot renders without a product strip and gets the asset b
   expect(bench.querySelector('[data-testid="bench-product"]')).toBeNull()
 })
 
+test('the picked row has the picked look; the top candidate chip is chosen, picked or not', () => {
+  const { rerender } = render(<LogitsReadout {...props({ selected: 0 })} />)
+  const rows = () => screen.getAllByTestId('readout-candidate')
+  const chip = (i: number) => rows()[i].querySelector('.token-chip')!
+  expect(rows().map((r) => r.classList.contains('is-picked'))).toEqual([true, false, false])
+  expect(chip(0)).toHaveClass('is-chosen')
+  rerender(<LogitsReadout {...props({ selected: 1 })} />)
+  expect(rows().map((r) => r.classList.contains('is-picked'))).toEqual([false, true, false])
+  expect([0, 1, 2].map((i) => chip(i).classList.contains('is-chosen'))).toEqual([true, false, false])
+  expect(rows().map((r) => r.dataset.top)).toEqual(['true', 'false', 'false'])
+})
+
 test('clicking a candidate reports its index', () => {
   const onSelect = vi.fn()
   render(<LogitsReadout {...props({ onSelect })} />)

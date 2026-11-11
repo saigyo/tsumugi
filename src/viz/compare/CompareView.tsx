@@ -143,7 +143,7 @@ export function CompareView({ a, b, initialCycle }: { a: RunRecord; b: RunRecord
         <span className="cmp-stream-divider" aria-hidden="true" />
         {chosen.map((t, c) => (
           <button key={`c${c}`} data-testid="cmp-token" data-fork={String(aligned.forkCycle === c)}
-            data-selected={String(cycle === c)} className="cmp-token cmp-token-generated"
+            data-selected={String(cycle === c)} className={`cmp-token cmp-token-generated${cycle === c ? ' is-picked' : ''}`}
             title={`inspect cycle ${c}`} onClick={() => selectCycle(c)}>{visibleToken(t)}</button>
         ))}
       </div>
@@ -178,7 +178,7 @@ export function CompareView({ a, b, initialCycle }: { a: RunRecord; b: RunRecord
       <div className="cmp-ruler">
         {Array.from({ length: aligned.maxCycles }, (_, c) => (
           <button key={c} data-testid="cmp-tick" data-selected={String(cycle === c)}
-            data-fork={String(aligned.forkCycle === c)} className="cmp-tick"
+            data-fork={String(aligned.forkCycle === c)} className={`btn btn-sm cmp-tick${cycle === c ? ' is-view' : ''}`}
             onClick={() => selectCycle(c)}>{c}</button>
         ))}
       </div>
@@ -195,10 +195,12 @@ export function CompareView({ a, b, initialCycle }: { a: RunRecord; b: RunRecord
             return (
               <>
                 <div className="cmp-dist-controls">
-                  <button data-testid="dist-mode-side" className="cmp-mode-btn"
-                    data-active={String(distMode === 'side')} onClick={() => setDistMode('side')}>side by side</button>
-                  <button data-testid="dist-mode-combined" className="cmp-mode-btn"
-                    data-active={String(distMode === 'combined')} onClick={() => setDistMode('combined')}>combined</button>
+                  <div className="seg" role="group" aria-label="Distribution view">
+                    <button data-testid="dist-mode-side" className={`seg-opt${distMode === 'side' ? ' is-view' : ''}`}
+                      data-active={String(distMode === 'side')} aria-pressed={distMode === 'side'} onClick={() => setDistMode('side')}>side by side</button>
+                    <button data-testid="dist-mode-combined" className={`seg-opt${distMode === 'combined' ? ' is-view' : ''}`}
+                      data-active={String(distMode === 'combined')} aria-pressed={distMode === 'combined'} onClick={() => setDistMode('combined')}>combined</button>
+                  </div>
                   {combined && (
                     <label className="grid-sort-label">sort{' '}
                       <select data-testid="dist-sort" className="btn" value={deltaSort}
@@ -237,7 +239,7 @@ export function CompareView({ a, b, initialCycle }: { a: RunRecord; b: RunRecord
               <div className="head-chip-row">
                 {heads.map((h) => (
                   <button key={`${h.layer}-${h.head}`} data-testid="cmp-head-chip"
-                    data-active={String(selectedPair === h)} className="head-chip"
+                    data-active={String(selectedPair === h)} className={`head-chip pill${selectedPair === h ? ' is-picked' : ''}`}
                     onClick={() => setHeadKey(`${h.layer}-${h.head}`)}>
                     {h.a?.label ?? h.b?.label}{' '}
                     <span className="head-loc">L{h.layer}·H{h.head}</span>

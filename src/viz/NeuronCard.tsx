@@ -72,16 +72,16 @@ function NeuronBody({ data, candidates, selected, layer }: {
         ? 'The MLP’s edit is the sum of 1,536 neuron edits, so its vote splits into one vote per neuron. Click a layer in either card above to open it here.'
         : 'The neurons that changed the vector most for the last token, whatever they voted for. Size = |activation| × length of the neuron’s column.'}</p>
       <div className="mlp-controls">
-        <div className="mlp-seg" role="group" aria-label="Which neurons">
+        <div className="seg" role="group" aria-label="Which neurons">
           {(['vote', 'size'] as const).map((m) => (
-            <button key={m} type="button" data-testid="neuron-mode-toggle" className="seg-opt" aria-pressed={m === mode}
+            <button key={m} type="button" data-testid="neuron-mode-toggle" className={`seg-opt${m === mode ? ' is-view' : ''}`} aria-pressed={m === mode}
               onClick={() => setMode(m)}>{MODE_NAME[m]}</button>
           ))}
         </div>
         {mode === 'vote' && (
           <div className="neuron-cands" role="group" aria-label="Candidate">candidate:{' '}
             {candidates.map((c, i) => (
-              <button key={c.id} type="button" data-testid="neuron-cand" className="mlp-cand" aria-pressed={i === selected}
+              <button key={c.id} type="button" data-testid="neuron-cand" className={`mlp-cand${i === selected ? ' is-picked' : ''}`} aria-pressed={i === selected}
                 onClick={() => select(candidates, i)}>{visibleToken(c)}</button>
             ))}
           </div>

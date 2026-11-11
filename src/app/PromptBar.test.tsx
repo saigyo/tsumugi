@@ -32,6 +32,26 @@ test('the mode switch reports changes and shows the current mode', () => {
   expect(onModeChange).toHaveBeenCalledWith('real')
 })
 
+test('the pressed mode option carries the view look', () => {
+  const { rerender } = render(<PromptBar hasRuns={false} mode="sim" onModeChange={noop} onGenerate={noop} busy={false} />)
+  expect(screen.getByTestId('mode-sim')).toHaveClass('is-view')
+  expect(screen.getByTestId('mode-real')).not.toHaveClass('is-view')
+  rerender(<PromptBar hasRuns={false} mode="real" onModeChange={noop} onGenerate={noop} busy={false} />)
+  expect(screen.getByTestId('mode-real')).toHaveClass('is-view')
+  expect(screen.getByTestId('mode-sim')).not.toHaveClass('is-view')
+  expect(screen.getByTestId('format-chat')).toHaveClass('is-view')
+  fireEvent.click(screen.getByTestId('format-text'))
+  expect(screen.getByTestId('format-text')).toHaveClass('is-view')
+  expect(screen.getByTestId('format-chat')).not.toHaveClass('is-view')
+})
+
+test('the download size shows on the Real model option until the model is loaded', () => {
+  const { rerender } = render(<PromptBar hasRuns={false} mode="real" onModeChange={noop} onGenerate={noop} busy={true} />)
+  expect(screen.getByTestId('mode-real')).toHaveTextContent('Real model · 250 MB')
+  rerender(<PromptBar hasRuns={false} mode="real" onModeChange={noop} onGenerate={noop} busy={false} />)
+  expect(screen.getByTestId('mode-real').textContent).toBe('Real model')
+})
+
 test('while the real model loads, its button shows loading, not selected', () => {
   render(<PromptBar hasRuns={false} mode="real" onModeChange={noop} onGenerate={noop} busy={true} />)
   expect(screen.getByTestId('mode-real')).toHaveAttribute('aria-pressed', 'false')

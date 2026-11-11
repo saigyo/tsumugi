@@ -50,6 +50,8 @@ export function PromptBar({ mode, onModeChange, onGenerate, busy, generating = f
   const [examplesToggled, setExamplesToggled] = useState<boolean | null>(null)
   const [systemToggled, setSystemToggled] = useState<boolean | null>(null)
   const chatOn = mode === 'real' && chatFmt
+  // the real model is chosen and loaded: its option is the pressed one and no longer needs the download size
+  const realReady = mode === 'real' && !busy
   const seed = mode === 'real' ? parseSeed(seedText) ?? undefined : undefined
   const examplesOpen = examplesToggled ?? (!hasRuns && !ranOnce)
   const systemEdited = system !== DEFAULT_SYSTEM_PROMPT
@@ -85,16 +87,16 @@ export function PromptBar({ mode, onModeChange, onGenerate, busy, generating = f
       </div>
       <div className="settings-line">
         <div className="seg" role="group" aria-label="Model" data-testid="mode-switch">
-          <button type="button" data-testid="mode-sim" className="seg-opt" aria-pressed={mode === 'sim'}
+          <button type="button" data-testid="mode-sim" className={`seg-opt${mode === 'sim' ? ' is-view' : ''}`} aria-pressed={mode === 'sim'}
             onClick={() => onModeChange('sim')}>Simulated</button>
-          <button type="button" data-testid="mode-real" className="seg-opt" aria-pressed={mode === 'real' && !busy}
+          <button type="button" data-testid="mode-real" className={`seg-opt${realReady ? ' is-view' : ''}`} aria-pressed={realReady}
             aria-busy={(mode === 'real' && busy) || undefined} title={REAL_TITLE}
-            onClick={() => { if (mode !== 'real') onModeChange('real') }}>Real model <span className="mode-note">· 250 MB</span></button>
+            onClick={() => { if (mode !== 'real') onModeChange('real') }}>Real model{!realReady && <span className="mode-note"> · 250 MB</span>}</button>
         </div>
         {mode === 'real' && (
           <div className="seg" role="group" aria-label="Prompt format" data-testid="format-switch">
-            <button type="button" data-testid="format-chat" className="seg-opt" aria-pressed={chatFmt} onClick={() => setChatFmt(true)}>Chat</button>
-            <button type="button" data-testid="format-text" className="seg-opt" aria-pressed={!chatFmt} onClick={() => setChatFmt(false)}>Continue text</button>
+            <button type="button" data-testid="format-chat" className={`seg-opt${chatFmt ? ' is-view' : ''}`} aria-pressed={chatFmt} onClick={() => setChatFmt(true)}>Chat</button>
+            <button type="button" data-testid="format-text" className={`seg-opt${chatFmt ? '' : ' is-view'}`} aria-pressed={!chatFmt} onClick={() => setChatFmt(false)}>Continue text</button>
             <Term id="chat-template" variant="icon" label="About the chat template" testId="format-info"><Icon name="info" /></Term>
           </div>
         )}
@@ -151,7 +153,7 @@ export function PromptBar({ mode, onModeChange, onGenerate, busy, generating = f
         <div className="sub-row example-chip-row" id="examples-row" data-testid="examples-row">
           <span className="example-chip-label">Try:</span>
           {examples.map((ex) => (
-            <button key={ex.id} data-testid="example-chip" className="example-chip" title={ex.hint}
+            <button key={ex.id} data-testid="example-chip" className="example-chip pill" title={ex.hint}
               disabled={busy || generating}
               onClick={() => {
                 setPrompt(ex.prompt)

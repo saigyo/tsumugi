@@ -16,6 +16,16 @@ const cells = () => screen.getAllByTestId('edit-cell')
 const cellAt = (row: number, layer: number) =>
   cells().find((c) => c.getAttribute('data-row') === String(row) && c.getAttribute('data-layer') === String(layer))!
 
+test('the block switch is one segmented control and the picked row label has the picked look', () => {
+  render(<EditSizeCard rows={rows} note="unused" />)
+  const toggles = screen.getAllByTestId('edit-block-toggle')
+  expect(toggles[0].parentElement).toHaveClass('seg')
+  expect(toggles.map((t) => t.classList.contains('is-view'))).toEqual([true, false])
+  const labels = screen.getAllByTestId('edit-row-label')
+  expect(labels.filter((l) => l.classList.contains('is-picked'))).toEqual(labels.filter((l) => l.getAttribute('aria-pressed') === 'true'))
+  expect(labels.some((l) => l.classList.contains('is-picked'))).toBe(true)
+})
+
 test('one heatmap of tokens × layers, MLP first; the toggle switches it to attention', () => {
   render(<EditSizeCard rows={rows} note="unused" />)
   const toggles = screen.getAllByTestId('edit-block-toggle')

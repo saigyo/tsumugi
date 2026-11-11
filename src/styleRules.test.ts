@@ -88,7 +88,8 @@ const pairs: [string, string][] = [
   ['--ink', '--dye-0'], ['--ink', '--dye-1'], ['--ink', '--dye-2'], ['--ink', '--dye-3'], ['--ink', '--dye-4'], ['--ink', '--dye-5'],  // token washes
   ['--shu-deep', '--shu-wash'],           // .token-end
   ['--ink-soft', '--ai-wash'],            // .run-chip-action on a hovered list row
-  ['--ink-soft', '--shu-wash'],           // .run-chip-action on a compare A/B chip
+  ['--ink', '--shu-wash'],                // is-chosen: the model's choice
+  ['--shu-deep', '--ai-wash-strong'],     // the hovered action on a compare A/B chip (is-picked)
   ['--shu-deep', '--card'],                  // the pinned pin on a run chip
   // text on the split fill roles
   ['--on-ai', '--fill'], ['--on-ai', '--fill-hover'], ['--on-shu', '--shu'], ['--on-fill-soft', '--fill-hover'], ['--on-fill-note', '--fill'],
@@ -106,6 +107,27 @@ describe.each(Object.keys(themes))('%s theme contrast', (theme) => {
 const blocks = [...rest.matchAll(/([^{}]+)\{([^{}]*)\}/g)].map((m) => ({ selector: m[1].trim().replace(/\s+/g, ' '), body: m[2] }))
 const backgroundOf = (body: string) =>
   [...body.matchAll(/(?:^|[;\s])background(?:-color)?\s*:\s*([^;]+)/g)].map((m) => m[1].trim())
+
+test('only the selected looks and the main button fill with --fill or --fill-hover', () => {
+  const fills = blocks.filter((b) => backgroundOf(b.body).some((v) => /var\(--fill(-hover)?\)/.test(v)))
+  const allowed = (selector: string) => selector.split(',').some((sel) => /^\.(is-view|btn-main)(?![\w-])/.test(sel.trim()))
+    || selector === '.neuron-badge-strong'
+  expect(fills.filter((b) => !allowed(b.selector)).map((b) => b.selector)).toEqual([])
+  expect(fills.length).toBeGreaterThan(3)
+})
+
+test('the old one-off switch, tick and link selectors are gone', () => {
+  for (const gone of ['.mlp-seg', '.cmp-mode-btn', '.layers-nav-link[aria-current="true"]', '.cmp-tick[data-selected="true"]'])
+    expect(rest, gone).not.toContain(gone)
+})
+
+test('the three selected looks and the pill are defined as specified', () => {
+  const body = (selector: string) => blocks.find((b) => b.selector === selector)?.body ?? ''
+  expect(body('.is-picked, .is-picked:hover:not(:disabled)')).toMatch(/border-color: var\(--ai\);.*background: var\(--ai-wash-strong\);.*color: var\(--ai-deep\);.*font-weight: 600/)
+  expect(body('.is-chosen, .is-chosen:hover:not(:disabled)')).toMatch(/border-color: var\(--shu\);.*background: var\(--shu-wash\)/)
+  expect(body('.is-view:hover:not(:disabled)')).toMatch(/background: var\(--fill-hover\)/)
+  expect(body('.pill:hover:not(:disabled)')).toMatch(/border-color: var\(--ai\)/)
+})
 
 test('--on-ai text sits on --fill or --fill-hover, never on --ai-deep, --ai or --shu', () => {
   const bad = blocks

@@ -52,6 +52,15 @@ test('the section whose top has passed under the bar is current', () => {
   expect(current.map((l) => l.textContent)).toEqual(['Votes'])
 })
 
+test('the current link has the view look, the others are plain pills', () => {
+  vi.useFakeTimers()
+  page([-1200, -700, -200, -10, 300, 600, 1100])
+  act(() => { window.dispatchEvent(new Event('scroll')); vi.advanceTimersByTime(50) })
+  const links = screen.getAllByTestId('nav-link')
+  expect(links.filter((l) => l.classList.contains('is-view')).map((l) => l.textContent)).toEqual(['Votes'])
+  expect(links.every((l) => l.classList.contains('pill'))).toBe(true)
+})
+
 test('the stepper shows and moves the shared MLP layer', () => {
   useMlpLayer.getState().select(run, 1)
   page([0, 1, 2, 3, 4, 5, 6])

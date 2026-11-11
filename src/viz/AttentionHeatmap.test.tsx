@@ -28,6 +28,15 @@ test('chip click switches the selected head and its hint', () => {
   expect(screen.getByTestId('attn-hint')).toHaveTextContent(/right before/i)  // previous-token hint
 })
 
+test('the active head chip is a picked pill', () => {
+  render(<AttentionHeatmap heads={attn.heads} tokens={tokens} />)
+  const chips = screen.getAllByTestId('head-chip')
+  expect(chips.map((c) => c.classList.contains('is-picked'))).toEqual([true, false])
+  expect(chips.every((c) => c.classList.contains('pill'))).toBe(true)
+  fireEvent.click(chips[1])
+  expect(chips.map((c) => c.classList.contains('is-picked'))).toEqual([false, true])
+})
+
 test('cells carry a from → to tooltip with the percentage', () => {
   render(<AttentionHeatmap heads={attn.heads} tokens={tokens} />)
   const cells = screen.getAllByTestId('attn-cell')

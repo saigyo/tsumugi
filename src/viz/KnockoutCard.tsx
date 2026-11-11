@@ -147,7 +147,7 @@ export function KnockoutCard({ run, cycle, seqLen, chosen, votes, sweep, running
         <div className="knockout-chips">
           {roles.map((r) => (
             <button key={r.layer} type="button" data-testid="knockout-chip" data-role={r.role}
-              className={`knockout-chip knockout-chip-${r.role}`} onClick={() => pick(r.layer)}>
+              className={`knockout-chip pill knockout-chip-${r.role}`} onClick={() => pick(r.layer)}>
               {chipText(r, byLayer.get(r.layer), baseline, chosen)}</button>
           ))}
         </div>

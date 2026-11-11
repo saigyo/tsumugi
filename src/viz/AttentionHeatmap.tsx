@@ -101,7 +101,7 @@ export function AttentionHeatmap({ heads, tokens, focus, chat, foldToggle = true
       <div className="head-chip-row">
         {heads.map((h, i) => (
           <button key={`${h.layer}-${h.head}-${h.label}`} data-testid="head-chip" data-active={String(i === clampedSelected)}
-            className="head-chip" onClick={() => { setSelected(i); setHovered(null) }}>
+            className={`head-chip pill${i === clampedSelected ? ' is-picked' : ''}`} onClick={() => { setSelected(i); setHovered(null) }}>
             {h.label} <span className="head-loc">L{h.layer}·H{h.head}</span>
             {h.score != null && <span className="head-score">· {h.score}</span>}
           </button>

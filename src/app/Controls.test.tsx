@@ -44,6 +44,16 @@ test('live button jumps to frontier and plays', () => {
   expect(s.status).toBe('playing')
 })
 
+test('Live looks picked while the view follows the run at its frontier, and only then', () => {
+  const { rerender } = render(<Controls />)
+  expect(screen.getByTestId('btn-live')).not.toHaveClass('is-picked')
+  fireEvent.click(screen.getByTestId('btn-live'))
+  expect(screen.getByTestId('btn-live')).toHaveClass('is-picked')
+  fireEvent.click(screen.getByTestId('btn-pause'))
+  rerender(<Controls />)
+  expect(screen.getByTestId('btn-live')).not.toHaveClass('is-picked')
+})
+
 test('speed select dispatches setSpeed', () => {
   render(<Controls />)
   fireEvent.change(screen.getByTestId('speed'), { target: { value: '2' } })

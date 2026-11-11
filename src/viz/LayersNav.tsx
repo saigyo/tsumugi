@@ -52,7 +52,7 @@ export function LayersNav({ candidates, run, showStepper }: { candidates?: Voted
       <span className="layers-nav-title">Jump to</span>
       <div className="layers-nav-links">
         {LAYER_SECTIONS.map((s) => (
-          <a key={s.id} href={`#${s.id}`} data-testid="nav-link" data-section={s.id} className="layers-nav-link"
+          <a key={s.id} href={`#${s.id}`} data-testid="nav-link" data-section={s.id} className={`layers-nav-link pill${s.id === current ? ' is-view' : ''}`}
             aria-current={s.id === current ? 'true' : undefined}
             onClick={(e) => {
               e.preventDefault()

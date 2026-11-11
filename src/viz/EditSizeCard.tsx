@@ -53,9 +53,9 @@ export function EditSizeCard({ rows: all, note, noteAction, onLayer, chat }: { r
           <Formula testId="edit-size-formula" className="card-formula" inline
             tex={String.raw`\displaystyle \text{size} = \frac{\lVert \Delta x \rVert}{\lVert x \rVert}`} />
           <div className="mlp-controls">
-            <div className="mlp-seg" role="group" aria-label="Which block">
+            <div className="seg" role="group" aria-label="Which block">
               {(['mlp', 'attn'] as const).map((b) => (
-                <button key={b} type="button" data-testid="edit-block-toggle" className="seg-opt" aria-pressed={b === block}
+                <button key={b} type="button" data-testid="edit-block-toggle" className={`seg-opt${b === block ? ' is-view' : ''}`} aria-pressed={b === block}
                   onClick={() => setBlock(b)}>{BLOCK_NAME[b]}</button>
               ))}
             </div>
@@ -96,7 +96,7 @@ function EditHeatmap({ rows, items, open, onToggle, block, selected, onSelect, o
         return (
         <div key={r} className="mlp-heatmap-row">
           <button type="button" data-testid="edit-row-label" aria-pressed={r === selected}
-            className="mlp-tok" onClick={() => onSelect(r)}>{visibleToken(t)}</button>
+            className={`mlp-tok${r === selected ? ' is-picked' : ''}`} onClick={() => onSelect(r)}>{visibleToken(t)}</button>
           <div className="mlp-cells" style={{ gridTemplateColumns: `repeat(${layers}, 1fr)` }}>
             {rows[block][r].map((v, l) => (
               <div key={l} data-testid="edit-cell" data-block={block} data-row={r} data-layer={l}

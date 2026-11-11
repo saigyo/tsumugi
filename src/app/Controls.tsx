@@ -10,6 +10,9 @@ export function Controls() {
   const ticks = cycleTickIndices(events)
   const fill = traceLength > 1 ? `${(Math.max(cursor, 0) / (traceLength - 1)) * 100}%` : '0%'
 
+  // playing at the frontier: the view follows the run as it grows
+  const following = status === 'playing' && traceLength > 0 && cursor >= traceLength - 1
+
   const cycleFwd = () => {
     const next = ticks.find((i) => i > cursor)
     if (next !== undefined) dispatch({ type: 'seek', index: next })
@@ -39,7 +42,7 @@ export function Controls() {
       <select data-testid="speed" className="btn" aria-label="Playback speed" value={speed} onChange={(e) => dispatch({ type: 'setSpeed', speed: Number(e.target.value) })}>
         {[0.5, 1, 2, 4].map((s) => <option key={s} value={s}>{s}×</option>)}
       </select>
-      <button data-testid="btn-live" className="btn" onClick={() => dispatch({ type: 'goLive' })} title="Jump to live"><Icon name="live" />Live</button>
+      <button data-testid="btn-live" className={`btn${following ? ' is-picked' : ''}`} onClick={() => dispatch({ type: 'goLive' })} title="Jump to live"><Icon name="live" />Live</button>
     </div>
   )
 }

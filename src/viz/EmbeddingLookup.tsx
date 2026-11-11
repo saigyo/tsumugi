@@ -50,7 +50,7 @@ export function EmbeddingLookup({ tokens, dims, vocabSize, selected, onSelect, v
         <div className="token-chip-row embed-chips">
           {tokens.map((t, i) => (
             <button key={i} type="button" data-testid="embed-token" data-selected={String(i === selected)}
-              className={`token-chip embed-chip hue-${i % 6}`} onClick={() => onSelect(i)}
+              className={`token-chip embed-chip hue-${i % 6}${i === selected ? ' is-picked' : ''}`} onClick={() => onSelect(i)}
               title={`Show row ${t.id} of E`}>
               <span className="chip-text">{visibleToken(t)}</span>
               <span className="chip-id">{t.id}</span>

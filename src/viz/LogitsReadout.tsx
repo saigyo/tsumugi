@@ -36,6 +36,8 @@ export function LogitsReadout({ candidates, lastHidden, dims, vocabSize, selecte
   const xCells = lastHidden ? poolRow(lastHidden, READOUT_CELLS) : undefined
   const per = Math.round(dims / READOUT_CELLS)
   const maxLogit = Math.max(...candidates.map((c) => c.logit))
+  // the candidate with the highest score: the model's choice, marked in coral whichever row is picked
+  const top = candidates.findIndex((c) => c.logit === maxLogit)
   const sel = candidates[Math.min(selected, candidates.length - 1)]
   const exact = sel?.dot !== undefined && sel.row !== undefined && xCells !== undefined
   const assetVec = sel && !exact ? assetRowFor(sel.id) : undefined
@@ -72,9 +74,9 @@ export function LogitsReadout({ candidates, lastHidden, dims, vocabSize, selecte
           {candidates.map((c, i) => {
             const frac = Math.max(0.02, c.logit / maxLogit)
             return (
-              <button key={c.id} type="button" data-testid="readout-candidate" data-selected={String(i === selected)}
-                className="readout-candidate" onClick={() => onSelect(i)} title="Show this dot product on the bench">
-                <span className={`token-chip hue-${i % 6}`}><span className="chip-text">{visibleToken(c)}</span></span>
+              <button key={c.id} type="button" data-testid="readout-candidate" data-selected={String(i === selected)} data-top={String(i === top)}
+                className={`readout-candidate${i === selected ? ' is-picked' : ''}`} onClick={() => onSelect(i)} title="Show this dot product on the bench">
+                <span className={`token-chip hue-${i % 6}${i === top ? ' is-chosen' : ''}`}><span className="chip-text">{visibleToken(c)}</span></span>
                 {c.dot ? (
                   <VectorStrip cells={c.dot} cellW={DOT_CELL_W} cellH={DOT_CELL_H} gap={0} testId="readout-product"
                     ariaLabel={`products for ${readableTokenText(c.id, c.text)}`} />

@@ -92,6 +92,17 @@ test('the mode survives the card remounting, e.g. after switching runs', async (
   expect(screen.getByTestId('neuron-table')).toHaveTextContent('edit size')
 })
 
+test('the chosen mode has the view look and the picked candidate the picked look', async () => {
+  card()
+  await waitFor(() => screen.getAllByTestId('neuron-row'))
+  const modes = screen.getAllByTestId('neuron-mode-toggle')
+  expect(modes[0].parentElement).toHaveClass('seg')
+  expect(modes.map((m) => m.classList.contains('is-view'))).toEqual([true, false])
+  const cands = screen.getAllByTestId('neuron-cand')
+  expect(cands.map((c) => c.classList.contains('is-picked'))).toEqual(cands.map((c) => c.getAttribute('aria-pressed') === 'true'))
+  expect(cands.some((c) => c.classList.contains('is-picked'))).toBe(true)
+})
+
 test('picking another candidate changes the vote column', async () => {
   card()
   await waitFor(() => screen.getAllByTestId('neuron-row'))

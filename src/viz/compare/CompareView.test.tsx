@@ -153,6 +153,31 @@ test('clicking a generated stream token selects its cycle', () => {
   expect(screen.getAllByTestId('cmp-dist-side')).toHaveLength(2)
 })
 
+test('the selected cycle number has the view look and the selected word the picked look', () => {
+  render(<CompareView a={makeRunRecord(1)} b={divergentB()} />)
+  fireEvent.click(screen.getAllByTestId('cmp-tick')[1])
+  const ticks = screen.getAllByTestId('cmp-tick')
+  expect(ticks.map((t) => t.classList.contains('is-view'))).toEqual([false, true])
+  expect(ticks[1].dataset.fork).toBe('true')            // the coral fork border stays on a selected tick
+  expect(ticks.every((t) => t.classList.contains('btn') && t.classList.contains('btn-sm'))).toBe(true)
+  const tokens = screen.getAllByTestId('cmp-token')
+  expect(tokens.filter((t) => t.classList.contains('is-picked'))).toEqual(tokens.filter((t) => t.dataset.selected === 'true'))
+  expect(tokens.filter((t) => t.classList.contains('is-picked'))).toHaveLength(2)
+})
+
+test('the distribution view is one labelled switch whose active option has the view look', () => {
+  render(<CompareView a={makeRunRecord(1)} b={divergentB()} />)
+  fireEvent.click(screen.getAllByTestId('cmp-tick')[1])
+  const group = screen.getByRole('group', { name: 'Distribution view' })
+  expect(group).toHaveClass('seg')
+  expect(screen.getByTestId('dist-mode-side')).toHaveClass('seg-opt', 'is-view')
+  expect(screen.getByTestId('dist-mode-combined')).not.toHaveClass('is-view')
+  fireEvent.click(screen.getByTestId('dist-mode-combined'))
+  expect(screen.getByTestId('dist-mode-combined')).toHaveClass('is-view')
+  expect(screen.getByTestId('dist-mode-combined')).toHaveAttribute('aria-pressed', 'true')
+  expect(screen.getByTestId('dist-mode-side')).not.toHaveClass('is-view')
+})
+
 test('ruler selection highlights the matching word chips in both streams', () => {
   render(<CompareView a={makeRunRecord(1)} b={makeRunRecord(2)} />)
   fireEvent.click(screen.getAllByTestId('cmp-tick')[0])

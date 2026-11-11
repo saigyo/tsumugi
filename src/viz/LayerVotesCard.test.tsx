@@ -104,6 +104,17 @@ test('clicking a candidate chip selects it here and on the Logits card', () => {
   expect(screen.getAllByTestId('readout-candidate')[2]).toHaveAttribute('data-selected', 'true')
 })
 
+test('the picked candidate and the chosen block option carry the selected looks', () => {
+  render(<LayerVotesCard candidates={cands} note="unused" />)
+  const chips = screen.getAllByTestId('vote-row-label')
+  expect(chips.map((c) => c.classList.contains('is-picked'))).toEqual([true, false, false])
+  fireEvent.click(chips[2])
+  expect(screen.getAllByTestId('vote-row-label').map((c) => c.classList.contains('is-picked'))).toEqual([false, false, true])
+  const blocks = screen.getAllByTestId('votes-block-toggle')
+  expect(blocks[0].parentElement).toHaveClass('seg')
+  expect(blocks.map((b) => b.classList.contains('is-view'))).toEqual(blocks.map((b) => b.getAttribute('aria-pressed') === 'true'))
+})
+
 test('without candidates the card keeps its heading and shows the note', () => {
   render(<LayerVotesCard note="Votes appear once this cycle’s scores are computed." />)
   expect(screen.getByTestId('votes-card')).toHaveTextContent('What each layer voted for')

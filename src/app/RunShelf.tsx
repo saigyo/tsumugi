@@ -92,6 +92,8 @@ export function RunShelf(p: RunShelfProps) {
   // feedback belongs to the run it came from: it disappears with that run
   const shown = share && p.records.some((r) => r.id === share.runId) ? share.feedback : null
   const role = (id: string) => (id === aId ? 'a' : id === p.compare?.bId ? 'b' : '')
+  // an A or B run is picked for the comparison; otherwise the active run is the view
+  const stateClass = (id: string) => role(id) ? ' is-picked' : id === p.activeId ? ' is-view' : ''
   const { row, hidden } = shelfRow(p.records, [p.activeId, p.compare?.aId, p.compare?.bId])
   const listOpen = open && hidden > 0
   const actions = (r: RunRecord) => (
@@ -121,7 +123,7 @@ export function RunShelf(p: RunShelfProps) {
         <span className="run-label">Runs</span>
         <div className="run-row" ref={rowEl}>
           {row.map((r) => (
-            <div key={r.id} data-testid="run-chip" className="run-chip"
+            <div key={r.id} data-testid="run-chip" className={`run-chip${stateClass(r.id)}`}
               data-run-id={r.id}
               data-active={String(r.id === p.activeId)} data-pinned={String(r.meta.pinned)} data-role={role(r.id) || undefined}>
               <button data-testid="run-chip-main" className="run-chip-main" onClick={() => chipClick(r.id)}
@@ -136,12 +138,12 @@ export function RunShelf(p: RunShelfProps) {
         </div>
         {hidden > 0 && (
           <div className="run-more-wrap" ref={wrap}>
-            <button ref={moreBtn} data-testid="run-more" className="run-more" aria-expanded={listOpen}
+            <button ref={moreBtn} data-testid="run-more" className="run-more pill" aria-expanded={listOpen}
               onClick={() => setOpen((o) => !o)}>+{hidden} more <Icon name="chevron" /></button>
             {listOpen && (
               <div data-testid="run-list" className="run-list">
                 {[...p.records].reverse().map((r) => (
-                  <div key={r.id} data-testid="run-list-row" className="run-list-row"
+                  <div key={r.id} data-testid="run-list-row" className={`run-list-row${stateClass(r.id)}`}
                     data-active={String(r.id === p.activeId)} data-pinned={String(r.meta.pinned)} data-role={role(r.id) || undefined}>
                     <button data-testid="run-list-main" className="run-list-main" onClick={() => { chipClick(r.id); if (!(selecting && r.id === aId)) { setOpen(false); refocus.current = r.id } }}
                       title={r.meta.prompt}>
