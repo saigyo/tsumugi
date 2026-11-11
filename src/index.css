@@ -459,7 +459,7 @@ input[type="number"] { width: 4rem; }
 .run-chip-glyph { color: var(--ai-mute); margin-right: .35rem; }
 .run-chip[data-active="true"] .run-chip-glyph { color: var(--on-ai); }
 .run-chip[data-role] .run-chip-glyph { color: var(--ai-mute); }
-.run-chip-pinmark { flex: none; font-size: var(--t-tick); margin: 0 .5rem 0 -.3rem; }
+.run-chip-pinmark { flex: none; display: inline-flex; color: var(--shu-deep); margin: 0 .5rem 0 -.3rem; }
 .run-chip-actions { flex: none; display: none; align-items: center; margin: .15rem .35rem .15rem 0; padding-left: .3rem;
   border-left: 1px solid var(--line); }
 .run-chip[data-active="true"] .run-chip-actions { border-left-color: var(--ai-mute); }
@@ -473,11 +473,8 @@ input[type="number"] { width: 4rem; }
 .run-chip[data-active="true"] .run-chip-action:hover { background: var(--fill-hover); }
 .run-chip[data-role] .run-chip-action { color: var(--ink-soft); }
 .run-chip[data-active="true"] .run-chip-action:hover, .run-chip[data-active="true"][data-role] .run-chip-action:hover { color: var(--on-ai); }
-/* the pin button IS the pin state: washed out when unpinned, full color when pinned */
-.run-chip-pin { filter: grayscale(1); opacity: .5; }
-.run-chip-pin:hover { filter: none; opacity: .8; }
-.run-chip-pin[data-pinned="true"] { filter: none; opacity: 1; }
-.run-chip[data-active="true"] .run-chip-pin:not([data-pinned="true"]), .run-list-row[data-active="true"] .run-chip-pin:not([data-pinned="true"]) { opacity: .8; }
+/* the pin button IS the pin state: an outline when unpinned, the filled pin in deep coral when pinned (active and A/B chips keep their own ink) */
+.run-chip-pin[data-pinned="true"] { color: var(--shu-deep); }
 .run-more-wrap { position: relative; flex: none; }
 .run-more { font: inherit; font-size: var(--t-cap); color: var(--ai-deep); background: var(--ai-wash);
   border: 1px solid var(--line-strong); border-radius: 999px; padding: .3rem .7rem; cursor: pointer; white-space: nowrap; }
@@ -640,6 +637,12 @@ input[type="number"] { width: 4rem; }
 .readout-bench-rows .readout-x-missing, .readout-bench-rows .embed-strip-missing { justify-self: start; }
 .readout-sum { font-variant-numeric: tabular-nums; font-size: var(--t-cap); color: var(--ai-deep); margin-top: .4rem; }
 @media (max-width: 720px) { .readout-equation { grid-template-columns: 1fr; } .readout-op { display: none; } }
+
+/* ── Icons: drawn, one size, the colour of the text around them ────── */
+.icon { width: 1rem; height: 1rem; flex: none; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round;
+  stroke-linejoin: round; vertical-align: -0.15em; }
+/* a closed fold points right, an open one down */
+.token-fold[aria-expanded="false"] .icon, .mlp-fold[aria-expanded="false"] .icon { transform: rotate(-90deg); }
 
 /* ── Glossary: terms, tooltips, sections ─────────────────────────────── */
 .gl-term-wrap { position: relative; display: inline; }

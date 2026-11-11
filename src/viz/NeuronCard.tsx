@@ -12,6 +12,7 @@ import { removedLayerNoteFor, useMlpLayerControl } from './mlpLayerSelection'
 import { useNeuronMode, type NeuronMode as Mode } from './neuronMode'
 import type { VotedCandidate } from './selectors'
 import { visibleToken } from './tokenText'
+import { Icon } from '../ui/Icon'
 
 const MODE_NAME: Record<Mode, string> = { vote: 'behind the vote', size: 'firing most' }
 const LOADING = 'Loading the MLP weights (about 0.9 MB per layer, once per model version)…'
@@ -44,10 +45,10 @@ export function NeuronCard({ data, candidates, note, noteAction, run }: {
     <section data-testid="neuron-card" className="mlp-card">
       <h4 data-testid="neuron-title">Inside one MLP{layer !== null ? `: layer ${layer}` : ''}{layer !== null && (
         <span className="neuron-stepper">
-          <button type="button" data-testid="neuron-prev" aria-label="Previous layer" disabled={layer <= 0} onClick={() => step(-1)}>◀</button>
-          <button type="button" data-testid="neuron-next" aria-label="Next layer" disabled={layer >= layers - 1} onClick={() => step(1)}>▶</button>
+          <button type="button" data-testid="neuron-prev" aria-label="Previous layer" disabled={layer <= 0} onClick={() => step(-1)}><Icon name="prev" /></button>
+          <button type="button" data-testid="neuron-next" aria-label="Next layer" disabled={layer >= layers - 1} onClick={() => step(1)}><Icon name="next" /></button>
         </span>
-      )}{' '}<Term id="mlp-neuron" variant="icon" label="About MLP neurons" testId="neuron-info">ⓘ</Term></h4>
+      )}{' '}<Term id="mlp-neuron" variant="icon" label="About MLP neurons" testId="neuron-info"><Icon name="info" /></Term></h4>
       {!ready || layer === null ? <p data-testid="neuron-note" className="mlp-note">{note} {noteAction}</p>
         : <>
           {removed && <p data-testid="removed-layer-note" className="mlp-note">{removed}</p>}
@@ -93,7 +94,7 @@ function NeuronBody({ data, candidates, selected, layer }: {
         ) : <NeuronTable data={data} asset={state.asset} weights={state.layer} layer={layer} mode={mode} cand={cand} />}
       <div className="embed-callouts">
         {NEURON_CALLOUTS.map((c) => (
-          <Term key={c.label} id={c.id} section={c.section} tip={c.tip} variant="chip" testId="neuron-callout">ⓘ {c.label}</Term>
+          <Term key={c.label} id={c.id} section={c.section} tip={c.tip} variant="chip" testId="neuron-callout"><Icon name="info" /> {c.label}</Term>
         ))}
       </div>
     </>

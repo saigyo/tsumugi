@@ -4,6 +4,7 @@ import { chatLayout, distributionFor, visibleTokens } from './selectors'
 import { TokenPopover } from './TokenPopover'
 import { visibleToken } from './tokenText'
 import { FOLD_TITLE, foldItems, foldLabel, tokenRole } from './chatFold'
+import { Icon } from '../ui/Icon'
 
 const ROLE_CLASS = { prompt: '', template: ' token-template', special: ' token-special' } as const
 const END_TOKEN = '<|im_end|>'
@@ -24,7 +25,7 @@ export function TokenStream({ events, cursor }: { events: TraceEvent[]; cursor: 
       {foldItems(prompt.length, chat?.system, open).map((item) => item.kind === 'fold' ? (
         <button key="fold" type="button" data-testid="system-fold" className="token token-fold"
           aria-expanded={open} title={FOLD_TITLE} onClick={() => setOpenFor(open ? null : events[0])}>
-          {foldLabel(item.count, open)}
+          {foldLabel(item.count)} <Icon name="chevron" />
         </button>
       ) : (
         <span key={`p${item.index}`} data-testid="prompt-token"

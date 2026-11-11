@@ -67,13 +67,13 @@ test('a chat run folds the system turn after the first token; the chip opens and
   const events = buildFixtureTrace({ chat: true })
   render(<TokenStream events={events} cursor={events.length - 1} />)
   const fold = screen.getByTestId('system-fold')
-  expect(fold).toHaveTextContent('system prompt · 20 tokens ▸')
+  expect(fold).toHaveTextContent('system prompt · 20 tokens')
   expect(fold).toHaveAttribute('aria-expanded', 'false')
   expect(screen.getAllByTestId('prompt-token')).toHaveLength(37 - 20)
   expect(screen.getAllByTestId('prompt-token')[0]).toHaveTextContent('<|im_start|>')
   fireEvent.click(fold)
   expect(screen.getAllByTestId('prompt-token')).toHaveLength(37)
-  expect(screen.getByTestId('system-fold')).toHaveTextContent('▾')
+  expect(screen.getByTestId('system-fold')).toHaveAttribute('aria-expanded', 'true')
 })
 
 test('a new run starts with the fold closed again', () => {

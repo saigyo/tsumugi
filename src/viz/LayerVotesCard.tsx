@@ -6,6 +6,7 @@ import { Formula } from './Formula'
 import { blockTotals, layerTotals, topMlpLayers, voteFill } from './mlpMath'
 import type { VotedCandidate } from './selectors'
 import { visibleToken } from './tokenText'
+import { Icon } from '../ui/Icon'
 
 type Blocks = 'mlp' | 'attn' | 'both'
 const BLOCKS_NAME: Record<Blocks, string> = { mlp: 'MLP', attn: 'attention', both: 'both' }
@@ -37,7 +38,7 @@ export function LayerVotesCard({ candidates, note, noteAction, onLayer }: {
   return (
     <section data-testid="votes-card" className="mlp-card">
       <h4>What each layer voted for{' '}
-        <Term id="votes" variant="icon" label="About per-layer votes" testId="votes-info">ⓘ</Term></h4>
+        <Term id="votes" variant="icon" label="About per-layer votes" testId="votes-info"><Icon name="info" /></Term></h4>
       {!candidates || candidates.length === 0 ? <p data-testid="votes-note" className="mlp-note">{note} {noteAction}</p> : (
         <VotesBody candidates={candidates} selected={selectedCandidate(pick, candidates)}
           onSelect={(i) => select(candidates, i)} onLayer={onLayer} />

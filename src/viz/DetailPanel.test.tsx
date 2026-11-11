@@ -197,7 +197,7 @@ test('the stale-pin note renders', () => {
   expect(screen.getByTestId('pin-note')).toHaveTextContent('regenerate')
 })
 
-test('every stage card heading has an ⓘ that opens its entry, and captions link their first term', () => {
+test('every stage card heading has an info icon that opens its entry, and captions link their first term', () => {
   const events = makeFixtureTrace()
   // one cursor per stage: tokenize 1, embed 2, layer 3, logits 7, softmax 8, sample 9
   const cases: Array<[number, string, string]> = [
@@ -286,7 +286,7 @@ test('the tokenizer detail of a chat run says how many tokens the template added
   render(<DetailPanel events={events} cursor={1} mode="real" />)
   expect(screen.getByTestId('tokenizer-chat-note')).toHaveTextContent('30 of the 37 tokens were added by the template')
   expect(screen.getByTestId('tokenizer-chat-note').querySelector('[data-term="chat-template"]')).not.toBeNull()
-  expect(screen.getByTestId('system-fold')).toHaveTextContent('system prompt · 20 tokens ▸')
+  expect(screen.getByTestId('system-fold')).toHaveTextContent('system prompt · 20 tokens')
 })
 
 test('in a simulated run the real-model-only notes offer to load the real model', () => {

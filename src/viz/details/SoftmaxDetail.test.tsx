@@ -61,7 +61,7 @@ test('T=0 bars say the top score takes everything', () => {
 test('callouts open the Softmax entry at exp, temperature and top-k', () => {
   render(<SoftmaxDetail events={makeFixtureTrace()} cursor={8} />)
   const callouts = screen.getAllByTestId('embed-callout')
-  expect(callouts.map((c) => c.textContent)).toEqual(['ⓘ why exponentiate', 'ⓘ temperature', 'ⓘ top-k only'])
+  expect(callouts.map((c) => c.textContent?.trim())).toEqual(['why exponentiate', 'temperature', 'top-k only'])
   expect(callouts.map((c) => c.dataset.section)).toEqual(['exp', 'temperature', 'top-k'])
   fireEvent.click(callouts[1])
   expect(useGlossaryStore.getState().view).toEqual({ kind: 'entry', id: 'softmax', section: 'temperature' })

@@ -21,7 +21,6 @@ export function tokenRole(index: number, text: string, chat: ChatSpans | undefin
   return index >= chat.user[0] && index < chat.user[1] ? 'prompt' : 'template'
 }
 
-export const foldLabel = (count: number, open: boolean): string =>
-  `system prompt · ${count} tokens ${open ? '▾' : '▸'}`
+export const foldLabel = (count: number): string => `system prompt · ${count} tokens`
 
 export const FOLD_TITLE = 'The system turn the chat template adds before your message. See “Chat template” in the glossary.'

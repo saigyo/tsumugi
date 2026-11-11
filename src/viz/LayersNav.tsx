@@ -3,6 +3,7 @@ import type { TraceEvent } from '../trace/types'
 import { LAYER_SECTIONS } from './layersSections'
 import { useMlpLayerControl } from './mlpLayerSelection'
 import type { VotedCandidate } from './selectors'
+import { Icon } from '../ui/Icon'
 
 // The Layers detail's sticky section bar (#17 spec, section 2): jump links,
 // the section on screen highlighted, and the shared MLP layer stepper.
@@ -63,8 +64,8 @@ export function LayersNav({ candidates, run, showStepper }: { candidates?: Voted
       </div>
       {showStepper && layer !== null && (
         <span data-testid="nav-layer" className="layers-nav-layer">MLP layer {layer}
-          <button type="button" data-testid="nav-prev" aria-label="Previous MLP layer" disabled={layer <= 0} onClick={() => step(-1)}>◀</button>
-          <button type="button" data-testid="nav-next" aria-label="Next MLP layer" disabled={layer >= layers - 1} onClick={() => step(1)}>▶</button>
+          <button type="button" data-testid="nav-prev" aria-label="Previous MLP layer" disabled={layer <= 0} onClick={() => step(-1)}><Icon name="prev" /></button>
+          <button type="button" data-testid="nav-next" aria-label="Next MLP layer" disabled={layer >= layers - 1} onClick={() => step(1)}><Icon name="next" /></button>
         </span>
       )}
     </nav>

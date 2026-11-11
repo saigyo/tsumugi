@@ -56,7 +56,7 @@ test('asset source while geometry loads says so', () => {
 test('three callouts open the Embedding entry at their sections', () => {
   render(<EmbeddingsDetail events={makeFixtureTrace()} cursor={2} />)
   const callouts = screen.getAllByTestId('embed-callout')
-  expect(callouts.map((c) => c.textContent)).toEqual(['ⓘ learned, not designed', 'ⓘ no position here', 'ⓘ tied with Logits'])
+  expect(callouts.map((c) => c.textContent?.trim())).toEqual(['learned, not designed', 'no position here', 'tied with Logits'])
   expect(callouts.every((c) => c.getAttribute('title') === null)).toBe(true)
   fireEvent.click(callouts[1])
   expect(useGlossaryStore.getState().view).toEqual({ kind: 'entry', id: 'embedding', section: 'position' })

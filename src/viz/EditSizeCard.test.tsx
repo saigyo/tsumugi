@@ -129,7 +129,7 @@ const chat = { system: [1, 21] as [number, number], user: [24, 31] as [number, n
 test('a chat run folds the system rows into one row that opens on click', () => {
   render(<EditSizeCard rows={chatRows(45)} chat={chat} note="unused" />)
   const fold = screen.getByTestId('edit-fold')
-  expect(fold).toHaveTextContent('system prompt · 20 tokens ▸')
+  expect(fold).toHaveTextContent('system prompt · 20 tokens')
   expect(screen.getAllByTestId('edit-row-label')).toHaveLength(25)
   fireEvent.click(fold)
   expect(screen.getAllByTestId('edit-row-label')).toHaveLength(45)

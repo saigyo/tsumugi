@@ -1,6 +1,6 @@
 import type { GlossaryId } from './types'
 
-// The ⓘ chips on the cards: label as shown, the entry section it opens, and
+// The info chips on the cards: label as shown, the entry section it opens, and
 // the hover sentence that says what that section answers.
 export interface CalloutTarget { label: string; id: GlossaryId; section: string; tip: string }
 

@@ -5,16 +5,16 @@ import { useTheme } from './theme'
 
 beforeEach(() => { localStorage.clear(); useTheme.setState({ mode: 'auto', theme: 'light' }) })
 
-test('the switch cycles auto, light, dark, auto with matching name, title and glyph', () => {
+test('the switch cycles auto, light, dark, auto with matching name, title and icon', () => {
   render(<ThemeToggle />)
   const btn = screen.getByTestId('theme-toggle')
-  const expectState = (label: string, glyph: string) => {
+  const expectState = (label: string, icon: string) => {
     expect(btn.getAttribute('aria-label')).toBe(label)
     expect(btn.getAttribute('title')).toBe(label)
-    expect(btn.textContent).toBe(glyph)
+    expect(btn.querySelector('svg.icon')?.getAttribute('data-icon')).toBe(icon)
   }
-  expectState('Theme: auto (follows system)', '◐')
-  fireEvent.click(btn); expectState('Theme: light', '☀')
-  fireEvent.click(btn); expectState('Theme: dark', '☾')
-  fireEvent.click(btn); expectState('Theme: auto (follows system)', '◐')
+  expectState('Theme: auto (follows system)', 'theme-auto')
+  fireEvent.click(btn); expectState('Theme: light', 'theme-light')
+  fireEvent.click(btn); expectState('Theme: dark', 'theme-dark')
+  fireEvent.click(btn); expectState('Theme: auto (follows system)', 'theme-auto')
 })

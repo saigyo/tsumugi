@@ -6,6 +6,7 @@ import { Term } from '../../glossary/Term'
 import { visibleToken } from '../tokenText'
 import { Formula } from '../Formula'
 import { logitsTex, softmaxTex } from '../tex'
+import { Icon } from '../../ui/Icon'
 
 const BAR_W = 200
 
@@ -27,7 +28,7 @@ export function SoftmaxDetail({ events, cursor }: { events: TraceEvent[]; cursor
   const top = Math.max(...softmax.topK.map((c) => logitOf.get(c.id) ?? Number.NEGATIVE_INFINITY))
   return (
     <div data-testid="detail-softmax" className="detail">
-      <h3>Softmax (T={T}) <Term id="softmax" variant="icon" label="About this stage" testId="stage-info">ⓘ</Term></h3>
+      <h3>Softmax (T={T}) <Term id="softmax" variant="icon" label="About this stage" testId="stage-info"><Icon name="info" /></Term></h3>
       <p>Softmax turns the <Term id="logit">scores</Term> into probabilities that sum to 100%: the second half of the readout.</p>
       {runStart?.vocabSize && (
         <Formula testId="logits-formula" className="card-formula" inline tex={logitsTex(dims, runStart.vocabSize)} />
@@ -52,7 +53,7 @@ export function SoftmaxDetail({ events, cursor }: { events: TraceEvent[]; cursor
       </div>
       <div className="embed-callouts">
         {SOFTMAX_CALLOUTS.map((c) => (
-          <Term key={c.label} id={c.id} section={c.section} tip={c.tip} variant="chip" testId="embed-callout">ⓘ {c.label}</Term>
+          <Term key={c.label} id={c.id} section={c.section} tip={c.tip} variant="chip" testId="embed-callout"><Icon name="info" /> {c.label}</Term>
         ))}
       </div>
     </div>

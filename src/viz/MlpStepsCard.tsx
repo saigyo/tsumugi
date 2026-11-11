@@ -15,6 +15,7 @@ import { removedLayerNoteFor, useMlpLayerControl } from './mlpLayerSelection'
 import { useNeuronMode } from './neuronMode'
 import type { VotedCandidate } from './selectors'
 import { visibleToken } from './tokenText'
+import { Icon } from '../ui/Icon'
 
 const LOADING = 'Loading the MLP weights (about 0.9 MB per layer, once per model version)…'
 const MISMATCH = 'This run’s step data doesn’t match the MLP weights file.'
@@ -37,10 +38,10 @@ export function MlpStepsCard({ data, candidates, note, noteAction, run }: {
     <section data-testid="steps-card" className="mlp-card">
       <h4 data-testid="steps-title">The MLP, step by step{layer !== null ? `: layer ${layer}` : ''}{layer !== null && (
         <span className="neuron-stepper">
-          <button type="button" data-testid="steps-prev" aria-label="Previous layer" disabled={layer <= 0} onClick={() => step(-1)}>◀</button>
-          <button type="button" data-testid="steps-next" aria-label="Next layer" disabled={layer >= layers - 1} onClick={() => step(1)}>▶</button>
+          <button type="button" data-testid="steps-prev" aria-label="Previous layer" disabled={layer <= 0} onClick={() => step(-1)}><Icon name="prev" /></button>
+          <button type="button" data-testid="steps-next" aria-label="Next layer" disabled={layer >= layers - 1} onClick={() => step(1)}><Icon name="next" /></button>
         </span>
-      )}{' '}<Term id="mlp" variant="icon" label="About the MLP" testId="steps-info">ⓘ</Term></h4>
+      )}{' '}<Term id="mlp" variant="icon" label="About the MLP" testId="steps-info"><Icon name="info" /></Term></h4>
       {!ready || layer === null ? <p data-testid="steps-note" className="mlp-note">{note} {noteAction}</p>
         : <>
           {removed && <p data-testid="removed-layer-note" className="mlp-note">{removed}</p>}
@@ -105,7 +106,7 @@ function StepsBody({ data, candidates, selected, layer }: { data: NeuronData; ca
         {weights ? <DownStrips s={s} layer={weights.layer} dims={dims} marked={marked} ring={hover?.neuron ?? null} /> : pending}
       </Step>
       <div className="embed-callouts">
-        {MLP_STEP_CALLOUTS.map((c) => <Term key={c.label} id={c.id} section={c.section} tip={c.tip} variant="chip" testId="steps-callout">ⓘ {c.label}</Term>)}
+        {MLP_STEP_CALLOUTS.map((c) => <Term key={c.label} id={c.id} section={c.section} tip={c.tip} variant="chip" testId="steps-callout"><Icon name="info" /> {c.label}</Term>)}
       </div>
     </>
   )

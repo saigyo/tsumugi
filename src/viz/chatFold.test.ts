@@ -27,8 +27,7 @@ test('roles: special tokens by text, the user span as prompt, the rest as templa
 })
 
 test('fold label', () => {
-  expect(foldLabel(20, false)).toBe('system prompt · 20 tokens ▸')
-  expect(foldLabel(20, true)).toBe('system prompt · 20 tokens ▾')
+  expect(foldLabel(20)).toBe('system prompt · 20 tokens')
 })
 
 test('an empty or reversed system span is not folded', () => {

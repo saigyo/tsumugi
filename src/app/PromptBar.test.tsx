@@ -69,7 +69,7 @@ test('example chips fill the prompt and start generation', () => {
   expect(onGenerate).toHaveBeenCalledWith('The cat sat', { temperature: 0.8, topK: 10, maxNewTokens: 20 }, { kind: 'text' })
 })
 
-test('the settings are labelled in full; each ⓘ opens its section of Generation settings', () => {
+test('the settings are labelled in full; each info icon opens its section of Generation settings', () => {
   render(<PromptBar hasRuns={false} mode="sim" onModeChange={noop} onGenerate={noop} busy={false} />)
   expect(screen.getByLabelText('Temperature')).toBe(screen.getByTestId('temp-input'))
   expect(screen.getByLabelText('Top-k')).toBe(screen.getByTestId('topk-input'))
@@ -82,7 +82,7 @@ test('the settings are labelled in full; each ⓘ opens its section of Generatio
   expect(useGlossaryStore.getState().view).toEqual({ kind: 'entry', id: 'generation-settings', section: 'top-k' })
 })
 
-test('hovering a setting’s ⓘ shows its one-line tip', () => {
+test('hovering a setting’s info icon shows its one-line tip', () => {
   render(<PromptBar hasRuns={false} mode="sim" onModeChange={noop} onGenerate={noop} busy={false} />)
   const tips = ['0 = always the top token; higher = more varied.', 'Only the k best candidates can be drawn.', 'The run stops here at the latest.']
   screen.getAllByTestId('setting-info').forEach((icon, i) => {
@@ -251,10 +251,10 @@ test('an examples row the person opened stays open after generating', () => {
 test('the system row: closed by default, edited marker, text kept across Simulated and back', () => {
   const { rerender } = render(bar({ mode: 'real' }))
   expect(screen.queryByTestId('system-row')).toBeNull()
-  expect(screen.getByTestId('toggle-system')).toHaveTextContent('System prompt ▾')
+  expect(screen.getByTestId('toggle-system')).toHaveTextContent('System prompt')
   fireEvent.click(screen.getByTestId('toggle-system'))
   fireEvent.change(screen.getByTestId('system-input'), { target: { value: 'Be brief' } })
-  expect(screen.getByTestId('toggle-system')).toHaveTextContent('System prompt · edited ▾')
+  expect(screen.getByTestId('toggle-system')).toHaveTextContent('System prompt · edited')
   rerender(bar({ mode: 'sim' }))
   expect(screen.queryByTestId('toggle-system')).toBeNull()
   rerender(bar({ mode: 'real' }))

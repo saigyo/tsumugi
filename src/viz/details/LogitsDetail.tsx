@@ -7,6 +7,7 @@ import { Term } from '../../glossary/Term'
 import { Formula } from '../Formula'
 import { logitsTex } from '../tex'
 import { selectedCandidate, useCandidateSelection } from '../candidateSelection'
+import { Icon } from '../../ui/Icon'
 
 // Container: picks the cycle's logits event, resolves asset rows for sim and
 // legacy traces, and shows the selected candidate (shared with the votes card
@@ -31,7 +32,7 @@ export function LogitsDetail({ events, cursor }: { events: TraceEvent[]; cursor:
   const assetNote = geo.status === 'loading' ? 'loading vocabulary geometry…' : 'vector values unavailable'
   return (
     <div data-testid="detail-logits" className="detail">
-      <h3>Logits <Term id="logit" variant="icon" label="About this stage" testId="stage-info">ⓘ</Term></h3>
+      <h3>Logits <Term id="logit" variant="icon" label="About this stage" testId="stage-info"><Icon name="info" /></Term></h3>
       <p>Each <Term id="logit">score</Term> is a dot product: the last token’s final vector against one row of E — the same matrix the Embeddings stage looked rows up in.</p>
       {vocabSize && (
         <Formula testId="logits-formula" className="card-formula" inline tex={logitsTex(dims, vocabSize)} />

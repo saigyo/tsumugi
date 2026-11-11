@@ -3,6 +3,7 @@ import { renderableNeighbors, similarityMatrix } from '../geometry/math'
 import type { EmbedSource, TokenInfo } from '../trace/types'
 import { seqFill } from './ramps'
 import { SPACE_MARKER, visibleToken } from './tokenText'
+import { Icon } from '../ui/Icon'
 
 const NEIGHBORS = 8
 const SPACE_NOTE = `${SPACE_MARKER} marks a leading space, ↵ a newline, ⇥ a tab: whitespace belongs to the token, so " cat" (mid-sentence) and "cat" (after punctuation or at a start) are different tokens with different rows in E, and a paragraph break is two "↵" tokens.`
@@ -74,7 +75,7 @@ export function EmbeddingGeometry({ tokens, selected, vectorFor, asset, loading,
         <div data-testid="embed-neighbors" className="embed-neighbors">
           <div className="embed-caption">
             Nearest to <span className="chip-text">{visibleToken(token)}</span> in E — click any token above to change
-            {' '}<span data-testid="embed-space-note" className="embed-callout rs-hover" title={SPACE_NOTE}>ⓘ {SPACE_MARKER}</span>
+            {' '}<span data-testid="embed-space-note" className="embed-callout rs-hover" title={SPACE_NOTE}><Icon name="info" /> {SPACE_MARKER}</span>
           </div>
           <div className="bar-chart">
             {neighbors.map((n) => (

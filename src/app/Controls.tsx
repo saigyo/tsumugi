@@ -2,6 +2,7 @@ import type { CSSProperties } from 'react'
 import { usePlayerStore } from '../player/store'
 import { useTraceStore } from '../trace/store'
 import { cycleTickIndices } from '../viz/selectors'
+import { Icon } from '../ui/Icon'
 
 export function Controls() {
   const { cursor, status, speed, traceLength, dispatch } = usePlayerStore()
@@ -20,25 +21,25 @@ export function Controls() {
 
   return (
     <div className="controls">
-      <button data-testid="btn-cycle-back" onClick={cycleBack} title="Previous token cycle">|◀◀</button>
-      <button data-testid="btn-step-back" onClick={() => dispatch({ type: 'stepBack' })} title="Step back">◀</button>
+      <button data-testid="btn-cycle-back" onClick={cycleBack} title="Previous token cycle" aria-label="Previous token cycle"><Icon name="first" /></button>
+      <button data-testid="btn-step-back" onClick={() => dispatch({ type: 'stepBack' })} title="Step back" aria-label="Step back"><Icon name="back" /></button>
       {status === 'playing' ? (
-        <button data-testid="btn-pause" onClick={() => dispatch({ type: 'pause' })} title="Pause">⏸</button>
+        <button data-testid="btn-pause" onClick={() => dispatch({ type: 'pause' })} title="Pause" aria-label="Pause"><Icon name="pause" /></button>
       ) : (
-        <button data-testid="btn-play" onClick={() => dispatch({ type: 'play' })} title="Play">▶</button>
+        <button data-testid="btn-play" onClick={() => dispatch({ type: 'play' })} title="Play" aria-label="Play"><Icon name="play" /></button>
       )}
-      <button data-testid="btn-step-fwd" onClick={() => dispatch({ type: 'stepForward' })} title="Step">▶|</button>
-      <button data-testid="btn-cycle-fwd" onClick={cycleFwd} title="Next token cycle">▶▶|</button>
-      <input data-testid="scrubber" type="range" min={0} max={Math.max(traceLength - 1, 0)}
+      <button data-testid="btn-step-fwd" onClick={() => dispatch({ type: 'stepForward' })} title="Step" aria-label="Step"><Icon name="forward" /></button>
+      <button data-testid="btn-cycle-fwd" onClick={cycleFwd} title="Next token cycle" aria-label="Next token cycle"><Icon name="last" /></button>
+      <input data-testid="scrubber" aria-label="Position in the run" type="range" min={0} max={Math.max(traceLength - 1, 0)}
         value={Math.max(cursor, 0)} list="cycle-ticks" style={{ '--pos': fill } as CSSProperties}
         onChange={(e) => dispatch({ type: 'seek', index: Number(e.target.value) })} />
       <datalist id="cycle-ticks">
         {ticks.map((i) => <option key={i} value={i} />)}
       </datalist>
-      <select data-testid="speed" value={speed} onChange={(e) => dispatch({ type: 'setSpeed', speed: Number(e.target.value) })}>
+      <select data-testid="speed" aria-label="Playback speed" value={speed} onChange={(e) => dispatch({ type: 'setSpeed', speed: Number(e.target.value) })}>
         {[0.5, 1, 2, 4].map((s) => <option key={s} value={s}>{s}×</option>)}
       </select>
-      <button data-testid="btn-live" onClick={() => dispatch({ type: 'goLive' })} title="Jump to live">⏺ Live</button>
+      <button data-testid="btn-live" onClick={() => dispatch({ type: 'goLive' })} title="Jump to live"><Icon name="live" /> Live</button>
     </div>
   )
 }

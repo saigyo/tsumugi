@@ -4,6 +4,7 @@ import { ShareLinkButton, type ShareFeedback } from '../viz/ShareLinkButton'
 import type { RunRecord } from './runsStore'
 import { shareableRun } from './shareLink'
 import { shelfRow } from './shelfRow'
+import { Icon } from '../ui/Icon'
 
 export interface RunShelfProps {
   records: RunRecord[]
@@ -98,7 +99,7 @@ export function RunShelf(p: RunShelfProps) {
       <button data-testid="btn-chip-pin" className="run-chip-action run-chip-pin"
         data-pinned={String(r.meta.pinned)} aria-pressed={r.meta.pinned}
         aria-label={r.meta.pinned ? 'unpin run' : 'pin run'}
-        title={r.meta.pinned ? 'unpin' : 'pin — never evicted'} onClick={() => p.onTogglePin(r.id)}>📌</button>
+        title={r.meta.pinned ? 'unpin' : 'pin — never evicted'} onClick={() => p.onTogglePin(r.id)}><Icon name={r.meta.pinned ? 'pinned' : 'pin'} /></button>
       {(() => {
         const settings = shareableRun(r.events)
         return settings && (
@@ -109,9 +110,9 @@ export function RunShelf(p: RunShelfProps) {
         )
       })()}
       <button data-testid="btn-chip-export" className="run-chip-action"
-        title="download run as JSON" onClick={() => p.onExport(r.id)}>⇩</button>
+        title="download run as JSON" aria-label="download run as JSON" onClick={() => p.onExport(r.id)}><Icon name="download" /></button>
       <button data-testid="btn-chip-remove" className="run-chip-action"
-        title="remove run" onClick={() => p.onRemove(r.id)}>×</button>
+        title="remove run" aria-label="remove run" onClick={() => p.onRemove(r.id)}><Icon name="close" /></button>
     </>
   )
   return (
@@ -128,7 +129,7 @@ export function RunShelf(p: RunShelfProps) {
                 <span className="run-chip-glyph" aria-hidden="true">{r.meta.mode === 'real' ? '●' : '○'}</span>
                 {chipLabel(r)}
               </button>
-              {r.meta.pinned && <span className="run-chip-pinmark" aria-hidden="true">📌</span>}
+              {r.meta.pinned && <span className="run-chip-pinmark" aria-hidden="true"><Icon name="pinned" /></span>}
               <span className="run-chip-actions">{actions(r)}</span>
             </div>
           ))}
@@ -136,7 +137,7 @@ export function RunShelf(p: RunShelfProps) {
         {hidden > 0 && (
           <div className="run-more-wrap" ref={wrap}>
             <button ref={moreBtn} data-testid="run-more" className="run-more" aria-expanded={listOpen}
-              onClick={() => setOpen((o) => !o)}>+{hidden} more ▾</button>
+              onClick={() => setOpen((o) => !o)}>+{hidden} more <Icon name="chevron" /></button>
             {listOpen && (
               <div data-testid="run-list" className="run-list">
                 {[...p.records].reverse().map((r) => (

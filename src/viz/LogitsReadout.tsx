@@ -7,6 +7,7 @@ import { readableTokenText } from '../engine/tokenBytes'
 import { visibleToken } from './tokenText'
 import { rowMarkY } from './stripMath'
 import { VectorStrip } from './VectorStrip'
+import { Icon } from '../ui/Icon'
 
 const X_CELL_W = 5, X_CELL_H = 14          // bench strips (full card width available)
 const EQ_CELL_W = 4                        // the x strip in the equation row, next to E and the scores
@@ -134,7 +135,7 @@ export function LogitsReadout({ candidates, lastHidden, dims, vocabSize, selecte
 
       <div className="embed-callouts">
         {logitsCallouts(candidates.length, vocab).map((c) => (
-          <Term key={c.label} id={c.id} section={c.section} tip={c.tip} variant="chip" testId="embed-callout">ⓘ {c.label}</Term>
+          <Term key={c.label} id={c.id} section={c.section} tip={c.tip} variant="chip" testId="embed-callout"><Icon name="info" /> {c.label}</Term>
         ))}
       </div>
     </div>

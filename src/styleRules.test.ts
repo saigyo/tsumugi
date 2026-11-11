@@ -89,6 +89,7 @@ const pairs: [string, string][] = [
   ['--shu-deep', '--shu-wash'],           // .token-end
   ['--ink-soft', '--ai-wash'],            // .run-chip-action on a hovered list row
   ['--ink-soft', '--shu-wash'],           // .run-chip-action on a compare A/B chip
+  ['--shu-deep', '--card'],                  // the pinned pin on a run chip
   // text on the split fill roles
   ['--on-ai', '--fill'], ['--on-ai', '--fill-hover'], ['--on-shu', '--shu'], ['--on-fill-soft', '--fill-hover'], ['--on-fill-note', '--fill'],
 ]
@@ -172,16 +173,23 @@ test('bold text is the semibold weight', () => {
 function sourceFiles(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {
     const path = `${dir}/${name}`
-    if (statSync(path).isDirectory()) return sourceFiles(path)
+    if (statSync(path).isDirectory()) return path === 'src/test' ? [] : sourceFiles(path)
     return /\.tsx?$/.test(name) && !/\.(test|spec)\.tsx?$/.test(name) ? [path] : []
   })
 }
 
+// Relative paths of the non-test TypeScript sources under src (outside src/test) whose text, comments left out, matches.
+function filesWith(pattern: RegExp): string[] {
+  return sourceFiles('src').filter((f) => pattern.test(readFileSync(f, 'utf8').replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, '')))
+}
+
 test('no colour literals in TypeScript source', () => {
-  const colour = colourLiteral
-  const offenders = sourceFiles('src')
-    .filter((f) => colour.test(readFileSync(f, 'utf8').replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, '')))
-  expect(offenders).toEqual([])
+  expect(filesWith(colourLiteral)).toEqual([])
+})
+
+test('no symbol or emoji icons in component code', () => {
+  const banned = /[📌🔗⇩⇧⇄◐☀☾⏺⏸▶◀▾▸ⓘ]/u
+  expect(filesWith(banned)).toEqual([])
 })
 
 test('the light chart ramp end points are today\'s colours', () => {

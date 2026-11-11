@@ -9,7 +9,7 @@ const TIP_SPACE = 296
 const GAP = 4
 const EDGE = 8
 
-// A word in a caption (or a callout chip, or a heading's ⓘ) that shows the
+// A word in a caption (or a callout chip, or a heading's info icon) that shows the
 // entry's summary (or its own tip) on hover or focus and opens the entry on click.
 export function Term({ id, section, variant = 'text', label, testId, tip: tipText, children }: {
   id: GlossaryId

@@ -7,6 +7,7 @@ import { cellFill, peakOf, rowMarkY } from './stripMath'
 import { VectorStrip } from './VectorStrip'
 import { EMBEDDING_CALLOUTS } from '../glossary/callouts'
 import { Term } from '../glossary/Term'
+import { Icon } from '../ui/Icon'
 
 const STRIP_CELLS = 96
 const CELL_W = 5
@@ -111,7 +112,7 @@ export function EmbeddingLookup({ tokens, dims, vocabSize, selected, onSelect, v
       </div>
       <div className="embed-callouts">
         {EMBEDDING_CALLOUTS.map((c) => (
-          <Term key={c.label} id={c.id} section={c.section} tip={c.tip} variant="chip" testId="embed-callout">ⓘ {c.label}</Term>
+          <Term key={c.label} id={c.id} section={c.section} tip={c.tip} variant="chip" testId="embed-callout"><Icon name="info" /> {c.label}</Term>
         ))}
       </div>
     </div>

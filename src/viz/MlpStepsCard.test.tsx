@@ -163,7 +163,7 @@ test('the norm note says x and n are clipped and w is scaled to its own peak', a
   expect(screen.getByTestId('steps-card')).toHaveTextContent('x and n clipped at 2× their typical size, w scaled to its largest value.')
 })
 
-test('each ⓘ chip hovers the sentence of the section it opens', async () => {
+test('each info chip hovers the sentence of the section it opens', async () => {
   card()
   await waitFor(() => screen.getAllByTestId('steps-callout'))
   const tips = screen.getAllByTestId('steps-callout').map((chip) => {

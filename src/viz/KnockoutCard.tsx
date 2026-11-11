@@ -7,6 +7,7 @@ import { useKnockoutRequest } from './knockoutRequest'
 import { voteFill } from './mlpMath'
 import { useMlpLayer } from './mlpLayerSelection'
 import { visibleToken } from './tokenText'
+import { Icon } from '../ui/Icon'
 
 const LAYERS = 30
 const MIN_SCALE = 0.01   // a flat sweep must not blow its noise up to full height
@@ -58,7 +59,7 @@ export function KnockoutCard({ run, cycle, seqLen, chosen, votes, sweep, running
   const select = useMlpLayer((s) => s.select)
   const [picked, setPicked] = useState<number | null>(null)
   const title = <h4>Which layers the chosen token depends on{' '}
-    <Term id="knockout" variant="icon" label="About knockouts" testId="knockout-info">ⓘ</Term></h4>
+    <Term id="knockout" variant="icon" label="About knockouts" testId="knockout-info"><Icon name="info" /></Term></h4>
 
   const eligible = knockoutEligibility(run, seqLen, model)
   if (!eligible.ok) {

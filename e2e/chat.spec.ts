@@ -18,7 +18,7 @@ test('an imported chat run: folded strip, end of turn, and an attention matrix t
   const chip = page.getByTestId('run-chip').filter({ hasText: 'What is the' })
   await chip.getByTestId('run-chip-main').click()
 
-  await expect(page.getByTestId('token-stream').getByTestId('system-fold')).toHaveText('system prompt · 20 tokens ▸')
+  await expect(page.getByTestId('token-stream').getByTestId('system-fold')).toHaveText('system prompt · 20 tokens')
   await expect(page.getByTestId('generated-token').last()).toHaveClass(/token-end/)
   await expect(page.getByTestId('generated-token').filter({ hasText: 'Paris' })).toHaveCount(1)
 
@@ -31,5 +31,5 @@ test('an imported chat run: folded strip, end of turn, and an attention matrix t
     return card && svg ? card.width - svg.width : -1
   }).toBeGreaterThanOrEqual(0)
   await expect(page.getByTestId('attn-show-system')).not.toBeChecked()
-  await expect(page.getByTestId('edit-fold')).toHaveText('system prompt · 20 tokens ▸')
+  await expect(page.getByTestId('edit-fold')).toHaveText('system prompt · 20 tokens')
 })

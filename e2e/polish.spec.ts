@@ -159,7 +159,7 @@ test.fixme('hovering moves nothing vertically', async ({ page }) => {
   expect(problems).toEqual([])
 })
 
-test.fixme('every control has an accessible name', async ({ page }) => {
+test('every control has an accessible name', async ({ page }) => {
   const problems = new Set<string>()
   await inEachTheme(page, async (theme, state) => {
     const { checked, unnamed } = await page.evaluate(() => window.__polish.unnamedControls())

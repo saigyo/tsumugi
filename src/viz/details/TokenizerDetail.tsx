@@ -3,6 +3,7 @@ import type { ChatSpans, TokenInfo } from '../../trace/types'
 import { SPACE_MARKER, visibleToken } from '../tokenText'
 import { Term } from '../../glossary/Term'
 import { FOLD_TITLE, foldItems, foldLabel, tokenRole, type TokenRole } from '../chatFold'
+import { Icon } from '../../ui/Icon'
 
 const ROLE_CLASS: Record<TokenRole, string> = { prompt: '', template: ' token-template', special: ' token-special' }
 
@@ -13,7 +14,7 @@ export function TokenizerDetail({ tokens, truncated, chat }: { tokens: TokenInfo
   const anySpace = tokens.some((t) => t.text.startsWith(' '))
   return (
     <div data-testid="detail-tokenizer" className="detail">
-      <h3>Tokenizer <Term id="token" variant="icon" label="About this stage" testId="stage-info">ⓘ</Term></h3>
+      <h3>Tokenizer <Term id="token" variant="icon" label="About this stage" testId="stage-info"><Icon name="info" /></Term></h3>
       <p>
         The prompt is split into {tokens.length} <Term id="token">tokens</Term>, each mapped to a vocabulary ID.
         {anySpace && (
@@ -37,7 +38,7 @@ export function TokenizerDetail({ tokens, truncated, chat }: { tokens: TokenInfo
         {foldItems(tokens.length, chat?.system, open).map((item) => item.kind === 'fold' ? (
           <button key="fold" type="button" data-testid="system-fold" className="token-chip token-fold"
             aria-expanded={open} title={FOLD_TITLE} onClick={() => setOpenFor(open ? null : tokens)}>
-            {foldLabel(item.count, open)}
+            {foldLabel(item.count)} <Icon name="chevron" />
           </button>
         ) : (
           <span key={item.index}

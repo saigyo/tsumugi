@@ -8,6 +8,7 @@ import type { ChatSpans } from '../trace/types'
 import { useChatFold } from './chatFolds'
 import type { EditRows } from './selectors'
 import { visibleToken } from './tokenText'
+import { Icon } from '../ui/Icon'
 
 type Block = 'attn' | 'mlp'
 const BLOCK_NAME: Record<Block, string> = { attn: 'attention', mlp: 'MLP' }
@@ -43,7 +44,7 @@ export function EditSizeCard({ rows: all, note, noteAction, onLayer, chat }: { r
   return (
     <section data-testid="edit-size-card" className="mlp-card">
       <h4>How much each layer changes the vector{' '}
-        <Term id="edit" variant="icon" label="About edit sizes" testId="edit-size-info">ⓘ</Term></h4>
+        <Term id="edit" variant="icon" label="About edit sizes" testId="edit-size-info"><Icon name="info" /></Term></h4>
       {!all ? <p data-testid="edit-size-note" className="mlp-note">{note} {noteAction}</p> : (
         <>
           <p className="mlp-caption">Every block adds an <Term id="edit">edit</Term> to the{' '}
@@ -68,7 +69,7 @@ export function EditSizeCard({ rows: all, note, noteAction, onLayer, chat }: { r
           <EditBars rows={all} index={sel} onLayer={onLayer} />
           <div className="embed-callouts">
             {EDIT_CALLOUTS.map((c) => (
-              <Term key={c.label} id={c.id} section={c.section} tip={c.tip} variant="chip" testId="embed-callout">ⓘ {c.label}</Term>
+              <Term key={c.label} id={c.id} section={c.section} tip={c.tip} variant="chip" testId="embed-callout"><Icon name="info" /> {c.label}</Term>
             ))}
           </div>
         </>
@@ -87,7 +88,7 @@ function EditHeatmap({ rows, items, open, onToggle, block, selected, onSelect, o
         if (item.kind === 'fold') return (
           <div key="fold" className="mlp-heatmap-row">
             <button type="button" data-testid="edit-fold" className="mlp-tok mlp-fold" aria-expanded={open}
-              title={FOLD_TITLE} onClick={onToggle}>{foldLabel(item.count, open)}</button>
+              title={FOLD_TITLE} onClick={onToggle}>{foldLabel(item.count)} <Icon name="chevron" /></button>
             <div className="mlp-cells mlp-cells-empty" />
           </div>
         )

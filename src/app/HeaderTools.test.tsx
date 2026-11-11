@@ -28,7 +28,7 @@ test('exit replaces arm while selecting', () => {
   const onExitCompare = vi.fn()
   render(<HeaderTools {...base} selecting onExitCompare={onExitCompare} />)
   expect(screen.queryByTestId('btn-compare-arm')).toBeNull()
-  expect(screen.getByTestId('btn-compare-exit')).toHaveTextContent('× Exit compare')
+  expect(screen.getByTestId('btn-compare-exit')).toHaveTextContent('Exit compare')
   fireEvent.click(screen.getByTestId('btn-compare-exit'))
   expect(onExitCompare).toHaveBeenCalled()
 })

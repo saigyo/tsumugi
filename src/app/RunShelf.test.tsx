@@ -72,7 +72,8 @@ test('pinned marker, pin/remove/export actions', () => {
   // the single pin button is the toggle AND the state cue — no second pin in the label
   expect(screen.getByTestId('btn-chip-pin').dataset.pinned).toBe('true')
   expect(screen.getByTestId('btn-chip-pin')).toHaveAttribute('aria-pressed', 'true')
-  expect(screen.getByTestId('run-chip-main').textContent).not.toContain('📌')
+  expect(screen.getByTestId('run-chip-main').querySelector('svg')).toBeNull()
+  expect(screen.getByTestId('btn-chip-pin').querySelector('svg')?.getAttribute('data-icon')).toBe('pinned')
   fireEvent.click(screen.getByTestId('btn-chip-pin'))
   expect(p.onTogglePin).toHaveBeenCalledWith('run-1')
   fireEvent.click(screen.getByTestId('btn-chip-export'))
@@ -190,7 +191,7 @@ test('eight runs: five chips newest first and a "+3 more" button; five or fewer 
   expect(screen.getAllByTestId('run-chip').map((c) => c.textContent)).toHaveLength(5)
   expect(screen.getAllByTestId('run-chip-main')[0]).toHaveTextContent('#8')
   expect(screen.getAllByTestId('run-chip-main')[4]).toHaveTextContent('#4')
-  expect(screen.getByTestId('run-more')).toHaveTextContent('+3 more ▾')
+  expect(screen.getByTestId('run-more')).toHaveTextContent('+3 more')
   rerender(<RunShelf {...props({ records: many(5), activeId: 'run-5' })} />)
   expect(screen.queryByTestId('run-more')).toBeNull()
 })
@@ -198,10 +199,10 @@ test('eight runs: five chips newest first and a "+3 more" button; five or fewer 
 test('an older active run stays in the row; without it the row goes back to five', () => {
   const { rerender } = render(<RunShelf {...props({ records: many(8), activeId: 'run-2' })} />)
   expect(screen.getAllByTestId('run-chip')).toHaveLength(6)
-  expect(screen.getByTestId('run-more')).toHaveTextContent('+2 more ▾')
+  expect(screen.getByTestId('run-more')).toHaveTextContent('+2 more')
   rerender(<RunShelf {...props({ records: many(8), activeId: null })} />)
   expect(screen.getAllByTestId('run-chip')).toHaveLength(5)
-  expect(screen.getByTestId('run-more')).toHaveTextContent('+3 more ▾')
+  expect(screen.getByTestId('run-more')).toHaveTextContent('+3 more')
 })
 
 test('the list shows every run; choosing one activates it and closes the list', () => {

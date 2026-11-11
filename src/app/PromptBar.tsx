@@ -3,6 +3,7 @@ import { DEFAULT_SYSTEM_PROMPT, TEXT_FORMAT, systemOf } from '../engine/chatTemp
 import { Term } from '../glossary/Term'
 import { parseSeed, type SharedRun } from './shareLink'
 import type { GenParams, Mode, PromptFormat } from '../trace/types'
+import { Icon } from '../ui/Icon'
 
 const REAL_TITLE = 'Runs SmolLM2-135M-Instruct in your browser from a custom export with attention and readout outputs (its output layer stays full precision). Downloads ~250 MB once on first use; cached afterward. If that fails it falls back to the ~120 MB stock export without them.'
 
@@ -66,7 +67,7 @@ export function PromptBar({ mode, onModeChange, onGenerate, busy, generating = f
   return (
     <div className="prompt-box">
       <div className="prompt-line">
-        <input data-testid="prompt-input" value={prompt} placeholder={chatOn ? 'Ask a question…' : 'Type a prompt…'}
+        <input data-testid="prompt-input" aria-label={chatOn ? 'Your message' : 'Prompt'} value={prompt} placeholder={chatOn ? 'Ask a question…' : 'Type a prompt…'}
           onChange={(e) => setPrompt(e.target.value)} />
         <button data-testid="btn-generate" className="btn-generate" disabled={prompt.trim() === '' || busy || generating}
           aria-busy={generating || undefined}
@@ -94,45 +95,45 @@ export function PromptBar({ mode, onModeChange, onGenerate, busy, generating = f
           <div className="seg" role="group" aria-label="Prompt format" data-testid="format-switch">
             <button type="button" data-testid="format-chat" aria-pressed={chatFmt} onClick={() => setChatFmt(true)}>Chat</button>
             <button type="button" data-testid="format-text" aria-pressed={!chatFmt} onClick={() => setChatFmt(false)}>Continue text</button>
-            <Term id="chat-template" variant="icon" label="About the chat template" testId="format-info">ⓘ</Term>
+            <Term id="chat-template" variant="icon" label="About the chat template" testId="format-info"><Icon name="info" /></Term>
           </div>
         )}
         <span className="chip">
           <label>Temperature <input data-testid="temp-input" type="number" step="0.1" min="0" max="2" value={temperature}
             onChange={(e) => setTemperature(clampOrKeep(e.target.value, 0, 2, temperature))} /></label>
           <Term id="generation-settings" section="temperature" variant="icon" label="About temperature" testId="setting-info"
-            tip="0 = always the top token; higher = more varied.">ⓘ</Term>
+            tip="0 = always the top token; higher = more varied."><Icon name="info" /></Term>
         </span>
         <span className="chip">
           <label>Top-k <input data-testid="topk-input" type="number" min="1" max="10" value={topK}
             onChange={(e) => setTopK(clampOrKeep(e.target.value, 1, 10, topK))} /></label>
           <Term id="generation-settings" section="top-k" variant="icon" label="About top-k" testId="setting-info"
-            tip="Only the k best candidates can be drawn.">ⓘ</Term>
+            tip="Only the k best candidates can be drawn."><Icon name="info" /></Term>
         </span>
         <span className="chip">
           <label>Max tokens <input data-testid="maxtok-input" type="number" min="1" max="100" value={maxNewTokens}
             onChange={(e) => setMaxNewTokens(clampOrKeep(e.target.value, 1, 100, maxNewTokens))} /></label>
           <Term id="generation-settings" section="max-new-tokens" variant="icon" label="About max new tokens" testId="setting-info"
-            tip="The run stops here at the latest.">ⓘ</Term>
+            tip="The run stops here at the latest."><Icon name="info" /></Term>
         </span>
         {mode === 'real' && (
           <span className="chip">
             <label>Seed <input className="seed-input" data-testid="seed-input" inputMode="numeric" placeholder="random" value={seedText}
               onChange={(e) => { const v = parseSeed(e.target.value); if (v !== undefined) setSeedText(v === null ? '' : String(v)) }} /></label>
             <Term id="generation-settings" section="seed" variant="icon" label="About the seed" testId="setting-info"
-              tip="Same seed, prompt and settings give the same text.">ⓘ</Term>
+              tip="Same seed, prompt and settings give the same text."><Icon name="info" /></Term>
           </span>
         )}
         <span className="toggles">
           {chatOn && (
             <button type="button" data-testid="toggle-system" className="toggle" aria-expanded={systemOpen} aria-controls="system-row"
               onClick={() => setSystemToggled(!systemOpen)}>
-              {systemEdited ? 'System prompt · edited' : 'System prompt'} <span aria-hidden="true">▾</span>
+              {systemEdited ? 'System prompt · edited' : 'System prompt'} <Icon name="chevron" />
             </button>
           )}
           {hasExamples && (
             <button type="button" data-testid="toggle-examples" className="toggle" aria-expanded={examplesOpen} aria-controls="examples-row"
-              onClick={() => setExamplesToggled(!examplesOpen)}>Examples <span aria-hidden="true">▾</span></button>
+              onClick={() => setExamplesToggled(!examplesOpen)}>Examples <Icon name="chevron" /></button>
           )}
         </span>
       </div>

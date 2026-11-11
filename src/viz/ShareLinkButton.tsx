@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { buildShareLink, type ShareSettings } from '../app/shareLink'
 import { useRunRequest } from './runRequest'
+import { Icon } from '../ui/Icon'
 
 export type ShareFeedback = { kind: 'copied' } | { kind: 'failed'; link: string }
 
@@ -31,7 +32,7 @@ export function ShareLinkButton({ settings, compact, onFeedback }: {
     <>
       {compact
         ? <button type="button" data-testid="btn-chip-share" className="run-chip-action" title="copy share link"
-            aria-label="Copy link" disabled={busy} onClick={copy}>🔗</button>
+            aria-label="Copy link" disabled={busy} onClick={copy}><Icon name="link" /></button>
         : <button type="button" className="knockout-run" disabled={busy} onClick={copy}>Copy link</button>}
       {!onFeedback && local?.kind === 'copied' && <span role="status" className="share-feedback">Link copied</span>}
       {!onFeedback && local?.kind === 'failed' && (

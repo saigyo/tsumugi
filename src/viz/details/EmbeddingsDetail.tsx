@@ -6,6 +6,7 @@ import { EmbeddingGeometry } from '../EmbeddingGeometry'
 import { EmbeddingLookup } from '../EmbeddingLookup'
 import { embeddingRows, latestOfType, thousands } from '../selectors'
 import { Term } from '../../glossary/Term'
+import { Icon } from '../../ui/Icon'
 
 // Container: resolves where vectors come from (exact trace rows, else the
 // geometry asset by id) and owns the selected position. Pure function of
@@ -34,7 +35,7 @@ export function EmbeddingsDetail({ events, cursor }: { events: TraceEvent[]; cur
   }
   return (
     <div data-testid="detail-embeddings" className="detail">
-      <h3>Embeddings <Term id="embedding" variant="icon" label="About this stage" testId="stage-info">ⓘ</Term></h3>
+      <h3>Embeddings <Term id="embedding" variant="icon" label="About this stage" testId="stage-info"><Icon name="info" /></Term></h3>
       <p>
         A lookup, not a computation. Each token id selects one row of a learned matrix{' '}
         <code>E [{vocab ? thousands(vocab) : '?'} × {dims}]</code>; the rows stacked up form the{' '}
