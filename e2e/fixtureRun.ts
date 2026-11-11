@@ -22,3 +22,13 @@ export async function openFixtureRun(page: Page) {
   await page.getByTestId('run-chip').filter({ hasText: 'steps fixture' }).getByTestId('run-chip-main').click()
   await page.locator('[data-testid="stage-card"][data-stage="layers"]').click()
 }
+
+/** Imports the chat example run ("What is the capital of France?") and opens it. The page must already be loaded. */
+export async function importChatRun(page: Page) {
+  const events = buildFixtureTrace({ chat: true, mode: 'real', mlp: true })
+  const file = JSON.stringify({ formatVersion: 1, events, meta: { prompt: 'What is the capital of France?',
+    params: { temperature: 0, topK: 10, maxNewTokens: 8 }, mode: 'real', modelId: 'fixture', endedAt: Date.now(),
+    reason: 'eos', format: { kind: 'chat', system: 'You are a helpful AI assistant named SmolLM, trained by Hugging Face' } } })
+  await page.getByTestId('import-input').setInputFiles({ name: 'run.json', mimeType: 'application/json', buffer: Buffer.from(file) })
+  await page.getByTestId('run-chip').filter({ hasText: 'What is the' }).first().getByTestId('run-chip-main').click()
+}

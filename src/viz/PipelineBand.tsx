@@ -97,7 +97,7 @@ export function PipelineBand({ events, cursor, onStageClick }: {
   }, [])
   return (
     <>
-    <div ref={bandRef} className="pipeline-band">
+    <div ref={bandRef} className="pipeline-band" data-testid="pipeline-band">
       {STAGES.map((s, i) => {
         const summary = summaryFor(s.id, events, cursor)
         const dimmed = s.id === 'tokenizer' && outsideLoop

@@ -42,7 +42,7 @@ export function SoftmaxDetail({ events, cursor }: { events: TraceEvent[]; cursor
           return (
             <div key={c.id} data-testid="softmax-candidate" data-top={String(i === 0)} className="softmax-candidate">
               <span className="tok" title={visibleToken(c)}><span className="chip-text">{visibleToken(c)}</span></span>
-              <svg data-testid="prob-bar" data-token={c.text} width={BAR_W} height="14">
+              <svg data-testid="prob-bar" data-token={c.text} className="softmax-bar" width="100%" height="14" viewBox={`0 0 ${BAR_W} 14`} preserveAspectRatio="none">
                 {logit !== undefined && <title>{shareDerivation(logit, top, T, c.prob)}</title>}
                 <rect y="2" width={BAR_W * c.prob} height="10" rx="2" className={`bar-svg${i === 0 ? ' bar-svg-chosen' : ''}`} style={{ transition: 'width .4s' }} />
               </svg>

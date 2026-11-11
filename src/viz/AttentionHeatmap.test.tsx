@@ -162,9 +162,15 @@ test('a narrow card shrinks the cells and thins the labels; the hovered row and 
   vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(400)
   render(<AttentionHeatmap heads={chatAttn.heads} tokens={chatTokens} chat={chat} />)
   const cells = screen.getAllByTestId('attn-cell')
-  // 400 px minus 136 px of label room, shared by the columns left after folding 20 into one
+  // the card minus the label room, shared by the columns left after folding 20 into one; the room grows past
+  // the old 136 px for the template's special tokens, and the drawing still fits the card
   const cols = chatAttn.heads[0].matrix.length - 19
-  expect(Number(cells[0].getAttribute('width'))).toBe(Math.floor((400 - 136) / cols) - 1)
+  const cellPx = Number(cells[0].getAttribute('width')) + 1
+  const drawn = Number(screen.getByRole('img').getAttribute('width'))
+  const room = drawn - cols * cellPx
+  expect(room).toBeGreaterThan(136)
+  expect(cellPx).toBe(Math.floor((400 - room) / cols))
+  expect(drawn).toBeLessThanOrEqual(400)
   const shown = screen.getAllByTestId('row-label').filter((l) => l.textContent !== '')
   expect(shown.length).toBeLessThan(screen.getAllByTestId('row-label').length)
   const unlabelled = screen.getAllByTestId('row-label').findIndex((l) => l.textContent === '')

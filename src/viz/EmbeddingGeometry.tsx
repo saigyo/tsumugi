@@ -6,14 +6,16 @@ import { SPACE_MARKER, visibleToken } from './tokenText'
 import { Icon } from '../ui/Icon'
 import { washIndexes } from '../ui/tokenWash'
 import { fixed } from '../ui/format'
+import { labelMargins } from './heatmapSizing'
 
 const NEIGHBORS = 8
 const SPACE_NOTE = `${SPACE_MARKER} marks a leading space, ↵ a newline, ⇥ a tab: whitespace belongs to the token, so " cat" (mid-sentence) and "cat" (after punctuation or at a start) are different tokens with different rows in E, and a paragraph break is two "↵" tokens.`
 const MATRIX_CAP = 24
 const CELL = 18
-const LABEL_W = 60
-const DIAG_PAD = 52
-const RIGHT_PAD = 60
+// the least room for the labels; labelMargins grows them to fit the longest label
+const MIN_LABEL_W = 60
+const MIN_DIAG_PAD = 52
+const MIN_RIGHT_PAD = 60
 
 // Smallest and largest off-diagonal value, or null when there is no spread
 // to stretch (fewer than two tokens, or all pairs equal).
@@ -57,6 +59,8 @@ export function EmbeddingGeometry({ tokens, selected, vectorFor, asset, loading,
   }
   const neighbors = asset && token ? renderableNeighbors(asset, token.id, NEIGHBORS) : null
   const label = (i: number) => (shown[i] ? visibleToken(shown[i]) : '') || `#${start + i}`
+  const labels = shown.map((_, i) => label(i))
+  const { left: LABEL_W, top: DIAG_PAD, right: RIGHT_PAD } = labelMargins(labels, labels, { minLeft: MIN_LABEL_W, minTop: MIN_DIAG_PAD, minRight: MIN_RIGHT_PAD })
   const w = LABEL_W + shown.length * CELL + RIGHT_PAD
   const h = DIAG_PAD + shown.length * CELL + 4
   return (

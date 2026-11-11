@@ -6,7 +6,7 @@ import { visibleToken } from './tokenText'
 import { LoadRealButton } from './LoadRealButton'
 import { foldMatrix, type FoldedMatrix } from './foldMatrix'
 import { seqFill } from './ramps'
-import { cellSize, labelStep } from './heatmapSizing'
+import { cellSize, labelMargins, labelStep } from './heatmapSizing'
 import { percent } from '../ui/format'
 
 /** What the read-out under the heatmap says while no cell is hovered. */
@@ -21,19 +21,20 @@ const HINTS: Record<AttentionLabel, string> = {
   pinned: 'Hand-picked from the grid — compare against the patterns you know.',
 }
 
-const LABEL_W = 66
-const DIAG_PAD = 58   // room above the matrix for the slanted column labels
-const RIGHT_PAD = 70  // overhang of the right-most slanted label
+// the least room for the labels; labelMargins grows them to fit the longest label
+const MIN_LABEL_W = 66
+const MIN_DIAG_PAD = 58   // above the matrix, for the slanted column labels
+const MIN_RIGHT_PAD = 70  // overhang of the right-most slanted label
 
-const Cells = memo(function Cells({ folded, cell, onHover, rowLabel, colLabel }: {
-  folded: FoldedMatrix; cell: number; onHover: (h: { r: number; c: number } | null) => void
+const Cells = memo(function Cells({ folded, cell, labelW, diagPad, onHover, rowLabel, colLabel }: {
+  folded: FoldedMatrix; cell: number; labelW: number; diagPad: number; onHover: (h: { r: number; c: number } | null) => void
   rowLabel: (i: number) => string; colLabel: (j: number) => string
 }) {
   return <>{folded.values.map((row, r) => row.map((w, c) => {
     const fold = folded.cols[c].to - folded.cols[c].from > 1
     return (
       <rect key={`${r}-${c}`} data-testid="attn-cell" data-row={r} data-col={c}
-        x={LABEL_W + c * cell} y={DIAG_PAD + r * cell} width={cell - 1} height={cell - 1}
+        x={labelW + c * cell} y={diagPad + r * cell} width={cell - 1} height={cell - 1}
         style={{ fill: seqFill(w) }}
         className={fold ? 'attn-cell-fold' : undefined}
         onMouseEnter={() => onHover({ r, c })} onMouseLeave={() => onHover(null)}>
@@ -97,6 +98,9 @@ export function AttentionHeatmap({ heads, tokens, focus, chat, foldToggle = true
   // cannot come back if the matrix grows again
   const hovered = hoveredRaw && hoveredRaw.r < nRows && hoveredRaw.c < nCols ? hoveredRaw : null
   if (hoveredRaw && !hovered) setHovered(null)
+  const margins = labelMargins(folded.rows.map(rowLabel), folded.cols.map((_, j) => colLabel(j)), {
+    folded: folded.cols.some((c) => c.to - c.from > 1), minLeft: MIN_LABEL_W, minTop: MIN_DIAG_PAD, minRight: MIN_RIGHT_PAD })
+  const LABEL_W = margins.left, DIAG_PAD = margins.top, RIGHT_PAD = margins.right
   const cell = cellSize(width, nCols, LABEL_W + RIGHT_PAD)
   const step = labelStep(cell)
 
@@ -142,7 +146,7 @@ export function AttentionHeatmap({ heads, tokens, focus, chat, foldToggle = true
             {r % step === 0 || hovered?.r === r ? rowLabel(r) : ''}
           </text>
         ))}
-        <Cells folded={folded} cell={cell} onHover={setHovered} rowLabel={rowLabel} colLabel={colLabel} />
+        <Cells folded={folded} cell={cell} labelW={LABEL_W} diagPad={DIAG_PAD} onHover={setHovered} rowLabel={rowLabel} colLabel={colLabel} />
         {hovered && (
           <rect data-testid="attn-hover" className="attn-hover" pointerEvents="none"
             x={LABEL_W + hovered.c * cell} y={DIAG_PAD + hovered.r * cell} width={cell - 1} height={cell - 1} />

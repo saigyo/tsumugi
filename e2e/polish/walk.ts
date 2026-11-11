@@ -1,5 +1,5 @@
 import { expect, type Page } from '@playwright/test'
-import { openFixtureRun } from '../fixtureRun'
+import { importChatRun, openFixtureRun } from '../fixtureRun'
 
 export const THEMES = ['light', 'dark'] as const
 export type Theme = (typeof THEMES)[number]
@@ -172,5 +172,14 @@ export async function walk(page: Page, visit: (state: string) => Promise<void>):
   await at('real-layers', async () => {
     await stageActive(2)()
     await expect(page.getByTestId('run-chip').filter({ hasText: 'steps fixture' })).toHaveCount(1)
+  })
+
+  await importChatRun(page)
+  await page.locator('[data-testid="stage-card"][data-stage="layers"]').click()
+  await page.waitForTimeout(500)
+  await at('chat-layers', async () => {
+    await stageActive(2)()
+    await expect(page.getByTestId('token-stream').getByTestId('system-fold')).toBeVisible()
+    await expect(page.getByTestId('run-chip').filter({ hasText: 'What is the' })).toHaveCount(1)
   })
 }

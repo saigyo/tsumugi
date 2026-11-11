@@ -14,7 +14,7 @@ export function SamplerDetail({ softmax, sample }: { softmax: SoftmaxEvent; samp
       {sample?.method === 'forced'
         ? <p>Copied from the original run (knockout replay): no <Term id="sampling">draw</Term>.</p>
         : <p>A weighted <Term id="sampling">draw</Term> across the probability strip picks the next token.</p>}
-      <svg width="400" height="30" className="roulette">
+      <svg width="100%" height="30" viewBox="0 0 400 30" preserveAspectRatio="none" className="roulette">
         {softmax.topK.map((c) => {
           const x = offset
           const w = 400 * c.prob

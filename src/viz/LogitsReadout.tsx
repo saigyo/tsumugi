@@ -98,18 +98,18 @@ export function LogitsReadout({ candidates, lastHidden, dims, vocabSize, selecte
           <div className="readout-bench-rows">
             <span className="readout-bench-label">x_last</span>
             {xCells
-              ? <VectorStrip cells={xCells} cellW={X_CELL_W} cellH={X_CELL_H} testId="bench-x" ariaLabel="x_last, pooled" />
+              ? <VectorStrip fit cells={xCells} cellW={X_CELL_W} cellH={X_CELL_H} testId="bench-x" ariaLabel="x_last, pooled" />
               : <span className="readout-x-missing">[1×{dims}] — not recorded in this run</span>}
             <span className="readout-bench-label">E[{sel.id}]</span>
             {exact
-              ? <VectorStrip cells={sel.row!} cellW={X_CELL_W} cellH={X_CELL_H} testId="bench-row" ariaLabel={`row ${sel.id} of E, pooled`} />
+              ? <VectorStrip fit cells={sel.row!} cellW={X_CELL_W} cellH={X_CELL_H} testId="bench-row" ariaLabel={`row ${sel.id} of E, pooled`} />
               : assetCells
-                ? <VectorStrip cells={assetCells} cellW={X_CELL_W} cellH={X_CELL_H} testId="bench-row" ariaLabel={`row ${sel.id} of E, PCA-reduced`} />
+                ? <VectorStrip fit cells={assetCells} cellW={X_CELL_W} cellH={X_CELL_H} testId="bench-row" ariaLabel={`row ${sel.id} of E, PCA-reduced`} />
                 : <span className="embed-strip-missing">{assetNote}</span>}
             {exact && (
               <>
                 <span className="readout-bench-label">product</span>
-                <VectorStrip cells={sel.dot!} cellW={X_CELL_W} cellH={X_CELL_H} testId="bench-product"
+                <VectorStrip fit cells={sel.dot!} cellW={X_CELL_W} cellH={X_CELL_H} testId="bench-product"
                   ariaLabel="element-wise products, summed per cell"
                   titleFor={(c, v) => `dims ${c * per}–${c * per + per - 1}: x̄ ${fixed(xCells![c], 2)} · ē ${fixed(sel.row![c], 2)} → ${fixed(v, 2)}`} />
               </>

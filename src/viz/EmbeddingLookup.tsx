@@ -73,7 +73,7 @@ export function EmbeddingLookup({ tokens, dims, vocabSize, selected, onSelect, v
       <div className="embed-strip-wrap">
         <div className="embed-col-label">row {token?.id ?? '—'}</div>
         {cells.length > 0 ? (
-          <VectorStrip cells={cells} cellW={CELL_W} cellH={CELL_H} testId="embed-strip" cellTestId="embed-strip-cell"
+          <VectorStrip fit cells={cells} cellW={CELL_W} cellH={CELL_H} testId="embed-strip" cellTestId="embed-strip-cell"
             ariaLabel={`embedding row of token ${token ? readableTokenText(token.id, token.text) : ''}`} />
         ) : (
           <div data-testid="embed-strip-missing" className="embed-strip-missing">{missingNote}</div>

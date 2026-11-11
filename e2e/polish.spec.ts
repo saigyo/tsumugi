@@ -8,7 +8,7 @@ test.use({ viewport: { width: 1380, height: 940 } })
 const STATES = [
   'first-visit', 'sim-run-end', 'sim-embeddings', 'sim-layers', 'sim-logits', 'sim-softmax', 'sim-sampler',
   'settings-tip', 'term-tip', 'glossary-index', 'glossary-softmax', 'glossary-mlp', 'runs-8', 'runs-list',
-  'compare-armed', 'compare-side', 'compare-combined', 'real-layers',
+  'compare-armed', 'compare-side', 'compare-combined', 'real-layers', 'chat-layers',
 ]
 
 test.beforeEach(async ({ page }) => {
@@ -149,7 +149,7 @@ test('hover keeps fills and chart colours', async ({ page }) => {
   expect(problems).toEqual([])
 })
 
-test.fixme('hovering moves nothing vertically', async ({ page }) => {
+test('hovering moves nothing vertically', async ({ page }) => {
   const survey = await surveyHovers(page)
   const problems = [...survey.unreachable]
   for (const r of survey.records) {
@@ -244,7 +244,7 @@ test('numbers follow one format', async ({ page }) => {
   expect(problems).toEqual([])
 })
 
-test.fixme('chart labels are not cut', async ({ page }) => {
+test('chart labels are not cut', async ({ page }) => {
   const problems: string[] = []
   await inEachTheme(page, async (theme, state) => {
     for (const issue of await page.evaluate(() => window.__polish.clippedLabels())) problems.push(`${theme}/${state}: ${issue}`)
@@ -263,7 +263,7 @@ test('tooltip text stays inside its box', async ({ page }) => {
   expect(problems).toEqual([])
 })
 
-test.fixme('the page never scrolls sideways at 400px and 1380px', async ({ page }) => {
+test('the page never scrolls sideways at 400px and 1380px', async ({ page }) => {
   const problems: string[] = []
   for (const width of [400, 1380]) {
     await page.setViewportSize({ width, height: 940 })
