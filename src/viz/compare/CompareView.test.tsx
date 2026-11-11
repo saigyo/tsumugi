@@ -20,8 +20,8 @@ test('identical runs: no badge, identical-outputs note, no fork marks', () => {
 test('metadata rows highlight only differing fields', () => {
   render(<CompareView a={makeRunRecord(1)} b={makeRunRecord(2, { temperature: 0.2 })} />)
   const rows = screen.getAllByTestId('cmp-meta-row')
-  const tRow = rows.find((r) => r.textContent?.startsWith('T'))
-  const promptRow = rows.find((r) => r.textContent?.startsWith('prompt'))
+  const tRow = rows.find((r) => r.textContent?.startsWith('Temperature'))
+  const promptRow = rows.find((r) => r.textContent?.startsWith('Prompt'))
   expect(tRow?.dataset.diff).toBe('true')
   expect(promptRow?.dataset.diff).toBe('false')
 })

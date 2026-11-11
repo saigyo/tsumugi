@@ -157,13 +157,13 @@ export function CompareView({ a, b, initialCycle }: { a: RunRecord; b: RunRecord
           <span className="cmp-side-name">{nameA}</span>
           <span className="cmp-side-name">{nameB}</span>
         </div>
-        <MetaRow label="prompt" a={a.meta.prompt} b={b.meta.prompt} />
-        <MetaRow label="T" a={String(a.meta.params.temperature)} b={String(b.meta.params.temperature)} />
-        <MetaRow label="top-k" a={String(a.meta.params.topK)} b={String(b.meta.params.topK)} />
-        <MetaRow label="max" a={String(a.meta.params.maxNewTokens)} b={String(b.meta.params.maxNewTokens)} />
-        <MetaRow label="mode" a={a.meta.mode} b={b.meta.mode} />
-        <MetaRow label="model" a={a.meta.modelId ?? '—'} b={b.meta.modelId ?? '—'} />
-        <MetaRow label="ended" a={a.meta.reason} b={b.meta.reason} />
+        <MetaRow label="Prompt" a={a.meta.prompt} b={b.meta.prompt} />
+        <MetaRow label="Temperature" a={String(a.meta.params.temperature)} b={String(b.meta.params.temperature)} />
+        <MetaRow label="Top-k" a={String(a.meta.params.topK)} b={String(b.meta.params.topK)} />
+        <MetaRow label="Max tokens" a={String(a.meta.params.maxNewTokens)} b={String(b.meta.params.maxNewTokens)} />
+        <MetaRow label="Mode" a={a.meta.mode} b={b.meta.mode} />
+        <MetaRow label="Model" a={a.meta.modelId ?? '—'} b={b.meta.modelId ?? '—'} />
+        <MetaRow label="Ended" a={a.meta.reason} b={b.meta.reason} />
       </div>
       {!aligned.samePrompt && (
         <p data-testid="cmp-badge" className="note">The prompts differ, so the runs are lined up by generation cycle.</p>
@@ -196,9 +196,9 @@ export function CompareView({ a, b, initialCycle }: { a: RunRecord; b: RunRecord
                 <div className="cmp-dist-controls">
                   <div className="seg" role="group" aria-label="Distribution view">
                     <button data-testid="dist-mode-side" className={`seg-opt${distMode === 'side' ? ' is-view' : ''}`}
-                      data-active={String(distMode === 'side')} aria-pressed={distMode === 'side'} onClick={() => setDistMode('side')}>side by side</button>
+                      data-active={String(distMode === 'side')} aria-pressed={distMode === 'side'} onClick={() => setDistMode('side')}>Side by side</button>
                     <button data-testid="dist-mode-combined" className={`seg-opt${distMode === 'combined' ? ' is-view' : ''}`}
-                      data-active={String(distMode === 'combined')} aria-pressed={distMode === 'combined'} onClick={() => setDistMode('combined')}>combined</button>
+                      data-active={String(distMode === 'combined')} aria-pressed={distMode === 'combined'} onClick={() => setDistMode('combined')}>Combined</button>
                   </div>
                   {combined && (
                     <label className="grid-sort-label">sort{' '}

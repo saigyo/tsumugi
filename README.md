@@ -274,7 +274,7 @@ the vector most), each with its activation, its vote, the tokens its column
 points at when it fires that way, and where the candidate falls in that
 ranking. The rest of the neurons and the total close the table, and the
 total equals the votes card's cell. Click a layer in either card above to
-open it, or step with ◀ ▶. Its weights download once per
+open it, or step with the arrow buttons. Its weights download once per
 model version (about 0.9 MB per layer) and stay in the browser's cache.
 
 The card computes the neuron votes from the activations before the model
@@ -382,11 +382,11 @@ newest first — generation stops being fire-and-forget. The row shows the
 five newest runs and the active one; **+N more** opens the full list. Pin,
 copy link, download and remove appear on the active chip and on the chip
 under the pointer. Runs survive page reloads (IndexedDB), the eight most
-recent are kept automatically, a pin (📌) protects a run from falling off,
+recent are kept automatically, a pin protects a run from falling off,
 and any run can be exported as a JSON trace file and imported back later
 (**Import**, top right) — on another machine, or into a bug report.
 
-Select two runs (**⇄ Compare** in the header, then click a second chip) and everything
+Select two runs (**Compare** in the header, then click a second chip) and everything
 below the shelf becomes a comparison view: both runs' parameters with
 differences highlighted, the two token streams aligned cycle by cycle,
 and — for runs with the same prompt — the **fork** marked: the first

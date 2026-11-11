@@ -91,9 +91,17 @@ const pairs: [string, string][] = [
   ['--ink', '--shu-wash'],                // is-chosen: the model's choice
   ['--shu-deep', '--ai-wash-strong'],     // the hovered action on a compare A/B chip (is-picked)
   ['--shu-deep', '--card'],                  // the pinned pin on a run chip
+  ['--shu-deep', '--washi'],                 // coral text on the page ground (the chosen marker, the knockout chips)
+  ['--ink-faint', '--shu-wash'], ['--ink-faint', '--ai-wash'], ['--ink-soft', '--shu-wash'],  // small print inside a chosen or washed row
   // text on the split fill roles
   ['--on-ai', '--fill'], ['--on-ai', '--fill-hover'], ['--on-shu', '--shu'],
 ]
+test('coral is a fill and a border; as text it is --shu-deep', () => {
+  // --shu on the card is 4.35:1 in the light theme. Arrows are symbols, not text, and may keep it.
+  const asText = blocks.filter((b) => /(^|[;{\s])(color|fill):\s*var\(--shu\)/.test(b.body) && /label|marker|notice|badge|value|token|chip|delta|note|text|title/.test(b.selector))
+  expect(asText.map((b) => b.selector)).toEqual([])
+})
+
 describe.each(Object.keys(themes))('%s theme contrast', (theme) => {
   test.each(pairs)('%s on %s reaches 4.5:1', (fg, bg) => {
     const vars = themes[theme]

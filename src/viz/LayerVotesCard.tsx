@@ -6,6 +6,7 @@ import { Formula } from './Formula'
 import { blockTotals, layerTotals, topMlpLayers, voteFill } from './mlpMath'
 import type { VotedCandidate } from './selectors'
 import { visibleToken } from './tokenText'
+import { capitalised } from '../ui/text'
 import { Icon } from '../ui/Icon'
 import { fixed, signed } from '../ui/format'
 
@@ -71,7 +72,7 @@ function VotesBody({ candidates, selected, onSelect, onLayer }: {
         <div className="seg" role="group" aria-label="Which blocks">
           {(['mlp', 'attn', 'both'] as const).map((b) => (
             <button key={b} type="button" data-testid="votes-block-toggle" className={`seg-opt${b === blocks ? ' is-view' : ''}`} aria-pressed={b === blocks}
-              onClick={() => setBlocks(b)}>{BLOCKS_NAME[b]}</button>
+              onClick={() => setBlocks(b)}>{capitalised(BLOCKS_NAME[b])}</button>
           ))}
         </div>
         <div data-testid="votes-legend" className="mlp-legend">−{fixed(peak, 1)}{' '}

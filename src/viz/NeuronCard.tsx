@@ -12,6 +12,7 @@ import { removedLayerNoteFor, useMlpLayerControl } from './mlpLayerSelection'
 import { useNeuronMode, type NeuronMode as Mode } from './neuronMode'
 import type { VotedCandidate } from './selectors'
 import { visibleToken } from './tokenText'
+import { capitalised } from '../ui/text'
 import { Icon } from '../ui/Icon'
 import { count, fixed, signed } from '../ui/format'
 
@@ -75,7 +76,7 @@ function NeuronBody({ data, candidates, selected, layer }: {
         <div className="seg" role="group" aria-label="Which neurons">
           {(['vote', 'size'] as const).map((m) => (
             <button key={m} type="button" data-testid="neuron-mode-toggle" className={`seg-opt${m === mode ? ' is-view' : ''}`} aria-pressed={m === mode}
-              onClick={() => setMode(m)}>{MODE_NAME[m]}</button>
+              onClick={() => setMode(m)}>{capitalised(MODE_NAME[m])}</button>
           ))}
         </div>
         {mode === 'vote' && (

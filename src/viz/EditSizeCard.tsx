@@ -8,6 +8,7 @@ import type { ChatSpans } from '../trace/types'
 import { useChatFold } from './chatFolds'
 import type { EditRows } from './selectors'
 import { visibleToken } from './tokenText'
+import { capitalised } from '../ui/text'
 import { Icon } from '../ui/Icon'
 import { fixed } from '../ui/format'
 
@@ -57,7 +58,7 @@ export function EditSizeCard({ rows: all, note, noteAction, onLayer, chat }: { r
             <div className="seg" role="group" aria-label="Which block">
               {(['mlp', 'attn'] as const).map((b) => (
                 <button key={b} type="button" data-testid="edit-block-toggle" className={`seg-opt${b === block ? ' is-view' : ''}`} aria-pressed={b === block}
-                  onClick={() => setBlock(b)}>{BLOCK_NAME[b]}</button>
+                  onClick={() => setBlock(b)}>{capitalised(BLOCK_NAME[b])}</button>
               ))}
             </div>
             <div data-testid="edit-legend" className="mlp-legend">0 <span className="mlp-ramp" aria-hidden="true" /> ≥ 1.0</div>

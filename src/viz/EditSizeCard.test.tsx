@@ -29,7 +29,7 @@ test('the block switch is one segmented control and the picked row label has the
 test('one heatmap of tokens × layers, MLP first; the toggle switches it to attention', () => {
   render(<EditSizeCard rows={rows} note="unused" />)
   const toggles = screen.getAllByTestId('edit-block-toggle')
-  expect(toggles.map((t) => [t.textContent, t.getAttribute('aria-pressed')])).toEqual([['MLP', 'true'], ['attention', 'false']])
+  expect(toggles.map((t) => [t.textContent, t.getAttribute('aria-pressed')])).toEqual([['MLP', 'true'], ['Attention', 'false']])
   expect(cells()).toHaveLength(2 * 3)
   expect(cells().every((c) => c.getAttribute('data-block') === 'mlp')).toBe(true)
   fireEvent.click(toggles[1])

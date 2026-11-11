@@ -7,7 +7,7 @@ import { LoadRealButton } from './LoadRealButton'
 import { foldMatrix, type FoldedMatrix } from './foldMatrix'
 import { seqFill } from './ramps'
 import { cellSize, labelMargins, labelStep, shortLabel } from './heatmapSizing'
-import { percent } from '../ui/format'
+import { fixed, percent } from '../ui/format'
 
 /** What the read-out under the heatmap says while no cell is hovered. */
 export const READOUT_IDLE = 'Hover a cell to see one weight.'
@@ -112,7 +112,7 @@ export function AttentionHeatmap({ heads, tokens, focus, chat, foldToggle = true
           <button key={`${h.layer}-${h.head}-${h.label}`} data-testid="head-chip" data-active={String(i === clampedSelected)}
             className={`head-chip pill${i === clampedSelected ? ' is-picked' : ''}`} onClick={() => { setSelected(i); setHovered(null) }}>
             {h.label} <span className="head-loc">L{h.layer}·H{h.head}</span>
-            {h.score != null && <span className="head-score">· {h.score}</span>}
+            {h.score != null && <span className="head-score"> · {fixed(h.score, 2)}</span>}
           </button>
         ))}
       </div>

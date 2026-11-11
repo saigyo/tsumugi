@@ -30,7 +30,7 @@ test('grid: one row per candidate, one cell per layer, MLP votes by default, blu
 test('the toggle switches between MLP, attention and both blocks; the row total follows', () => {
   render(<LayerVotesCard candidates={cands} note="unused" />)
   const toggles = screen.getAllByTestId('votes-block-toggle')
-  expect(toggles.map((t) => t.textContent)).toEqual(['MLP', 'attention', 'both'])
+  expect(toggles.map((t) => t.textContent)).toEqual(['MLP', 'Attention', 'Both'])
   const total = () => screen.getAllByTestId('vote-row-total')[0].textContent
   expect(total()).toContain(signed(sum(cands[0].votes.mlp)))
   fireEvent.click(toggles[1])
