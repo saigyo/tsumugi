@@ -3,6 +3,7 @@ import type { TraceEvent } from '../trace/types'
 import { visibleToken } from './tokenText'
 import { activeStage, eventAt, flowShapes, latestOfType, stageEventIndex, viewedCycle, type FlowShapes, type StageId } from './selectors'
 import { count, percent } from '../ui/format'
+import { fittedPadding } from './bandFit'
 
 // what travels along the connector INTO stage i (see FlowShapes)
 const CONNECTOR_SHAPE: Array<keyof FlowShapes> = ['ids', 'ids', 'stream', 'lastRow', 'vocab', 'probs']
@@ -48,6 +49,27 @@ function summaryFor(stage: Exclude<StageId, null>, events: TraceEvent[], cursor:
   }
 }
 
+// Where the last card ends plus the band's own right padding, in band pixels.
+// Not scrollWidth: that also counts the loop drawing, which is as wide as the band was at the last measurement.
+function contentWidth(band: HTMLElement): number {
+  const wraps = band.querySelectorAll<HTMLElement>('.stage-wrap')
+  const last = wraps[wraps.length - 1]
+  if (!last) return 0
+  const right = last.getBoundingClientRect().right - band.getBoundingClientRect().left + band.scrollLeft
+  return Math.ceil(right + (parseFloat(getComputedStyle(band).paddingRight) || 0))
+}
+
+// The band is laid out for the fonts of one system. With wider fonts or a long token the cards give up side
+// padding until the band fits its column; only if that is not enough does the band scroll.
+function fitBand(band: HTMLElement) {
+  band.style.removeProperty('--stage-pad')
+  const over = contentWidth(band) - band.clientWidth
+  const cards = band.querySelectorAll<HTMLElement>('.stage-card')
+  if (over <= 0 || cards.length === 0) return
+  const full = parseFloat(getComputedStyle(cards[0]).paddingLeft) || 0
+  band.style.setProperty('--stage-pad', `${fittedPadding(full, over, cards.length)}px`)
+}
+
 // The loop's corners, in band pixels: out of the Sampler's right edge, down
 // below the cards, left under the Embeddings card and up into it.
 interface LoopGeometry { width: number; height: number; d: string; labelX: number; labelY: number }
@@ -63,7 +85,7 @@ function loopGeometry(band: HTMLElement): LoopGeometry | null {
   const inX = to.offsetLeft + to.offsetWidth / 2
   const inY = to.offsetTop + to.offsetHeight + 2
   return {
-    width: band.scrollWidth, height: band.offsetHeight,
+    width: Math.max(band.clientWidth, contentWidth(band)), height: band.offsetHeight,
     d: `M${outX + 2} ${outY} H${turnX} V${baseY} H${inX} V${inY}`,
     labelX: (inX + turnX) / 2, labelY: baseY,
   }
@@ -87,12 +109,13 @@ export function PipelineBand({ events, cursor, onStageClick }: {
   useLayoutEffect(() => {
     const band = bandRef.current
     if (!band) return
-    const measure = () => setLoop(loopGeometry(band))
+    const measure = () => { fitBand(band); setLoop(loopGeometry(band)) }
     measure()
     if (typeof ResizeObserver === 'undefined') return
     const ro = new ResizeObserver(measure)
     ro.observe(band)
-    band.querySelectorAll('.stage-card').forEach((c) => ro.observe(c))
+    // each card with its connector: a summary or a shape label that changes moves everything after it
+    band.querySelectorAll('.stage-wrap').forEach((c) => ro.observe(c))
     return () => ro.disconnect()
   }, [])
   return (

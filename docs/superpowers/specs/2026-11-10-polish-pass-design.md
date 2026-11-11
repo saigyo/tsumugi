@@ -358,10 +358,14 @@ on a faint ground with 4px corners.
 
 Decisions taken while building, each with its reason.
 
-- **D7 and D13 did not reproduce.** The pipeline band fits from 1024px up
-  with the real chat example, and WebKit draws the fraction lines on the
-  current build. Both are now guarded by tests; nothing in the app changed
-  for them. Real Safari was not checked.
+- **D13 did not reproduce.** WebKit draws the fraction lines on the current
+  build. It is guarded by a test; nothing in the app changed for it.
+- **D7 depends on the system's fonts.** On macOS the band fits a chat run by
+  one pixel; with the wider fonts of Linux it was 59px too wide, which the
+  first CI run showed. The cards now give up side padding (down to 45% of
+  it) until the band fits its column, and only then does the band scroll.
+  The loop drawing no longer keeps the band wide after one wide step. The
+  test also runs with a wider font.
 - **D9.** A temperature typed beyond 0 to 2 takes effect as the limit, and on
   leaving the field it shows the value in effect. Up and Down step by 0.1.
 - **D11.** A file that imports with damaged parts left out shows a note, not

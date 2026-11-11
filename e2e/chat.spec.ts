@@ -28,24 +28,32 @@ test('an imported chat run: folded strip, end of turn, and an attention matrix t
   await expect(page.getByTestId('edit-fold')).toHaveText('system prompt · 20 tokens')
 })
 
-test('the pipeline band fits its column in a chat run at 1024px', async ({ page }) => {
-  await page.setViewportSize({ width: 1024, height: 900 })
-  await page.goto('/')
-  await page.getByTestId('prompt-input').fill('seed run')
-  await page.getByTestId('btn-generate').click()
-  await expect(page.getByTestId('run-chip')).toHaveCount(1, { timeout: 15000 })
-  await importChatRun(page)
-  await expect(page.getByTestId('token-stream').getByTestId('system-fold')).toBeVisible()
-  const band = page.getByTestId('pipeline-band')
-  await expect(band).toBeVisible()
-  // every step of the run has its own summaries, so check the band at each of them
-  const back = page.getByTestId('btn-step-back')
-  const wide: string[] = []
-  for (let step = 0; step < 300; step++) {
-    const { scroll, client } = await band.evaluate((el) => ({ scroll: el.scrollWidth, client: el.clientWidth }))
-    if (scroll > client) wide.push(`step ${step}: ${scroll} > ${client}`)
-    if (await back.isDisabled()) break
-    await back.click()
-  }
-  expect(wide).toEqual([])
-})
+// The band is at its limit with this system's fonts, and other systems have wider ones (Linux: about 6% wider),
+// so the check runs once as it is and once with a font that is wider still.
+for (const font of [null, 'Verdana']) {
+  test(`the pipeline band fits its column in a chat run at 1024px${font ? ', also with a wider font' : ''}`, async ({ page }) => {
+    await page.setViewportSize({ width: 1024, height: 900 })
+    await page.goto('/')
+    await page.getByTestId('prompt-input').fill('seed run')
+    await page.getByTestId('btn-generate').click()
+    await expect(page.getByTestId('run-chip')).toHaveCount(1, { timeout: 15000 })
+    await importChatRun(page)
+    await expect(page.getByTestId('token-stream').getByTestId('system-fold')).toBeVisible()
+    if (font) await page.addStyleTag({ content: `:root { --sans: ${font}, sans-serif !important; }` })
+    const band = page.getByTestId('pipeline-band')
+    await expect(band).toBeVisible()
+    // every step of the run has its own summaries, so check the band at each of them
+    const back = page.getByTestId('btn-step-back')
+    const wide: string[] = []
+    for (let step = 0; step < 300; step++) {
+      // the band refits itself after a change; give it the frames it needs before reading
+      await expect.poll(() => band.evaluate((el) => el.scrollWidth - el.clientWidth), { timeout: 2000 }).toBeLessThanOrEqual(0)
+        .catch(() => {})
+      const { scroll, client } = await band.evaluate((el) => ({ scroll: el.scrollWidth, client: el.clientWidth }))
+      if (scroll > client) wide.push(`step ${step}: ${scroll} > ${client}`)
+      if (await back.isDisabled()) break
+      await back.click()
+    }
+    expect(wide).toEqual([])
+  })
+}

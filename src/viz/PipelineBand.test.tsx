@@ -2,6 +2,7 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, expect, test, vi } from 'vitest'
 import { buildFixtureTrace, makeFixtureTrace } from '../test/fixtures'
 import { PipelineBand } from './PipelineBand'
+import { fittedPadding } from './bandFit'
 
 const trace = makeFixtureTrace()
 
@@ -149,4 +150,17 @@ test('the tokenizer card of a chat run says how many tokens are yours', () => {
   const events = buildFixtureTrace({ chat: true })
   render(<PipelineBand events={events} cursor={1} onStageClick={() => {}} />)
   expect(screen.getAllByTestId('stage-card')[0]).toHaveTextContent('37 tokens · 7 yours')
+})
+
+test('the cards give up just enough side padding for the band to fit', () => {
+  // six cards, two sides each: 60px too wide costs 5px per side
+  expect(fittedPadding(14.4, 60, 6)).toBe(9.4)
+  // never rounded up, or the band would still be a fraction too wide
+  expect(fittedPadding(14.4, 1, 6)).toBe(14.3)
+})
+
+test('the side padding stays full when the band fits and never goes below its smallest size', () => {
+  expect(fittedPadding(14.4, 0, 6)).toBe(14.4)
+  expect(fittedPadding(14.4, -20, 6)).toBe(14.4)
+  expect(fittedPadding(14.4, 500, 6)).toBeCloseTo(6.48)
 })

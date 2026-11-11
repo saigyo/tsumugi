@@ -280,7 +280,8 @@ input[type="number"] { width: 4rem; }
 .pipeline-band { display: flex; align-items: center; gap: .25rem; position: relative; padding-bottom: 1.5rem; padding-right: 1.4rem; overflow-x: auto; }
 .stage-wrap { display: flex; align-items: center; gap: .25rem; }
 .stage-card {
-  border: 1px solid var(--line); border-radius: 8px; padding: .6rem .9rem; font-weight: 600;
+  /* --stage-pad is set by PipelineBand when the band would not fit its column */
+  border: 1px solid var(--line); border-radius: 8px; padding: .6rem var(--stage-pad, .9rem); font-weight: 600;
   background: var(--card); transition: border-color .3s, background .3s, color .3s;
 }
 .stage-card[data-clickable="true"] { cursor: pointer; }
