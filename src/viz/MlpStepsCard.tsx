@@ -38,8 +38,8 @@ export function MlpStepsCard({ data, candidates, note, noteAction, run }: {
     <section data-testid="steps-card" className="mlp-card">
       <h4 data-testid="steps-title">The MLP, step by step{layer !== null ? `: layer ${layer}` : ''}{layer !== null && (
         <span className="neuron-stepper">
-          <button type="button" data-testid="steps-prev" aria-label="Previous layer" disabled={layer <= 0} onClick={() => step(-1)}><Icon name="prev" /></button>
-          <button type="button" data-testid="steps-next" aria-label="Next layer" disabled={layer >= layers - 1} onClick={() => step(1)}><Icon name="next" /></button>
+          <button type="button" data-testid="steps-prev" className="btn btn-icon btn-sm" aria-label="Previous layer" disabled={layer <= 0} onClick={() => step(-1)}><Icon name="prev" /></button>
+          <button type="button" data-testid="steps-next" className="btn btn-icon btn-sm" aria-label="Next layer" disabled={layer >= layers - 1} onClick={() => step(1)}><Icon name="next" /></button>
         </span>
       )}{' '}<Term id="mlp" variant="icon" label="About the MLP" testId="steps-info"><Icon name="info" /></Term></h4>
       {!ready || layer === null ? <p data-testid="steps-note" className="mlp-note">{note} {noteAction}</p>
@@ -78,7 +78,7 @@ function StepsBody({ data, candidates, selected, layer }: { data: NeuronData; ca
     ? <p data-testid="steps-mismatch" className="mlp-note">{MISMATCH}</p>
     : state.status === 'error'
     ? <p data-testid="steps-error" className="mlp-note">Couldn’t load the MLP weights.{' '}
-        <button type="button" data-testid="steps-retry" onClick={state.retry}>Retry</button></p>
+        <button type="button" data-testid="steps-retry" className="btn" onClick={state.retry}>Retry</button></p>
     : <p data-testid="steps-loading" className="mlp-note">{LOADING}</p>
   return (
     <>

@@ -67,7 +67,7 @@ export function EmbeddingGeometry({ tokens, selected, vectorFor, asset, loading,
         <p data-testid="embed-geometry-error" className="notice">
           Vocabulary geometry couldn't be loaded{' '}
           {canRetry && (
-            <button type="button" data-testid="embed-geometry-retry" className="explore-toggle" onClick={retry}>retry</button>
+            <button type="button" data-testid="embed-geometry-retry" className="btn" onClick={retry}>retry</button>
           )}
         </p>
       )}

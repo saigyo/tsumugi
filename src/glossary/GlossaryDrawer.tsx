@@ -2,6 +2,7 @@ import { Component, useEffect, useRef, type ReactNode } from 'react'
 import { getEntry, indexGroups, STAGE_LABEL } from './registry'
 import { useGlossaryStore, type GlossaryView } from './store'
 import type { GlossaryEntry, RunSummary } from './types'
+import { Icon } from '../ui/Icon'
 
 const FLASH_MS = 1500
 
@@ -70,8 +71,8 @@ export function GlossaryDrawer({ run }: { run: RunSummary | null }) {
         {canGoBack
           ? <button type="button" data-testid="gl-back" className="gl-link" onClick={back}>← Back</button>
           : <span />}
-        <button type="button" data-testid="gl-close" className="gl-close" aria-label="Close glossary"
-          onClick={(e) => close(e.detail === 0 ? 'keyboard' : 'pointer')}>×</button>
+        <button type="button" data-testid="gl-close" className="btn btn-icon" aria-label="Close glossary"
+          onClick={(e) => close(e.detail === 0 ? 'keyboard' : 'pointer')}><Icon name="close" /></button>
       </div>
       <div ref={bodyRef} className="gl-drawer-body">
         {entry ? (

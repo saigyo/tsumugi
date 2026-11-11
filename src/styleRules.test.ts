@@ -183,6 +183,39 @@ function filesWith(pattern: RegExp): string[] {
   return sourceFiles('src').filter((f) => pattern.test(readFileSync(f, 'utf8').replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, '')))
 }
 
+// "<button" opening tags (read to their closing ">", skipping braces and quotes) that carry no className attribute.
+function buttonsWithoutClass(): string[] {
+  const missing: string[] = []
+  for (const file of sourceFiles('src')) {
+    const text = readFileSync(file, 'utf8').replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, '')
+    for (const start of text.matchAll(/<button\b/g)) {
+      let depth = 0
+      let quote = ''
+      let end = start.index! + 7
+      for (; end < text.length; end++) {
+        const ch = text[end]
+        if (quote) { if (ch === quote) quote = ''; continue }
+        if (ch === '"' || ch === "'" || (depth > 0 && ch === '`')) quote = ch
+        else if (ch === '{') depth++
+        else if (ch === '}') depth--
+        else if (ch === '>' && depth === 0 && text[end - 1] !== '=') break
+      }
+      if (!/\bclassName=/.test(text.slice(start.index!, end))) missing.push(`${file}: ${text.slice(start.index!, start.index! + 60).replace(/\s+/g, ' ')}`)
+    }
+  }
+  return missing
+}
+
+test('the global button rule is a reset and has no hover rule', () => {
+  expect(blocks.filter((b) => /^button(:[\w-]+(\([^)]*\))?)*$/.test(b.selector) && /:hover/.test(b.selector))).toEqual([])
+  const base = blocks.find((b) => b.selector === 'button')
+  expect(backgroundOf(base!.body)).toEqual(['none'])
+})
+
+test('every button in component code names its kind', () => {
+  expect(buttonsWithoutClass()).toEqual([])
+})
+
 test('no colour literals in TypeScript source', () => {
   expect(filesWith(colourLiteral)).toEqual([])
 })

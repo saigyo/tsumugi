@@ -33,7 +33,7 @@ export function ShareLinkButton({ settings, compact, onFeedback }: {
       {compact
         ? <button type="button" data-testid="btn-chip-share" className="run-chip-action" title="copy share link"
             aria-label="Copy link" disabled={busy} onClick={copy}><Icon name="link" /></button>
-        : <button type="button" className="knockout-run" disabled={busy} onClick={copy}>Copy link</button>}
+        : <button type="button" className="btn" disabled={busy} onClick={copy}>Copy link</button>}
       {!onFeedback && local?.kind === 'copied' && <span role="status" className="share-feedback">Link copied</span>}
       {!onFeedback && local?.kind === 'failed' && (
         <input readOnly data-testid="share-link-text" className="share-link-text" value={local.link}

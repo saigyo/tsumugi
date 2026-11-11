@@ -70,7 +70,7 @@ function VotesBody({ candidates, selected, onSelect, onLayer }: {
       <div className="mlp-controls">
         <div className="mlp-seg" role="group" aria-label="Which blocks">
           {(['mlp', 'attn', 'both'] as const).map((b) => (
-            <button key={b} type="button" data-testid="votes-block-toggle" aria-pressed={b === blocks}
+            <button key={b} type="button" data-testid="votes-block-toggle" className="seg-opt" aria-pressed={b === blocks}
               onClick={() => setBlocks(b)}>{BLOCKS_NAME[b]}</button>
           ))}
         </div>

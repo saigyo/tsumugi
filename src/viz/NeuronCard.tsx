@@ -45,8 +45,8 @@ export function NeuronCard({ data, candidates, note, noteAction, run }: {
     <section data-testid="neuron-card" className="mlp-card">
       <h4 data-testid="neuron-title">Inside one MLP{layer !== null ? `: layer ${layer}` : ''}{layer !== null && (
         <span className="neuron-stepper">
-          <button type="button" data-testid="neuron-prev" aria-label="Previous layer" disabled={layer <= 0} onClick={() => step(-1)}><Icon name="prev" /></button>
-          <button type="button" data-testid="neuron-next" aria-label="Next layer" disabled={layer >= layers - 1} onClick={() => step(1)}><Icon name="next" /></button>
+          <button type="button" data-testid="neuron-prev" className="btn btn-icon btn-sm" aria-label="Previous layer" disabled={layer <= 0} onClick={() => step(-1)}><Icon name="prev" /></button>
+          <button type="button" data-testid="neuron-next" className="btn btn-icon btn-sm" aria-label="Next layer" disabled={layer >= layers - 1} onClick={() => step(1)}><Icon name="next" /></button>
         </span>
       )}{' '}<Term id="mlp-neuron" variant="icon" label="About MLP neurons" testId="neuron-info"><Icon name="info" /></Term></h4>
       {!ready || layer === null ? <p data-testid="neuron-note" className="mlp-note">{note} {noteAction}</p>
@@ -74,7 +74,7 @@ function NeuronBody({ data, candidates, selected, layer }: {
       <div className="mlp-controls">
         <div className="mlp-seg" role="group" aria-label="Which neurons">
           {(['vote', 'size'] as const).map((m) => (
-            <button key={m} type="button" data-testid="neuron-mode-toggle" aria-pressed={m === mode}
+            <button key={m} type="button" data-testid="neuron-mode-toggle" className="seg-opt" aria-pressed={m === mode}
               onClick={() => setMode(m)}>{MODE_NAME[m]}</button>
           ))}
         </div>
@@ -90,7 +90,7 @@ function NeuronBody({ data, candidates, selected, layer }: {
       {state.status === 'loading' || state.status === 'idle' ? <p data-testid="neuron-loading" className="mlp-note">{LOADING}</p>
         : state.status === 'error' ? (
           <p data-testid="neuron-error" className="mlp-note">Couldn’t load the MLP weights.{' '}
-            <button type="button" data-testid="neuron-retry" onClick={state.retry}>Retry</button></p>
+            <button type="button" data-testid="neuron-retry" className="btn" onClick={state.retry}>Retry</button></p>
         ) : <NeuronTable data={data} asset={state.asset} weights={state.layer} layer={layer} mode={mode} cand={cand} />}
       <div className="embed-callouts">
         {NEURON_CALLOUTS.map((c) => (

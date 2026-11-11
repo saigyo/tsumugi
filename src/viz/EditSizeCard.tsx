@@ -55,7 +55,7 @@ export function EditSizeCard({ rows: all, note, noteAction, onLayer, chat }: { r
           <div className="mlp-controls">
             <div className="mlp-seg" role="group" aria-label="Which block">
               {(['mlp', 'attn'] as const).map((b) => (
-                <button key={b} type="button" data-testid="edit-block-toggle" aria-pressed={b === block}
+                <button key={b} type="button" data-testid="edit-block-toggle" className="seg-opt" aria-pressed={b === block}
                   onClick={() => setBlock(b)}>{BLOCK_NAME[b]}</button>
               ))}
             </div>

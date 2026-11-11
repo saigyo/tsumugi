@@ -64,8 +64,8 @@ export function LayersNav({ candidates, run, showStepper }: { candidates?: Voted
       </div>
       {showStepper && layer !== null && (
         <span data-testid="nav-layer" className="layers-nav-layer">MLP layer {layer}
-          <button type="button" data-testid="nav-prev" aria-label="Previous MLP layer" disabled={layer <= 0} onClick={() => step(-1)}><Icon name="prev" /></button>
-          <button type="button" data-testid="nav-next" aria-label="Next MLP layer" disabled={layer >= layers - 1} onClick={() => step(1)}><Icon name="next" /></button>
+          <button type="button" data-testid="nav-prev" className="btn btn-icon btn-sm" aria-label="Previous MLP layer" disabled={layer <= 0} onClick={() => step(-1)}><Icon name="prev" /></button>
+          <button type="button" data-testid="nav-next" className="btn btn-icon btn-sm" aria-label="Next MLP layer" disabled={layer >= layers - 1} onClick={() => step(1)}><Icon name="next" /></button>
         </span>
       )}
     </nav>

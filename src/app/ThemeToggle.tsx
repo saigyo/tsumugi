@@ -13,7 +13,7 @@ export function ThemeToggle() {
   const cycle = useTheme((s) => s.cycle)
   const { icon, label } = LOOK[mode]
   return (
-    <button type="button" data-testid="theme-toggle" className="hdr-btn" aria-label={label} title={label}
+    <button type="button" data-testid="theme-toggle" className="btn btn-icon" aria-label={label} title={label}
       onClick={cycle}><Icon name={icon} /></button>
   )
 }

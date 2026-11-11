@@ -294,3 +294,12 @@ test('F9: the toggles name themselves without the arrow and point at their rows'
   expect(ex).toHaveAttribute('aria-controls', screen.getByTestId('examples-row').id)
   expect(screen.getByTestId('system-row').id).not.toBe('')
 })
+
+test('while generating, Stop comes before Generate and both are large buttons', () => {
+  render(<PromptBar hasRuns={false} mode="sim" onModeChange={noop} onGenerate={noop} busy={false} generating onStop={noop} />)
+  const stop = screen.getByTestId('btn-stop')
+  const generate = screen.getByTestId('btn-generate')
+  expect(stop.compareDocumentPosition(generate) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  expect(stop).toHaveClass('btn', 'btn-danger', 'btn-lg')
+  expect(generate).toHaveClass('btn', 'btn-accent', 'btn-lg')
+})

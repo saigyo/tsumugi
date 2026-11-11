@@ -1,5 +1,6 @@
 import type { ProgressInfo } from '../engine/types'
 import type { Mode } from '../trace/types'
+import { Icon } from '../ui/Icon'
 
 // The one place for the model's status: the banner while simulated, the
 // download progress while loading, a load error with its fallback.
@@ -10,7 +11,7 @@ export function ModelSlot({ mode, loading, fromCache, progress, error, bannerClo
   if (error) return (
     <div role="status" data-testid="model-error" className="model-slot model-error">
       Real model unavailable: {error}
-      <button data-testid="btn-fallback" onClick={onFallback}>Continue in Simulated mode</button>
+      <button data-testid="btn-fallback" className="btn" onClick={onFallback}>Continue in Simulated mode</button>
     </div>
   )
   if (loading) {
@@ -29,8 +30,8 @@ export function ModelSlot({ mode, loading, fromCache, progress, error, bannerClo
       <p><strong>You are watching a simulation.</strong> Its numbers are made up to show the shape of the pipeline.
         Load the real model to see what SmolLM2 actually computes: real attention, the MLP inside each layer, and
         answers in Chat mode. 250 MB, downloaded once, runs entirely in your browser.</p>
-      <button type="button" data-testid="banner-load" className="load-real" onClick={onLoad}>Load the real model</button>
-      <button type="button" className="sim-banner-close" aria-label="Close" onClick={onClose}>×</button>
+      <button type="button" data-testid="banner-load" className="btn btn-main" onClick={onLoad}>Load the real model</button>
+      <button type="button" className="btn btn-quiet btn-icon btn-sm" aria-label="Close" onClick={onClose}><Icon name="close" /></button>
     </div>
   )
 }

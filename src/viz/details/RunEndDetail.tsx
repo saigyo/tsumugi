@@ -42,7 +42,7 @@ export function RunEndDetail({ runStart, runEnd, promptTokens, generatedTokens, 
       {shareable && (
         <p className="run-end-actions">
           {canContinue && (
-            <button type="button" className="knockout-run" disabled={busy || wrongModel || !continueRun}
+            <button type="button" className="btn" disabled={busy || wrongModel || !continueRun}
               title={wrongModel ? `Load model version ${wanted ?? 'stock'} to continue this run` : undefined}
               onClick={() => continueRun?.(limit)}>Run again with {limit} tokens</button>
           )}

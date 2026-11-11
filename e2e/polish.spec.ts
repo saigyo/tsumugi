@@ -120,7 +120,7 @@ test('the walk reaches every state', async ({ page }) => {
   }
 })
 
-test.fixme('hovered controls stay readable', async ({ page }) => {
+test('hovered controls stay readable', async ({ page }) => {
   const survey = await surveyHovers(page)
   const problems = [...survey.unreachable]
   for (const r of survey.records) {
@@ -131,7 +131,7 @@ test.fixme('hovered controls stay readable', async ({ page }) => {
   expect(problems).toEqual([])
 })
 
-test.fixme('hover keeps fills and chart colours', async ({ page }) => {
+test('hover keeps fills and chart colours', async ({ page }) => {
   const survey = await surveyHovers(page)
   const problems = [...survey.unreachable]
   for (const r of survey.records) {
@@ -169,7 +169,7 @@ test('every control has an accessible name', async ({ page }) => {
   expect([...problems]).toEqual([])
 })
 
-test.fixme('every control shows a focus ring', async ({ page }) => {
+test('every control shows a focus ring', async ({ page }) => {
   const problems: string[] = []
   for (const theme of THEMES) {
     const tracker = reachTracker(page)

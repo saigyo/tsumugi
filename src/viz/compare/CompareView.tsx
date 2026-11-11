@@ -201,7 +201,7 @@ export function CompareView({ a, b, initialCycle }: { a: RunRecord; b: RunRecord
                     data-active={String(distMode === 'combined')} onClick={() => setDistMode('combined')}>combined</button>
                   {combined && (
                     <label className="grid-sort-label">sort{' '}
-                      <select data-testid="dist-sort" value={deltaSort}
+                      <select data-testid="dist-sort" className="btn" value={deltaSort}
                         onChange={(e) => setDeltaSort(e.target.value as DeltaSort)}>
                         <option value="delta">|Δ|</option>
                         <option value="a">A</option>

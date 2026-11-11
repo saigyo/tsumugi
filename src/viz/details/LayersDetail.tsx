@@ -85,7 +85,7 @@ export function LayersDetail({ event, mode, attention, attentionInRun, tokens, s
       {heads.length > 0 && tokens && <AttentionHeatmap heads={heads} tokens={tokens} focus={focus} chat={chat} />}
       {pinNote && <p data-testid="pin-note" className="attn-note">{pinNote}</p>}
       {grid && (
-        <button data-testid="btn-explore-heads" className="explore-toggle"
+        <button data-testid="btn-explore-heads" className="btn"
           onClick={() => setExplore((v) => !v)}>
           {explore ? 'Hide head grid' : `Explore all heads (${grid.layers * grid.heads})`}
         </button>

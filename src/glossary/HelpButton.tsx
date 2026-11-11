@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { useGlossaryStore } from './store'
+import { Icon } from '../ui/Icon'
 
 const HINT_KEY = 'tsumugi.glossaryHintDismissed'
 
@@ -29,12 +30,12 @@ export function HelpButton({ tools }: { tools?: ReactNode }) {
           New here? Start with{' '}
           <button type="button" data-testid="btn-hint-open" className="gl-link"
             onClick={(e) => openEntry('how-to-read', undefined, e.currentTarget)}>How to read Tsumugi</button>
-          <button type="button" data-testid="btn-hint-dismiss" className="gl-hint-dismiss"
-            aria-label="Dismiss hint" onClick={dismiss}>×</button>
+          <button type="button" data-testid="btn-hint-dismiss" className="btn btn-quiet btn-icon btn-sm"
+            aria-label="Dismiss hint" onClick={dismiss}><Icon name="close" /></button>
         </span>
       )}
       {tools}
-      <button type="button" data-testid="btn-help" className="gl-help-btn" aria-label="Open the glossary"
+      <button type="button" data-testid="btn-help" className="btn btn-icon" aria-label="Open the glossary"
         onClick={(e) => openIndex(e.currentTarget)}>?</button>
     </div>
   )

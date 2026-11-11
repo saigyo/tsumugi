@@ -69,32 +69,32 @@ export function PromptBar({ mode, onModeChange, onGenerate, busy, generating = f
       <div className="prompt-line">
         <input data-testid="prompt-input" aria-label={chatOn ? 'Your message' : 'Prompt'} value={prompt} placeholder={chatOn ? 'Ask a question…' : 'Type a prompt…'}
           onChange={(e) => setPrompt(e.target.value)} />
-        <button data-testid="btn-generate" className="btn-generate" disabled={prompt.trim() === '' || busy || generating}
+        {generating && onStop && (
+          <button data-testid="btn-stop" className="btn btn-danger btn-lg" onClick={onStop}
+            title="Abort the run in flight; what was generated so far is kept">
+            Stop
+          </button>
+        )}
+        <button data-testid="btn-generate" className="btn btn-accent btn-lg" disabled={prompt.trim() === '' || busy || generating}
           aria-busy={generating || undefined}
           onClick={() => generate(prompt, { temperature, topK, maxNewTokens }, format, seed)}>
           {generating
             ? <><span data-testid="generate-activity" className="generate-activity" aria-hidden="true" />{activity}</>
             : 'Generate'}
         </button>
-        {generating && onStop && (
-          <button data-testid="btn-stop" className="btn-stop" onClick={onStop}
-            title="Abort the run in flight; what was generated so far is kept">
-            Stop
-          </button>
-        )}
       </div>
       <div className="settings-line">
         <div className="seg" role="group" aria-label="Model" data-testid="mode-switch">
-          <button type="button" data-testid="mode-sim" aria-pressed={mode === 'sim'}
+          <button type="button" data-testid="mode-sim" className="seg-opt" aria-pressed={mode === 'sim'}
             onClick={() => onModeChange('sim')}>Simulated</button>
-          <button type="button" data-testid="mode-real" aria-pressed={mode === 'real' && !busy}
+          <button type="button" data-testid="mode-real" className="seg-opt" aria-pressed={mode === 'real' && !busy}
             aria-busy={(mode === 'real' && busy) || undefined} title={REAL_TITLE}
             onClick={() => { if (mode !== 'real') onModeChange('real') }}>Real model <span className="mode-note">· 250 MB</span></button>
         </div>
         {mode === 'real' && (
           <div className="seg" role="group" aria-label="Prompt format" data-testid="format-switch">
-            <button type="button" data-testid="format-chat" aria-pressed={chatFmt} onClick={() => setChatFmt(true)}>Chat</button>
-            <button type="button" data-testid="format-text" aria-pressed={!chatFmt} onClick={() => setChatFmt(false)}>Continue text</button>
+            <button type="button" data-testid="format-chat" className="seg-opt" aria-pressed={chatFmt} onClick={() => setChatFmt(true)}>Chat</button>
+            <button type="button" data-testid="format-text" className="seg-opt" aria-pressed={!chatFmt} onClick={() => setChatFmt(false)}>Continue text</button>
             <Term id="chat-template" variant="icon" label="About the chat template" testId="format-info"><Icon name="info" /></Term>
           </div>
         )}
@@ -126,14 +126,14 @@ export function PromptBar({ mode, onModeChange, onGenerate, busy, generating = f
         )}
         <span className="toggles">
           {chatOn && (
-            <button type="button" data-testid="toggle-system" className="toggle" aria-expanded={systemOpen} aria-controls="system-row"
+            <button type="button" data-testid="toggle-system" className="btn btn-quiet" aria-expanded={systemOpen} aria-controls="system-row"
               onClick={() => setSystemToggled(!systemOpen)}>
-              {systemEdited ? 'System prompt · edited' : 'System prompt'} <Icon name="chevron" />
+              {systemEdited ? 'System prompt · edited' : 'System prompt'}<Icon name="chevron" />
             </button>
           )}
           {hasExamples && (
-            <button type="button" data-testid="toggle-examples" className="toggle" aria-expanded={examplesOpen} aria-controls="examples-row"
-              onClick={() => setExamplesToggled(!examplesOpen)}>Examples <Icon name="chevron" /></button>
+            <button type="button" data-testid="toggle-examples" className="btn btn-quiet" aria-expanded={examplesOpen} aria-controls="examples-row"
+              onClick={() => setExamplesToggled(!examplesOpen)}>Examples<Icon name="chevron" /></button>
           )}
         </span>
       </div>
@@ -142,7 +142,7 @@ export function PromptBar({ mode, onModeChange, onGenerate, busy, generating = f
           <label htmlFor="system-input">System prompt</label>
           <input id="system-input" data-testid="system-input" value={system} onChange={(e) => setSystem(e.target.value)} />
           {systemEdited && (
-            <button type="button" data-testid="system-reset" className="link-button"
+            <button type="button" data-testid="system-reset" className="btn btn-quiet"
               onClick={() => setSystem(DEFAULT_SYSTEM_PROMPT)}>Reset to default</button>
           )}
         </div>

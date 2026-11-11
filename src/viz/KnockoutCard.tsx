@@ -99,7 +99,7 @@ export function KnockoutCard({ run, cycle, seqLen, chosen, votes, sweep, running
         <p data-testid="knockout-error" className="mlp-note">Measuring failed: {failure.message}</p>
       )}
       {(!sweep || runningHere) && (
-        <div><button type="button" className="knockout-measure" disabled={busy || !measure}
+        <div><button type="button" className="btn btn-main" disabled={busy || !measure}
           onClick={() => measure?.(cycle)}>Measure all 30 layers</button></div>
       )}
       {sweep && !runningHere && <p className="mlp-scale-note">done for this cycle</p>}
@@ -156,7 +156,7 @@ export function KnockoutCard({ run, cycle, seqLen, chosen, votes, sweep, running
         <div className="knockout-tip">
           <span data-testid="knockout-detail">MLP {picked} — {quoted(chosen)} {pct(baseline)} → {pct(entry.prob)},{' '}
             {entry.top.id !== chosen.id ? `top token becomes ${quoted(entry.top)}` : 'top token unchanged'}</span>{' '}
-          <button type="button" className="knockout-run" disabled={busy || !runKnockout}
+          <button type="button" className="btn" disabled={busy || !runKnockout}
             onClick={() => runKnockout?.(picked, cycle)}>Run with MLP {picked} off and compare</button>
         </div>
       )}
