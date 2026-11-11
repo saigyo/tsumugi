@@ -226,6 +226,13 @@ they are IDs, not positions.
   without the KV cache over the whole text, so a prompt near 500 tokens
   may be far slower. Measure it; if so, make the caption depend on the
   length. *(#18 follow-up, 2026-11-01)*
+- [ ] **#26 Two tests in `src/App.test.tsx` fail by chance** — when the
+  whole unit suite runs under load, two tests in this file fail now and
+  then and pass on a rerun; the app is fine. Seen only locally so far, cause
+  unknown. CI does not repeat unit tests, so one chance failure would hold
+  back a deploy. Find the cause (likely a wait that depends on timing) and
+  make both tests stable. Until then: if CI is red on this file, re-run it
+  first. *(polish pass, 2026-11-11)*
 - [ ] **#9 Mobile layout** — the app is desktop-first; a narrow-viewport pass
   is substantial design work for an audience that mostly explores on
   laptops. *(v1 spec, out of scope)*
