@@ -215,7 +215,7 @@ test('when the archive refuses an imported run, the shelf says why instead of bl
     render(<App />)
     const file = new File([serializeRun(record).json], 'run.json', { type: 'application/json' })
     fireEvent.change(screen.getByTestId('import-input'), { target: { files: [file] } })
-    expect(await screen.findByTestId('import-error')).toHaveTextContent('could not add the run: storage quota exceeded')
+    expect(await screen.findByTestId('import-error')).toHaveTextContent('The run could not be added: storage quota exceeded.')
   } finally { useRunsStore.setState({ importRecord: original }) }
 })
 

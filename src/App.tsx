@@ -73,6 +73,8 @@ export default function App() {
   const [compare, setCompare] = useState<{ aId: string; bId: string; cycle?: number } | null>(null)
   const [compareArmed, setCompareArmed] = useState(false)
   const [importError, setImportError] = useState<string | null>(null)
+  // the run was imported, with damaged parts left out: worth saying, not an error
+  const [importNote, setImportNote] = useState<string | null>(null)
   // a share link is read once, when the app starts
   const [shared] = useState(() => parseShareLink(location.hash))
   const [linkNote, setLinkNote] = useState<string | null>(null)
@@ -374,14 +376,16 @@ export default function App() {
   const handleImportFile = (file: File) => {
     void file.text().then((text) => {
       const parsed = parseRunFile(text)
+      setImportNote(null)
       if (!parsed.ok) { setImportError(`This file is not a Tsumugi run: ${parsed.error}.`); return }
       try {
         archiveImport({ meta: parsed.meta, events: parsed.events, ...(parsed.sweeps ? { sweeps: parsed.sweeps } : {}) })
-        setImportError(parsed.note ?? null)
+        setImportError(null)
+        setImportNote(parsed.note ?? null)
       } catch (err) {
-        setImportError(`could not add the run: ${err instanceof Error ? err.message : String(err)}`)
+        setImportError(`The run could not be added: ${err instanceof Error ? err.message : String(err)}.`)
       }
-    }, () => setImportError('could not read the file'))
+    }, () => { setImportNote(null); setImportError('The file could not be read.') })
   }
 
   return (
@@ -405,7 +409,7 @@ export default function App() {
         onClose={() => { writeFlag('tsumugi.simBannerClosed', true); setBannerClosed(true) }}
         onFallback={() => { userChoseRef.current = true; setModelError(null); applyMode('sim') }} />
       <RunShelf records={records} activeId={activeId} compare={compare} armed={compareArmed}
-        persistFailed={persistFailed} importError={importError}
+        persistFailed={persistFailed} importError={importError} importNote={importNote}
         onActivate={(id) => { void handleActivate(id) }}
         onSelectCompareB={(id) => {
           setCompareArmed(false)

@@ -159,7 +159,8 @@ h3 { margin-top: 0; color: var(--ai-deep); font-size: var(--t-title); font-weigh
 .sub-title { font-size: var(--t-sub); font-weight: 600; color: var(--ai-deep); }
 .note { font-size: var(--t-cap); color: var(--ink-soft); margin: .2rem 0; }
 .fine { font-size: var(--t-label); color: var(--ink-faint); margin: .2rem 0; }
-.readout { font-size: var(--t-cap); color: var(--ai-deep); background: var(--ai-wash); border-radius: 8px; padding: .3rem .6rem; font-variant-numeric: tabular-nums; }
+/* as wide as its text, not the card: it reports one hovered value */
+.readout { width: fit-content; max-width: 100%; font-size: var(--t-cap); color: var(--ai-deep); background: var(--ai-wash); border-radius: 8px; padding: .3rem .6rem; font-variant-numeric: tabular-nums; }
 .error { font-size: var(--t-cap); color: var(--shu-deep); background: var(--shu-wash); border: 1px solid var(--shu-line); border-radius: 8px;
   padding: .3rem .6rem; display: inline-flex; flex-wrap: wrap; gap: .1rem .4rem; align-items: center; }
 /* running text stops at about 72 characters per line; charts, tables and the cards themselves keep their width */

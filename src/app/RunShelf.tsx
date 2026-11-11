@@ -13,6 +13,8 @@ export interface RunShelfProps {
   armed: boolean
   persistFailed: boolean
   importError: string | null
+  // the last import worked, with damaged parts left out
+  importNote?: string | null
   onActivate(id: string): void
   onSelectCompareB(id: string): void
   onTogglePin(id: string): void
@@ -77,11 +79,12 @@ export function RunShelf(p: RunShelfProps) {
   const notes = (
     <>
       {p.importError && <span data-testid="import-error" className="error"><Icon name="info" />{p.importError}</span>}
+      {p.importNote && <span data-testid="import-note" className="note">{p.importNote}</span>}
       {p.persistFailed && <span data-testid="shelf-note" className="fine">Archive not persisted in this browser.</span>}
     </>
   )
   if (p.records.length === 0) {
-    return (p.importError || p.persistFailed) ? <div data-testid="run-shelf" className="run-shelf">{notes}</div> : null
+    return (p.importError || p.importNote || p.persistFailed) ? <div data-testid="run-shelf" className="run-shelf">{notes}</div> : null
   }
   const selecting = p.armed || p.compare !== null
   const aId = p.compare?.aId ?? (p.armed ? p.activeId : null)

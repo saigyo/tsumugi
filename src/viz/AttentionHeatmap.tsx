@@ -8,6 +8,9 @@ import { foldMatrix, type FoldedMatrix } from './foldMatrix'
 import { seqFill } from './ramps'
 import { cellSize, labelStep } from './heatmapSizing'
 
+/** What the read-out under the heatmap says while no cell is hovered. */
+export const READOUT_IDLE = 'Hover a cell to see one weight.'
+
 const HINTS: Record<AttentionLabel, string> = {
   'attention-sink': 'A bright first column: surplus attention parks on the first token as a learned “do nothing” default.',
   'previous-token': 'A bright diagonal: this head mostly copies from the token right before.',
@@ -147,7 +150,7 @@ export function AttentionHeatmap({ heads, tokens, focus, chat, foldToggle = true
       <p data-testid="attn-readout" className="readout attn-readout">
         {hovered
           ? `${rowLabel(hovered.r)} → ${colLabel(hovered.c)}: ${Math.round(folded.values[hovered.r][hovered.c] * 100)}%`
-          : ' '}
+          : READOUT_IDLE}
       </p>
       <p data-testid="attn-hint" className="note attn-hint">{HINTS[head.label]}{chat && head.label === 'induction' ? ' In Chat mode the template’s markers (<|im_start|>, ↵, <|im_end|>) repeat, and those repeats count too.' : ''}</p>
       <p data-testid="attn-note" className="fine attn-note">

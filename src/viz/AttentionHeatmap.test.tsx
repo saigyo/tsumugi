@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, expect, test, vi } from 'vitest'
 import { buildFixtureTrace, CHAT_ANSWER_TOKENS, CHAT_PROMPT_TOKENS, makeFixtureTrace } from '../test/fixtures'
-import { AttentionHeatmap } from './AttentionHeatmap'
+import { AttentionHeatmap, READOUT_IDLE } from './AttentionHeatmap'
 
 // spies (the card width, Math.round) are restored even when a test fails
 afterEach(() => { cleanup(); vi.restoreAllMocks() })
@@ -187,7 +187,7 @@ test('a hovered cell that vanishes when the matrix shrinks does not crash the re
   const cells = screen.getAllByTestId('attn-cell')
   fireEvent.mouseEnter(cells[cells.length - 1])
   rerender(<AttentionHeatmap heads={attn.heads} tokens={tokens} />)
-  expect(screen.getByTestId('attn-readout').textContent?.trim()).toBe('')
+  expect(screen.getByTestId('attn-readout')).toHaveTextContent(READOUT_IDLE)
   expect(screen.queryByTestId('attn-hover')).toBeNull()
 })
 
@@ -198,7 +198,7 @@ test('a hover cleared by a shrinking matrix does not come back when the matrix g
   rerender(<AttentionHeatmap heads={attn.heads} tokens={tokens} />)
   rerender(<AttentionHeatmap heads={chatAttn.heads} tokens={chatTokens} chat={chat} />)
   expect(screen.queryByTestId('attn-hover')).toBeNull()
-  expect(screen.getByTestId('attn-readout').textContent?.trim()).toBe('')
+  expect(screen.getByTestId('attn-readout')).toHaveTextContent(READOUT_IDLE)
 })
 
 test('the simulated note says the real model would show computed weights, with a link to load it', () => {
