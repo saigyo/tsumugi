@@ -40,13 +40,12 @@ export function Controls() {
       )}
       <button data-testid="btn-step-fwd" className="btn btn-icon" onClick={() => dispatch({ type: 'stepForward' })} title="Step" aria-label="Step"><Icon name="forward" /></button>
       <button data-testid="btn-cycle-fwd" className="btn btn-icon" onClick={cycleFwd} title="Next token cycle" aria-label="Next token cycle"><Icon name="last" /></button>
+      {/* no list of tick positions: Firefox and Chromium snap the thumb to them, and the steps between two
+          token boundaries could not be reached with the mouse */}
       <input data-testid="scrubber" aria-label="Position in the run" type="range" min={0} max={Math.max(last, 0)}
-        value={Math.max(cursor, 0)} list="cycle-ticks"
+        value={Math.max(cursor, 0)}
         style={{ '--pos': fill, ...(written === undefined ? {} : { '--written': written }) } as CSSProperties}
         onChange={(e) => dispatch({ type: 'seek', index: Number(e.target.value) })} />
-      <datalist id="cycle-ticks">
-        {ticks.map((i) => <option key={i} value={i} />)}
-      </datalist>
       <select data-testid="speed" className="btn" aria-label="Playback speed" value={speed} onChange={(e) => dispatch({ type: 'setSpeed', speed: Number(e.target.value) })}>
         {[0.5, 1, 2, 4].map((s) => <option key={s} value={s}>{s}×</option>)}
       </select>

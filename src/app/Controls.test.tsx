@@ -126,3 +126,9 @@ test('dragging beyond what is written lands on the newest event', () => {
   fireEvent.change(screen.getByTestId('scrubber'), { target: { value: String(soFar.length + 20) } })
   expect(usePlayerStore.getState().cursor).toBe(soFar.length - 1)
 })
+
+test('the scrubber has no list of tick positions (browsers snap the thumb to them)', () => {
+  render(<Controls />)
+  expect(screen.getByTestId('scrubber')).not.toHaveAttribute('list')
+  expect(document.querySelector('datalist')).toBeNull()
+})
