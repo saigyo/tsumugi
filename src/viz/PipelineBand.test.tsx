@@ -164,3 +164,8 @@ test('the side padding stays full when the band fits and never goes below its sm
   expect(fittedPadding(14.4, -20, 6)).toBe(14.4)
   expect(fittedPadding(14.4, 500, 6)).toBeCloseTo(6.48)
 })
+
+test('a band that is already tighter tightens further from where it is, down to the same smallest size', () => {
+  expect(fittedPadding(10, 12, 6, 14.4)).toBe(9)
+  expect(fittedPadding(7, 60, 6, 14.4)).toBeCloseTo(6.48)
+})

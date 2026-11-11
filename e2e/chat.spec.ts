@@ -45,15 +45,21 @@ for (const font of [null, 'Verdana']) {
     // every step of the run has its own summaries, so check the band at each of them
     const back = page.getByTestId('btn-step-back')
     const wide: string[] = []
+    const paddings: number[] = []
     for (let step = 0; step < 300; step++) {
       // the band refits itself after a change; give it the frames it needs before reading
       await expect.poll(() => band.evaluate((el) => el.scrollWidth - el.clientWidth), { timeout: 2000 }).toBeLessThanOrEqual(0)
         .catch(() => {})
       const { scroll, client } = await band.evaluate((el) => ({ scroll: el.scrollWidth, client: el.clientWidth }))
       if (scroll > client) wide.push(`step ${step}: ${scroll} > ${client}`)
+      paddings.push(await band.locator('.stage-card').first().evaluate((el) => parseFloat(getComputedStyle(el).paddingLeft)))
       if (await back.isDisabled()) break
       await back.click()
     }
     expect(wide).toEqual([])
+    // within one run the cards never get their padding back: they do not change shape from step to step
+    const grew = paddings.flatMap((p, i) => (i > 0 && p > paddings[i - 1] + 0.01 ? [`step ${i}: ${paddings[i - 1]} to ${p}`] : []))
+    expect(grew).toEqual([])
+    if (font) expect(new Set(paddings).size).toBeLessThanOrEqual(3)
   })
 }

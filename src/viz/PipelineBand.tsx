@@ -60,14 +60,22 @@ function contentWidth(band: HTMLElement): number {
 }
 
 // The band is laid out for the fonts of one system. With wider fonts or a long token the cards give up side
-// padding until the band fits its column; only if that is not enough does the band scroll.
-function fitBand(band: HTMLElement) {
-  band.style.removeProperty('--stage-pad')
-  const over = contentWidth(band) - band.clientWidth
+// padding until the band fits its column; only if that is not enough does the band scroll. Within a run the
+// padding only ever tightens, so the cards do not change shape from step to step; a new run or a new band
+// width (`fresh`) starts from the full padding again.
+interface BandFit { full: number; width: number }
+
+function fitBand(band: HTMLElement, fit: BandFit, fresh: boolean) {
   const cards = band.querySelectorAll<HTMLElement>('.stage-card')
-  if (over <= 0 || cards.length === 0) return
-  const full = parseFloat(getComputedStyle(cards[0]).paddingLeft) || 0
-  band.style.setProperty('--stage-pad', `${fittedPadding(full, over, cards.length)}px`)
+  if (cards.length === 0) return
+  const padding = () => parseFloat(getComputedStyle(cards[0]).paddingLeft) || 0
+  if (fresh || band.clientWidth !== fit.width) {
+    band.style.removeProperty('--stage-pad')
+    fit.full = padding()
+    fit.width = band.clientWidth
+  }
+  const over = contentWidth(band) - band.clientWidth
+  if (over > 0) band.style.setProperty('--stage-pad', `${fittedPadding(padding(), over, cards.length, fit.full)}px`)
 }
 
 // The loop's corners, in band pixels: out of the Sampler's right edge, down
@@ -106,10 +114,19 @@ export function PipelineBand({ events, cursor, onStageClick }: {
   const showNote = noteOpen && outsideLoop
   const bandRef = useRef<HTMLDivElement>(null)
   const [loop, setLoop] = useState<LoopGeometry | null>(null)
+  const fit = useRef<BandFit>({ full: 0, width: -1 })
+  // a run's first event stands for the run: another run starts with the full padding again
+  const run = events[0]
   useLayoutEffect(() => {
     const band = bandRef.current
     if (!band) return
-    const measure = () => { fitBand(band); setLoop(loopGeometry(band)) }
+    fitBand(band, fit.current, true)
+    setLoop(loopGeometry(band))
+  }, [run])
+  useLayoutEffect(() => {
+    const band = bandRef.current
+    if (!band) return
+    const measure = () => { fitBand(band, fit.current, false); setLoop(loopGeometry(band)) }
     measure()
     if (typeof ResizeObserver === 'undefined') return
     const ro = new ResizeObserver(measure)
