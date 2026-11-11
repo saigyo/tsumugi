@@ -1,4 +1,4 @@
-import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, cleanup, configure, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, expect, test, vi } from 'vitest'
 import App from './App'
 import { useTraceStore } from './trace/store'
@@ -54,7 +54,22 @@ beforeEach(() => {
   engineMock.runs = []
 })
 
-afterEach(() => { cleanup(); resetGlossaryStore(); location.hash = '' })
+// These tests render the whole app and wait for simulated runs to finish. How long a run takes depends on the
+// machine's load (every event re-renders the app), so the waits get a deadline that only a hung run reaches;
+// a wait still returns as soon as its condition holds.
+configure({ asyncUtilTimeout: 10_000 })
+vi.setConfig({ testTimeout: 30_000 })
+
+afterEach(async () => {
+  // A run that is still in flight when its test ends would go on writing: into the next test's trace, and
+  // onto its shelf when it finishes. Stop it and wait until it has ended, then unmount.
+  const stop = screen.queryByTestId('btn-stop')
+  if (stop) {
+    fireEvent.click(stop)
+    await waitFor(() => expect(screen.queryByTestId('btn-stop')).toBeNull())
+  }
+  cleanup(); resetGlossaryStore(); location.hash = ''
+})
 
 test('the header carries the tagline', () => {
   render(<App />)
