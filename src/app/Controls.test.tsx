@@ -85,3 +85,44 @@ test('cycle buttons jump between append events', () => {
   fireEvent.click(screen.getByTestId('btn-cycle-back'))
   expect(usePlayerStore.getState().cursor).toBe(10)
 })
+
+test('while a run is being written the scrubber is scaled to its expected length, and marks how far it is written', () => {
+  const run = makeFixtureTrace(6)
+  const firstToken = run.findIndex((e) => e.type === 'append')
+  const soFar = run.slice(0, firstToken + 1) // one of six tokens is there
+  useTraceStore.setState({ events: soFar })
+  usePlayerStore.setState({ traceLength: soFar.length, cursor: 3, status: 'playing' })
+  const { rerender } = render(<Controls />)
+  const scrubber = screen.getByTestId('scrubber') as HTMLInputElement
+  const scale = Number(scrubber.max)
+  expect(Math.abs(scale - (run.length - 1))).toBeLessThanOrEqual(2)
+  expect(parseFloat(scrubber.style.getPropertyValue('--written'))).toBeCloseTo(((soFar.length - 1) / scale) * 100, 3)
+  const position = scrubber.style.getPropertyValue('--pos')
+
+  // the next token arrives: the scale and the thumb stay, only the written mark moves on
+  const secondToken = run.findIndex((e, i) => e.type === 'append' && i > firstToken)
+  const more = run.slice(0, secondToken + 1)
+  useTraceStore.setState({ events: more })
+  usePlayerStore.setState({ traceLength: more.length })
+  rerender(<Controls />)
+  expect(Number(scrubber.max)).toBe(scale)
+  expect(scrubber.style.getPropertyValue('--pos')).toBe(position)
+  expect(parseFloat(scrubber.style.getPropertyValue('--written'))).toBeCloseTo(((more.length - 1) / scale) * 100, 3)
+})
+
+test('a finished run has its own length as the scale and no written mark', () => {
+  render(<Controls />)
+  const scrubber = screen.getByTestId('scrubber') as HTMLInputElement
+  expect(Number(scrubber.max)).toBe(useTraceStore.getState().events.length - 1)
+  expect(scrubber.style.getPropertyValue('--written')).toBe('')
+})
+
+test('dragging beyond what is written lands on the newest event', () => {
+  const run = makeFixtureTrace(6)
+  const soFar = run.slice(0, run.findIndex((e) => e.type === 'append') + 1)
+  useTraceStore.setState({ events: soFar })
+  usePlayerStore.setState({ traceLength: soFar.length, cursor: 3 })
+  render(<Controls />)
+  fireEvent.change(screen.getByTestId('scrubber'), { target: { value: String(soFar.length + 20) } })
+  expect(usePlayerStore.getState().cursor).toBe(soFar.length - 1)
+})

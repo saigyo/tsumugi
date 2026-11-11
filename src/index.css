@@ -365,14 +365,18 @@ input[type="number"] { width: 4rem; }
 .controls { display: flex; gap: .5rem; align-items: center; padding: .6rem 0; flex-wrap: wrap;
   position: sticky; top: 0; z-index: 3; background: var(--washi);
   border-bottom: 1px solid var(--line); }
-/* the slider: a thin rounded track filled in indigo up to the thumb (--pos is set by Controls) */
+/* the slider: a thin rounded track filled in indigo up to the thumb (--pos is set by Controls). While a run is
+   still being written, Controls also sets --written: the track keeps its tone up to there, and the part the
+   model has not written yet is fainter. */
 .controls input[type="range"] { flex: 1; min-width: 10rem; height: 1.2rem; background: none; cursor: pointer;
-  -webkit-appearance: none; appearance: none; }
+  -webkit-appearance: none; appearance: none;
+  --track: linear-gradient(var(--line), var(--line)) 0 / var(--written, 100%) 100% no-repeat,
+    color-mix(in srgb, var(--line) 45%, transparent); }
 .controls input[type="range"]::-webkit-slider-runnable-track {
   height: 6px; border-radius: 4px;
-  background: linear-gradient(var(--ai-deep), var(--ai-deep)) 0 / var(--pos, 0%) 100% no-repeat, var(--line);
+  background: linear-gradient(var(--ai-deep), var(--ai-deep)) 0 / var(--pos, 0%) 100% no-repeat, var(--track);
 }
-.controls input[type="range"]::-moz-range-track { height: 6px; border-radius: 4px; background: var(--line); }
+.controls input[type="range"]::-moz-range-track { height: 6px; border-radius: 4px; background: var(--track); }
 .controls input[type="range"]::-moz-range-progress { height: 6px; border-radius: 4px; background: var(--ai-deep); }
 .controls input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none; width: 18px; height: 18px; margin-top: -6px; border-radius: 50%;

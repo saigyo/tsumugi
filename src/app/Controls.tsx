@@ -3,12 +3,18 @@ import { usePlayerStore } from '../player/store'
 import { useTraceStore } from '../trace/store'
 import { cycleTickIndices } from '../viz/selectors'
 import { Icon } from '../ui/Icon'
+import { expectedLength } from '../player/scrubScale'
 
 export function Controls() {
   const { cursor, status, speed, traceLength, dispatch } = usePlayerStore()
   const events = useTraceStore((s) => s.events)
   const ticks = cycleTickIndices(events)
-  const fill = traceLength > 1 ? `${(Math.max(cursor, 0) / (traceLength - 1)) * 100}%` : '0%'
+  // The scale is the run's expected full length: while the model is still writing, a new token then leaves the
+  // thumb where it is instead of pushing it back. `written` marks how far the run exists so far.
+  const last = Math.max(expectedLength(events), traceLength) - 1
+  const share = (index: number) => (last > 0 ? `${(Math.max(index, 0) / last) * 100}%` : '0%')
+  const fill = share(cursor)
+  const written = last > traceLength - 1 ? share(traceLength - 1) : undefined
 
   // playing while the run is still being written: the view follows it as it grows. (Not "the cursor is on the last
   // event": every new event puts the cursor behind for a moment, and Live would blink at each token.)
@@ -34,8 +40,9 @@ export function Controls() {
       )}
       <button data-testid="btn-step-fwd" className="btn btn-icon" onClick={() => dispatch({ type: 'stepForward' })} title="Step" aria-label="Step"><Icon name="forward" /></button>
       <button data-testid="btn-cycle-fwd" className="btn btn-icon" onClick={cycleFwd} title="Next token cycle" aria-label="Next token cycle"><Icon name="last" /></button>
-      <input data-testid="scrubber" aria-label="Position in the run" type="range" min={0} max={Math.max(traceLength - 1, 0)}
-        value={Math.max(cursor, 0)} list="cycle-ticks" style={{ '--pos': fill } as CSSProperties}
+      <input data-testid="scrubber" aria-label="Position in the run" type="range" min={0} max={Math.max(last, 0)}
+        value={Math.max(cursor, 0)} list="cycle-ticks"
+        style={{ '--pos': fill, ...(written === undefined ? {} : { '--written': written }) } as CSSProperties}
         onChange={(e) => dispatch({ type: 'seek', index: Number(e.target.value) })} />
       <datalist id="cycle-ticks">
         {ticks.map((i) => <option key={i} value={i} />)}
