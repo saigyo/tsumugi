@@ -5,7 +5,7 @@ const crossEngine = [/polish\.spec\.ts/, /formulas\.spec\.ts/]
 
 export default defineConfig({
   testDir: 'e2e',
-  use: { baseURL: 'http://localhost:5173' },
+  use: { baseURL: 'http://localhost:5173', actionTimeout: 15_000 },
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
     { name: 'firefox', use: { ...devices['Desktop Firefox'] }, testMatch: crossEngine },

@@ -16,6 +16,8 @@ export type Polish = {
   state(index: number): ControlState | null
   snapshot(): void
   movedVertically(exceptIndex: number): string[]
+  ring(index: number): { signature: string; visible: boolean } | null
+  unnamedControls(): string[]
   textIssues(): string[]
   clippedLabels(): string[]
   overflowingTips(): string[]
@@ -57,7 +59,11 @@ export async function installProbe(page: Page): Promise<void> {
       c ? '#' + [c.r, c.g, c.b].map((v) => Math.round(v).toString(16).padStart(2, '0')).join('') + (c.a < 0.99 ? `@${c.a.toFixed(2)}` : '') : '-'
     const norm = (css: string): string => {
       const c = parse(css)
-      return !c || c.a === 0 ? 'transparent' : hex(c)
+      if (!c) {
+        if (css === 'transparent') return 'transparent'
+        throw new Error(`cannot parse the colour "${css}"`)
+      }
+      return c.a === 0 ? 'transparent' : hex(c)
     }
     const effectiveBackground = (el: Element): RGBA => {
       const chain: RGBA[] = []
@@ -106,22 +112,33 @@ export async function installProbe(page: Page): Promise<void> {
     const INTERACTIVE = 'button, a[href], input, select, textarea, summary, [role="button"], [tabindex]:not([tabindex="-1"])'
     const MOVERS = INTERACTIVE + ', .token, .token-chip, .run-chip, .stage-card'
 
+    // A name is an aria-label, an aria-labelledby that resolves to text, an associated label, or own text with a letter or digit.
+    // Symbols alone ("×", "▶") and a title alone are not names.
+    const WORDY = /[\p{L}\p{N}]/u
     const nameOf = (el: Element): string => {
       const label = el.getAttribute('aria-label')?.trim()
       if (label) return label
       const by = el.getAttribute('aria-labelledby')
       if (by) {
         const t = by.split(/\s+/).map((id) => document.getElementById(id)?.textContent ?? '').join(' ').trim()
-        if (t) return t
+        if (WORDY.test(t)) return t
       }
-      if ((el.textContent ?? '').trim()) return (el.textContent ?? '').trim()
       const labels = (el as HTMLInputElement).labels
-      if (labels && [...labels].some((l) => (l.textContent ?? '').trim())) return 'label'
-      if (el.getAttribute('title')?.trim()) return el.getAttribute('title')!.trim()
-      if (el.getAttribute('placeholder')?.trim()) return el.getAttribute('placeholder')!.trim()
+      if (labels && [...labels].some((l) => WORDY.test(l.textContent ?? ''))) return 'label'
+      if (el.matches('input, select, textarea')) return ''
+      const text = (el.textContent ?? '').trim()
+      if (WORDY.test(text)) return text
       const img = el.querySelector('img[alt]:not([alt=""])')
-      if (img) return img.getAttribute('alt')!
-      return ''
+      return img ? img.getAttribute('alt')! : ''
+    }
+    const ringOf = (el: Element) => {
+      const s = getComputedStyle(el)
+      const outlineVisible = s.outlineStyle !== 'none' && parseFloat(s.outlineWidth) > 0
+      const shadowVisible = s.boxShadow !== 'none'
+      return {
+        signature: `${s.outlineStyle} ${s.outlineWidth} ${s.outlineColor} | ${s.boxShadow}`,
+        visible: outlineVisible || shadowVisible,
+      }
     }
 
     let snapshotRects: [Element, number, number][] = []
@@ -147,15 +164,26 @@ export async function installProbe(page: Page): Promise<void> {
         const s = getComputedStyle(el)
         const text = parse(s.color)
         const bg = effectiveBackground(el)
-        const ring = (s.outlineStyle !== 'none' && parseFloat(s.outlineWidth) > 0) || s.boxShadow !== 'none'
         return {
           background: norm(s.backgroundColor),
           text: hex(text),
           contrast: text ? Math.round(contrastOf(over({ ...text, a: text.a * Number(s.opacity) }, bg), bg) * 100) / 100 : null,
           disabled: (el as HTMLButtonElement).disabled === true || el.getAttribute('aria-disabled') === 'true',
           hasName: nameOf(el) !== '',
-          focusRing: ring,
+          focusRing: ringOf(el).visible,
         }
+      },
+      ring(index: number) {
+        const el = document.querySelector(`[data-polish="${index}"]`)
+        return el ? ringOf(el) : null
+      },
+      unnamedControls() {
+        const out = new Set<string>()
+        for (const el of document.body.querySelectorAll(INTERACTIVE)) {
+          if (!visible(el)) continue
+          if (!nameOf(el)) out.add(`${keyOf(el)} "${(el.textContent ?? '').trim().slice(0, 20)}"`)
+        }
+        return [...out]
       },
       snapshot() {
         snapshotRects = []
@@ -186,11 +214,11 @@ export async function installProbe(page: Page): Promise<void> {
           ['tilde before sign or digit', /~[-+−\d]/],
         ]
         const issues = new Set<string>()
-        const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT)
-        for (let n = walker.nextNode(); n; n = walker.nextNode()) {
-          const el = n.parentElement
-          const text = n.textContent ?? ''
-          if (!el || !text.trim() || !visible(el)) continue
+        // React renders "~", the sign and the number as neighbouring text nodes, so test the joined direct text of each element
+        for (const el of document.body.querySelectorAll('*')) {
+          let text = ''
+          for (const child of el.childNodes) if (child.nodeType === Node.TEXT_NODE) text += child.textContent ?? ''
+          if (!text.trim() || !visible(el)) continue
           if (el.closest('textarea, input, .token, .token-chip, code, script, style')) continue
           for (const [name, re] of rules) {
             const m = text.match(re)

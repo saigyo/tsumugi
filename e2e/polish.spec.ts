@@ -1,5 +1,5 @@
-import { expect, test, type Locator, type Page } from '@playwright/test'
-import { installProbe, type Control } from './polish/probe'
+import { errors, expect, test, type Locator, type Page } from '@playwright/test'
+import { installProbe, type Control, type ControlState } from './polish/probe'
 import { setTheme, THEMES, walk, type Theme } from './polish/walk'
 
 test.setTimeout(240_000)
@@ -23,41 +23,88 @@ async function inEachTheme(page: Page, visit: (theme: Theme, state: string) => P
   }
 }
 
-/** Runs `act` on one representative of every distinct control not yet seen in this theme. Controls that cannot be reached by the pointer are skipped. */
-async function eachNewControl(
-  page: Page,
-  seen: Set<string>,
-  act: (control: Control, locator: Locator) => Promise<void>,
-): Promise<number> {
-  let reached = 0
-  const controls = await page.evaluate(() => window.__polish.controls())
-  for (const control of controls) {
-    if (seen.has(control.key)) continue
-    const locator = page.locator(`[data-polish="${control.index}"]`)
-    try {
-      await locator.scrollIntoViewIfNeeded({ timeout: 1000 })
-      await act(control, locator)
-    } catch {
-      continue
-    }
-    seen.add(control.key)
-    reached++
-  }
-  return reached
-}
+/** Controls that may legitimately never be reachable by the pointer. Empty on purpose: add an entry only with a reason. */
+const NEVER_REACHABLE: string[] = []
 
 const stateOf = (page: Page, index: number) => page.evaluate((i) => window.__polish.state(i), index)
 
-/** Moves the pointer away, records the resting state, hovers, and lets the 0.2s transitions end. */
-async function restAndHover(page: Page, control: Control, locator: Locator) {
-  await page.mouse.move(2, 2)
-  await page.waitForTimeout(60)
-  const rest = await stateOf(page, control.index)
-  await locator.hover({ timeout: 1000 })
-  await page.waitForTimeout(250)
-  const hovered = await stateOf(page, control.index)
-  return { rest, hovered }
+/**
+ * Runs `act` on one representative of every distinct control not yet reached in this theme.
+ * A control the pointer cannot reach in time (Playwright timeout) is noted and may be reached in a later state;
+ * any other error fails the test. `finish()` lists the controls that were never reached.
+ */
+function reachTracker(page: Page) {
+  const reached = new Set<string>()
+  const skipped = new Map<string, string>()
+  return {
+    async eachNew(state: string, act: (control: Control, locator: Locator) => Promise<void>) {
+      const controls = await page.evaluate(() => window.__polish.controls())
+      for (const control of controls) {
+        if (reached.has(control.key)) continue
+        const locator = page.locator(`[data-polish="${control.index}"]`)
+        try {
+          await locator.scrollIntoViewIfNeeded({ timeout: 1000 })
+          await act(control, locator)
+        } catch (error) {
+          if (!(error instanceof errors.TimeoutError)) throw error
+          if (!skipped.has(control.key)) skipped.set(control.key, state)
+          continue
+        }
+        reached.add(control.key)
+      }
+    },
+    finish(): string[] {
+      return [...skipped]
+        .filter(([key]) => !reached.has(key) && !NEVER_REACHABLE.includes(key))
+        .map(([key, state]) => `never reachable: ${key} (first seen in ${state})`)
+    },
+  }
 }
+
+type HoverRecord = {
+  theme: Theme
+  state: string
+  control: Control
+  rest: ControlState | null
+  hovered: ControlState | null
+  moved: string[]
+}
+type HoverSurvey = { records: HoverRecord[]; palettes: Record<Theme, Record<string, string>>; unreachable: string[] }
+
+let hoverSurvey: Promise<HoverSurvey> | undefined
+
+/** Walks and hovers every distinct control once per theme. The three hover tests share this record; the memo is per worker. */
+function surveyHovers(page: Page): Promise<HoverSurvey> {
+  hoverSurvey ??= (async () => {
+    const survey: HoverSurvey = { records: [], palettes: {} as HoverSurvey['palettes'], unreachable: [] }
+    for (const theme of THEMES) {
+      const tracker = reachTracker(page)
+      await setTheme(page, theme)
+      await walk(page, async (state) => {
+        survey.palettes[theme] = await page.evaluate(() => window.__polish.palette())
+        await tracker.eachNew(state, async (control, locator) => {
+          await page.mouse.move(2, 2)
+          await page.waitForTimeout(60)
+          const rest = await stateOf(page, control.index)
+          await page.evaluate(() => window.__polish.snapshot())
+          await locator.hover({ timeout: 1000 })
+          await page.waitForTimeout(250) // the 0.2s hover transitions
+          const hovered = await stateOf(page, control.index)
+          const moved = await page.evaluate((i) => window.__polish.movedVertically(i), control.index)
+          survey.records.push({ theme, state, control, rest, hovered, moved })
+        })
+      })
+      survey.unreachable.push(...tracker.finish().map((m) => `${theme}: ${m}`))
+    }
+    return survey
+  })().catch((error) => {
+    hoverSurvey = undefined
+    throw error
+  })
+  return hoverSurvey
+}
+
+const label = (r: HoverRecord) => `${r.theme}/${r.state}: ${r.control.key} "${r.control.text}"`
 
 test('the walk reaches every state', async ({ page }) => {
   for (const theme of THEMES) {
@@ -69,94 +116,73 @@ test('the walk reaches every state', async ({ page }) => {
 })
 
 test.fixme('hovered controls stay readable', async ({ page }) => {
-  const problems: string[] = []
-  for (const theme of THEMES) {
-    const seen = new Set<string>()
-    await setTheme(page, theme)
-    await walk(page, async (state) => {
-      await eachNewControl(page, seen, async (control, locator) => {
-        const { hovered } = await restAndHover(page, control, locator)
-        if (hovered && !hovered.disabled && (hovered.contrast ?? 21) < 4.5)
-          problems.push(`${theme}/${state}: ${control.key} "${control.text}" contrast ${hovered.contrast} (${hovered.text} on ${hovered.background})`)
-      })
-    })
+  const survey = await surveyHovers(page)
+  const problems = [...survey.unreachable]
+  for (const r of survey.records) {
+    if (!r.hovered) problems.push(`${label(r)} vanished when hovered`)
+    else if (!r.hovered.disabled && (r.hovered.contrast ?? 0) < 4.5)
+      problems.push(`${label(r)} contrast ${r.hovered.contrast} (${r.hovered.text} on ${r.hovered.background})`)
   }
   expect(problems).toEqual([])
 })
 
 test.fixme('hover keeps fills and chart colours', async ({ page }) => {
-  const problems: string[] = []
-  for (const theme of THEMES) {
-    const seen = new Set<string>()
-    await setTheme(page, theme)
-    let palette: Record<string, string> = {}
-    await walk(page, async (state) => {
-      palette = await page.evaluate(() => window.__polish.palette())
-      const neutral = new Set([palette.card, palette.washi, palette.white, palette['seg-ground'], 'transparent'])
-      await eachNewControl(page, seen, async (control, locator) => {
-        const { rest, hovered } = await restAndHover(page, control, locator)
-        if (!rest || !hovered || neutral.has(rest.background)) return
-        const allowed = rest.background === palette.fill ? [rest.background, palette['fill-hover']] : [rest.background]
-        if (!allowed.includes(hovered.background))
-          problems.push(`${theme}/${state}: ${control.key} "${control.text}" background ${rest.background} became ${hovered.background}, expected ${allowed.join(' or ')}`)
-      })
-    })
+  const survey = await surveyHovers(page)
+  const problems = [...survey.unreachable]
+  for (const r of survey.records) {
+    if (!r.rest || !r.hovered) {
+      problems.push(`${label(r)} vanished when hovered`)
+      continue
+    }
+    const palette = survey.palettes[r.theme]
+    const neutral = [palette.card, palette.washi, palette.white, palette['seg-ground'], 'transparent']
+    if (neutral.includes(r.rest.background)) continue
+    const allowed = r.rest.background === palette.fill ? [r.rest.background, palette['fill-hover']] : [r.rest.background]
+    if (!allowed.includes(r.hovered.background))
+      problems.push(`${label(r)} background ${r.rest.background} became ${r.hovered.background}, expected ${allowed.join(' or ')}`)
   }
   expect(problems).toEqual([])
 })
 
 test.fixme('hovering moves nothing vertically', async ({ page }) => {
-  const problems: string[] = []
-  for (const theme of THEMES) {
-    const seen = new Set<string>()
-    await setTheme(page, theme)
-    await walk(page, async (state) => {
-      await eachNewControl(page, seen, async (control, locator) => {
-        await page.mouse.move(2, 2)
-        await page.waitForTimeout(60)
-        await page.evaluate(() => window.__polish.snapshot())
-        await locator.hover({ timeout: 1000 })
-        await page.waitForTimeout(250)
-        const moved = await page.evaluate((i) => window.__polish.movedVertically(i), control.index)
-        if (moved.length) problems.push(`${theme}/${state}: hovering ${control.key} "${control.text}" moved ${moved.slice(0, 3).join('; ')}`)
-      })
-    })
+  const survey = await surveyHovers(page)
+  const problems = [...survey.unreachable]
+  for (const r of survey.records) {
+    if (!r.hovered) problems.push(`${label(r)} vanished when hovered`)
+    else if (r.moved.length) problems.push(`${label(r)} moved ${r.moved.slice(0, 3).join('; ')}`)
   }
   expect(problems).toEqual([])
 })
 
 test.fixme('every control has an accessible name', async ({ page }) => {
-  const problems: string[] = []
-  for (const theme of THEMES) {
-    const seen = new Set<string>()
-    await setTheme(page, theme)
-    await walk(page, async (state) => {
-      const controls = await page.evaluate(() => window.__polish.controls())
-      for (const control of controls) {
-        if (seen.has(control.key)) continue
-        seen.add(control.key)
-        const s = await stateOf(page, control.index)
-        if (s && !s.hasName) problems.push(`${theme}/${state}: ${control.key} has no accessible name`)
-      }
-    })
-  }
-  expect(problems).toEqual([])
+  const problems = new Set<string>()
+  await inEachTheme(page, async (theme, state) => {
+    for (const control of await page.evaluate(() => window.__polish.unnamedControls())) problems.add(`${theme}/${state}: ${control} has no accessible name`)
+  })
+  expect([...problems]).toEqual([])
 })
 
 test.fixme('every control shows a focus ring', async ({ page }) => {
   const problems: string[] = []
   for (const theme of THEMES) {
-    const seen = new Set<string>()
+    const tracker = reachTracker(page)
     await setTheme(page, theme)
     await walk(page, async (state) => {
-      await eachNewControl(page, seen, async (control, locator) => {
+      await tracker.eachNew(state, async (control, locator) => {
+        await page.mouse.move(2, 2)
+        await page.waitForTimeout(60)
+        const before = await page.evaluate((i) => window.__polish.ring(i), control.index)
         await page.keyboard.press('Shift') // so that script focus counts as keyboard focus
         await locator.focus({ timeout: 1000 })
-        const s = await stateOf(page, control.index)
-        if (s && !s.focusRing) problems.push(`${theme}/${state}: ${control.key} "${control.text}" shows no focus ring`)
+        await page.waitForTimeout(250) // focus transitions
+        const after = await page.evaluate((i) => window.__polish.ring(i), control.index)
+        if (!before || !after) problems.push(`${theme}/${state}: ${control.key} "${control.text}" vanished when focused`)
+        else if (!after.visible || after.signature === before.signature)
+          problems.push(`${theme}/${state}: ${control.key} "${control.text}" shows no focus ring (${after.signature})`)
         await locator.blur()
       })
     })
+    problems.push(...tracker.finish().map((m) => `${theme}: ${m}`))
   }
   expect(problems).toEqual([])
 })
