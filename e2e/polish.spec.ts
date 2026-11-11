@@ -23,10 +23,10 @@ async function inEachTheme(page: Page, visit: (theme: Theme, state: string) => P
   }
 }
 
-/** Controls that may legitimately never be reachable by the pointer. Empty on purpose: add an entry only with a reason. */
 /** A theme that checks fewer controls than this was not really surveyed (a full walk reaches about 90). */
 const MIN_CONTROLS = 20
 
+/** Controls that may legitimately never be reachable by the pointer. Empty on purpose: add an entry only with a reason. */
 const NEVER_REACHABLE: string[] = []
 
 const stateOf = (page: Page, index: number) => page.evaluate((i) => window.__polish.state(i), index)
