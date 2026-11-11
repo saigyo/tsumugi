@@ -388,3 +388,18 @@ Decisions taken while building, each with its reason.
   second check tabs through the page in all three engines.
 - **Heights.** The button sizes make the settings line 42px (was 36), the
   prompt box 117px (was 111) and the header buttons 32px (was 30).
+- **R3, R5.** The chosen token is marked on its chip (`is-chosen`) in every
+  list that shows it: the Logits and Softmax candidates, the token pop-over
+  and both compare lists. Its bar is the only other mark.
+- **R10.** One number formatter: `thousands()` is gone and `count()` in
+  `src/ui/format.ts` is the only place that groups digits (a narrow no-break
+  space from 10 000 up, so 1536 stays together and 49152 is "49 152"). A test
+  fails when another file groups digits.
+- **D9.** In the Temperature field the arrow keys step to the next multiple
+  of 0.1 (from 1.25 up to 1.3, down to 1.2), as a number field does. The
+  field also reads full-width digits, point and comma, and ignores spaces
+  around the number.
+- **Polish check.** It runs with transitions switched off (reduced motion),
+  so no wait has to outlast a transition. It reaches the Knockouts card with
+  bars of all three chip categories and a flipping bar, the chat run's
+  Embeddings card, and the borders of hovered controls.
