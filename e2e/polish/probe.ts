@@ -16,7 +16,9 @@ export type Polish = {
   snapshot(): void
   movedVertically(exceptIndex: number): string[]
   ring(index: number): { signature: string; visible: boolean } | null
-  activeRing(): { key: string; text: string; signature: string; visible: boolean } | null
+  /** Records every control's resting ring, so that `activeRing` can tell a ring that appeared from a look that was already there. */
+  rememberRings(): number
+  activeRing(): { key: string; text: string; signature: string; visible: boolean; changed: boolean | null } | null
   unnamedControls(): { checked: number; unnamed: string[] }
   textIssues(): string[]
   clippedLabels(): string[]
@@ -149,6 +151,7 @@ export async function installProbe(page: Page): Promise<void> {
     }
 
     let snapshotRects: [Element, number, number][] = []
+    let restingRings = new WeakMap<Element, string>()
 
     const polish = {
       controls() {
@@ -180,10 +183,24 @@ export async function installProbe(page: Page): Promise<void> {
           noText,
         }
       },
+      rememberRings() {
+        restingRings = new WeakMap()
+        let count = 0
+        for (const el of document.body.querySelectorAll(INTERACTIVE)) {
+          restingRings.set(el, ringOf(el).signature)
+          count++
+        }
+        return count
+      },
       activeRing() {
         const el = document.activeElement
         if (!el || el === document.body || el === document.documentElement) return null
-        return { key: keyOf(el), text: (el.textContent || el.getAttribute('aria-label') || '').trim().slice(0, 24), ...ringOf(el) }
+        const ring = ringOf(el)
+        const resting = restingRings.get(el)
+        return {
+          key: keyOf(el), text: (el.textContent || el.getAttribute('aria-label') || '').trim().slice(0, 24), ...ring,
+          changed: resting === undefined ? null : ring.signature !== resting, // null: the control was not there when the rings were recorded
+        }
       },
       ring(index: number) {
         const el = document.querySelector(`[data-polish="${index}"]`)

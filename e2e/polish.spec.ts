@@ -214,6 +214,7 @@ test('tabbing through the page shows a ring on every stop', async ({ page, brows
       if (state !== 'first-visit' && state !== 'sim-run-end') return
       await page.evaluate(() => { (document.activeElement as HTMLElement | null)?.blur(); window.scrollTo(0, 0) })
       await page.mouse.click(2, 2) // the page's top-left corner is where sequential navigation starts
+      await page.evaluate(() => window.__polish.rememberRings())
       const stops = new Set<string>()
       for (let i = 0; i < 30; i++) {
         await page.keyboard.press(tab)
@@ -221,7 +222,8 @@ test('tabbing through the page shows a ring on every stop', async ({ page, brows
         const ring = await page.evaluate(() => window.__polish.activeRing())
         if (!ring) continue
         stops.add(ring.key)
-        if (!ring.visible) problems.push(`${state}: stop ${i + 1} ${ring.key} "${ring.text}" shows no ring (${ring.signature})`)
+        // a field's ring may sit on its container, which can carry a shadow at rest: the look must also have changed
+        if (!ring.visible || ring.changed === false) problems.push(`${state}: stop ${i + 1} ${ring.key} "${ring.text}" shows no ring (${ring.signature})`)
       }
       if (stops.size < 10) problems.push(`${state}: only ${stops.size} distinct stops were visited, expected at least 10`)
       stops.forEach((k) => visited.add(k))

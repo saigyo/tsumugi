@@ -176,7 +176,7 @@ button:disabled { opacity: .45; cursor: default; }
 :focus-visible { outline: 2px solid var(--ai); outline-offset: 2px; }
 
 /* ── Button kinds: plain (.btn), main, accent, danger, quiet; sizes lg and sm; icon is square ── */
-.btn { font-size: var(--t-cap); height: 2rem; padding: 0 .8rem; border-radius: 8px; border: 1px solid var(--line-strong);
+.btn { font: inherit; font-size: var(--t-cap); height: 2rem; padding: 0 .8rem; border-radius: 8px; border: 1px solid var(--line-strong);
   background: var(--card); color: var(--ink); display: inline-flex; align-items: center; justify-content: center; gap: .4rem;
   transition: background .15s, border-color .15s, color .15s; white-space: nowrap; }
 .btn:hover:not(:disabled) { background: var(--ai-wash); border-color: var(--ai); }
@@ -195,6 +195,8 @@ button:disabled { opacity: .45; cursor: default; }
 .btn-icon.btn-sm { width: 1.5rem; }
 .btn-sm .icon { width: .8rem; height: .8rem; }
 select.btn { cursor: pointer; }
+/* the gap above "Explore all heads", under the heatmap's notes */
+.explore-heads { margin-top: .6rem; }
 
 input[type="text"], input[type="number"], input:not([type]) {
   font: inherit;
