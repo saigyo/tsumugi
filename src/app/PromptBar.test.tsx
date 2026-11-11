@@ -50,6 +50,9 @@ test('the download size shows on the Real model option until the model is loaded
   expect(screen.getByTestId('mode-real')).toHaveTextContent('Real model · 250 MB')
   rerender(<PromptBar hasRuns={false} mode="real" onModeChange={noop} onGenerate={noop} busy={false} />)
   expect(screen.getByTestId('mode-real').textContent).toBe('Real model')
+  // back on Simulated with the model already loaded: the size does not come back
+  rerender(<PromptBar hasRuns={false} mode="sim" onModeChange={noop} onGenerate={noop} busy={false} realLoaded />)
+  expect(screen.getByTestId('mode-real').textContent).toBe('Real model')
 })
 
 test('while the real model loads, its button shows loading, not selected', () => {

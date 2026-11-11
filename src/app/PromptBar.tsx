@@ -20,6 +20,8 @@ export interface PromptBarProps {
   onModeChange(mode: Mode): void
   onGenerate(prompt: string, params: GenParams, format: PromptFormat, seed?: number): void
   busy: boolean
+  // the real model has been loaded in this session, whichever mode is chosen now (the download size is no longer news)
+  realLoaded?: boolean
   // a run is being computed: Generate shows activity and a Stop button appears
   generating?: boolean
   onStop?(): void
@@ -38,7 +40,7 @@ const clampOrKeep = (raw: string, min: number, max: number, prev: number): numbe
   return Math.min(max, Math.max(min, n))
 }
 
-export function PromptBar({ mode, onModeChange, onGenerate, busy, generating = false, onStop, activity = 'Generating…', examples, initial, hasRuns }: PromptBarProps) {
+export function PromptBar({ mode, onModeChange, onGenerate, busy, realLoaded = false, generating = false, onStop, activity = 'Generating…', examples, initial, hasRuns }: PromptBarProps) {
   const [prompt, setPrompt] = useState(initial?.prompt ?? '')
   const [temperature, setTemperature] = useState(initial?.params?.temperature ?? 0.8)
   const [topK, setTopK] = useState(initial?.params?.topK ?? 10)
@@ -50,7 +52,7 @@ export function PromptBar({ mode, onModeChange, onGenerate, busy, generating = f
   const [examplesToggled, setExamplesToggled] = useState<boolean | null>(null)
   const [systemToggled, setSystemToggled] = useState<boolean | null>(null)
   const chatOn = mode === 'real' && chatFmt
-  // the real model is chosen and loaded: its option is the pressed one and no longer needs the download size
+  // the real model is chosen and loaded: its option is the pressed one
   const realReady = mode === 'real' && !busy
   const seed = mode === 'real' ? parseSeed(seedText) ?? undefined : undefined
   const examplesOpen = examplesToggled ?? (!hasRuns && !ranOnce)
@@ -91,7 +93,7 @@ export function PromptBar({ mode, onModeChange, onGenerate, busy, generating = f
             onClick={() => onModeChange('sim')}>Simulated</button>
           <button type="button" data-testid="mode-real" className={`seg-opt${realReady ? ' is-view' : ''}`} aria-pressed={realReady}
             aria-busy={(mode === 'real' && busy) || undefined} title={REAL_TITLE}
-            onClick={() => { if (mode !== 'real') onModeChange('real') }}>Real model{!realReady && <span className="mode-note"> · 250 MB</span>}</button>
+            onClick={() => { if (mode !== 'real') onModeChange('real') }}>Real model{!realReady && !realLoaded && <span className="mode-note"> · 250 MB</span>}</button>
         </div>
         {mode === 'real' && (
           <div className="seg" role="group" aria-label="Prompt format" data-testid="format-switch">

@@ -12,8 +12,6 @@
   --white: #ffffff;
   --on-ai: #ffffff;        /* text on an indigo fill (--fill, --fill-hover) */
   --on-shu: #ffffff;       /* text on a vermillion fill (--shu) */
-  --on-fill-soft: #f6f3ea; /* text on --fill-hover in the ruler tick and mode button; light value is --washi */
-  --on-fill-note: #d3dfeb; /* secondary text on --fill (the 250 MB note); light value is --ai-wash-strong */
   --ink: #2b2b31;          /* sumi text */
   --ink-soft: #6e6b62;     /* secondary text */
   --ink-faint: #726f66;    /* tertiary text, 4.5:1 on washi */
@@ -90,8 +88,6 @@
   --white: #1b2740;
   --on-ai: #ffffff;
   --on-shu: #0f1726;
-  --on-fill-soft: #ffffff;
-  --on-fill-note: #e3eefc;
   --ink: #e6ebf5;
   --ink-soft: #a9b6cf;
   --ink-faint: #94a2bd;
@@ -176,7 +172,7 @@ button:disabled { opacity: .45; cursor: default; }
 :focus-visible { outline: 2px solid var(--ai); outline-offset: 2px; }
 
 /* ── Button kinds: plain (.btn), main, accent, danger, quiet; sizes lg and sm; icon is square ── */
-.btn { font: inherit; font-size: var(--t-cap); height: 2rem; padding: 0 .8rem; border-radius: 8px; border: 1px solid var(--line-strong);
+.btn { font: inherit; font-style: normal; font-size: var(--t-cap); height: 2rem; padding: 0 .8rem; border-radius: 8px; border: 1px solid var(--line-strong);
   background: var(--card); color: var(--ink); display: inline-flex; align-items: center; justify-content: center; gap: .4rem;
   transition: background .15s, border-color .15s, color .15s; white-space: nowrap; }
 .btn:hover:not(:disabled) { background: var(--ai-wash); border-color: var(--ai); }
@@ -859,7 +855,6 @@ math { font-family: var(--math); color: var(--ink); }
 .seg-opt { border-radius: 6px; background: transparent; color: var(--ink-soft); padding: .2rem .5rem; font-size: var(--t-cap); }
 .seg-opt:hover:not(.is-view, :disabled) { color: var(--ink); }
 .seg > .seg-opt[aria-busy="true"] { background: var(--ai-wash); }
-.seg > .seg-opt[aria-pressed="true"] .mode-note { color: var(--on-fill-note); }
 .seg .gl-term-wrap { padding: 0 .3rem; }
 .system-row input { flex: 1; min-width: 12rem; padding: .3rem .5rem; }
 .link-button { border: 0; background: none; color: var(--ai); text-decoration: underline; padding: 0; font-size: var(--t-cap); cursor: pointer; }

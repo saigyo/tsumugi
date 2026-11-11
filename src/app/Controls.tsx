@@ -10,8 +10,9 @@ export function Controls() {
   const ticks = cycleTickIndices(events)
   const fill = traceLength > 1 ? `${(Math.max(cursor, 0) / (traceLength - 1)) * 100}%` : '0%'
 
-  // playing at the frontier: the view follows the run as it grows
-  const following = status === 'playing' && traceLength > 0 && cursor >= traceLength - 1
+  // playing while the run is still being written: the view follows it as it grows. (Not "the cursor is on the last
+  // event": every new event puts the cursor behind for a moment, and Live would blink at each token.)
+  const following = status === 'playing' && events.length > 0 && events[events.length - 1].type !== 'run-end'
 
   const cycleFwd = () => {
     const next = ticks.find((i) => i > cursor)

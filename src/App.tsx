@@ -397,7 +397,7 @@ export default function App() {
         </>} />
       </header>
       <PromptBar mode={mode} onModeChange={chooseMode} onGenerate={handleGenerate}
-        busy={mode === 'real' && !realReady} generating={generating} activity={activity} onStop={handleStop}
+        busy={mode === 'real' && !realReady} realLoaded={realReady} generating={generating} activity={activity} onStop={handleStop}
         hasRuns={records.length > 0} examples={[...CURATED_EXAMPLES, CHAT_EXAMPLE]} initial={shared ?? undefined} />
       {linkNote && <p className="mlp-note link-note" data-testid="link-note">{linkNote}</p>}
       <ModelSlot mode={mode} loading={loading} fromCache={fromCache} progress={progress} error={modelError}

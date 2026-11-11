@@ -44,12 +44,25 @@ test('live button jumps to frontier and plays', () => {
   expect(s.status).toBe('playing')
 })
 
-test('Live looks picked while the view follows the run at its frontier, and only then', () => {
+test('Live looks picked while playback follows a run that is still being written, and only then', () => {
+  const unfinished = makeFixtureTrace().slice(0, -1) // without the run-end event
+  useTraceStore.setState({ events: unfinished })
+  usePlayerStore.setState({ traceLength: unfinished.length })
   const { rerender } = render(<Controls />)
-  expect(screen.getByTestId('btn-live')).not.toHaveClass('is-picked')
-  fireEvent.click(screen.getByTestId('btn-live'))
+  expect(screen.getByTestId('btn-live')).not.toHaveClass('is-picked') // paused
+  fireEvent.click(screen.getByTestId('btn-play'))
+  rerender(<Controls />)
+  // playing, with the cursor well behind the newest event: still following, so Live does not blink at each token
+  expect(usePlayerStore.getState().cursor).toBeLessThan(unfinished.length - 1)
   expect(screen.getByTestId('btn-live')).toHaveClass('is-picked')
   fireEvent.click(screen.getByTestId('btn-pause'))
+  rerender(<Controls />)
+  expect(screen.getByTestId('btn-live')).not.toHaveClass('is-picked')
+})
+
+test('Live does not look picked when a finished run is replayed', () => {
+  const { rerender } = render(<Controls />)
+  fireEvent.click(screen.getByTestId('btn-play'))
   rerender(<Controls />)
   expect(screen.getByTestId('btn-live')).not.toHaveClass('is-picked')
 })

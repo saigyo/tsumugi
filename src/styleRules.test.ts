@@ -92,7 +92,7 @@ const pairs: [string, string][] = [
   ['--shu-deep', '--ai-wash-strong'],     // the hovered action on a compare A/B chip (is-picked)
   ['--shu-deep', '--card'],                  // the pinned pin on a run chip
   // text on the split fill roles
-  ['--on-ai', '--fill'], ['--on-ai', '--fill-hover'], ['--on-shu', '--shu'], ['--on-fill-soft', '--fill-hover'], ['--on-fill-note', '--fill'],
+  ['--on-ai', '--fill'], ['--on-ai', '--fill-hover'], ['--on-shu', '--shu'],
 ]
 describe.each(Object.keys(themes))('%s theme contrast', (theme) => {
   test.each(pairs)('%s on %s reaches 4.5:1', (fg, bg) => {
