@@ -353,3 +353,38 @@ on a faint ground with 4px corners.
 - Whether Firefox and WebKit run in CI or as a local command, if they prove
   unreliable on the CI machine. Default: in CI.
 - The fix for D13.
+
+## As built: where the result differs from the text above
+
+Decisions taken while building, each with its reason.
+
+- **D7 and D13 did not reproduce.** The pipeline band fits from 1024px up
+  with the real chat example, and WebKit draws the fraction lines on the
+  current build. Both are now guarded by tests; nothing in the app changed
+  for them. Real Safari was not checked.
+- **D9.** A temperature typed beyond 0 to 2 takes effect as the limit, and on
+  leaving the field it shows the value in effect. Up and Down step by 0.1.
+- **D11.** A file that imports with damaged parts left out shows a note, not
+  an error.
+- **R3.** "Live while following" means: playback is playing and the run is
+  still being written.
+- **R5.** On a washed chip the token id is in the normal text colour (the
+  soft grey is 4.1:1 on the washes). A prompt longer than six distinct words
+  can put two different words with the same wash side by side when a word
+  repeats right after the colours wrap around.
+- **R8.** The pinned pin and all other coral text use the deep coral
+  (`--shu-deep`); plain coral is 4.35:1 on the card. Coral stays for fills,
+  borders and arrows.
+- **R9.** The attention read-out shows a hint while nothing is hovered, and
+  read-outs are as wide as their text. Switch options and the compare table's
+  labels are capitalised like every other label.
+- **Colours.** In the light theme the faintest grey (`--ink-faint`) now has
+  the value of the soft grey; it was 4.3:1 on the coral and indigo washes.
+  Two variables nothing used any more were removed.
+- **Chart labels** longer than 22 characters are cut with an ellipsis; the
+  read-out and the cell titles keep the full text.
+- **Focus.** The per-control focus-ring check runs in Chromium only, because
+  script focus does not show the keyboard ring in Firefox and WebKit; a
+  second check tabs through the page in all three engines.
+- **Heights.** The button sizes make the settings line 42px (was 36), the
+  prompt box 117px (was 111) and the header buttons 32px (was 30).
