@@ -7,6 +7,9 @@ const MULTIPLIER: Record<TraceEvent['type'], number> = {
   logits: 1.5, softmax: 1.5, sample: 2.5, append: 1.5, 'attention-grid': 0.5, 'run-end': 0.5,
 }
 
+/** How long playback gives one event of this type, in units of the base delay. */
+export const paceOf = (type: TraceEvent['type']): number => MULTIPLIER[type]
+
 export function delayFor(e: TraceEvent | undefined, speed: number): number {
   const mult = e ? MULTIPLIER[e.type] : 1
   return (BASE_MS * mult) / speed

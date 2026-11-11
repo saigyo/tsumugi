@@ -4,6 +4,7 @@ import { makeFixtureTrace } from '../test/fixtures'
 import { useTraceStore } from '../trace/store'
 import { initialPlayerState } from '../player/reducer'
 import { usePlayerStore } from '../player/store'
+import { scrubScale } from '../player/scrubScale'
 import { Controls } from './Controls'
 
 beforeEach(() => {
@@ -32,7 +33,9 @@ test('step buttons move the cursor', () => {
 
 test('scrubber seeks', () => {
   render(<Controls />)
-  fireEvent.change(screen.getByTestId('scrubber'), { target: { value: '7' } })
+  // the track's unit is playback time: the place of step 7 leads to step 7
+  const place = scrubScale(useTraceStore.getState().events).at[7]
+  fireEvent.change(screen.getByTestId('scrubber'), { target: { value: String(place) } })
   expect(usePlayerStore.getState().cursor).toBe(7)
 })
 
@@ -86,7 +89,7 @@ test('cycle buttons jump between append events', () => {
   expect(usePlayerStore.getState().cursor).toBe(10)
 })
 
-test('while a run is being written the scrubber is scaled to its expected length, and marks how far it is written', () => {
+test('while a run is being written the scrubber is laid out to its expected length, and marks how far it is written', () => {
   const run = makeFixtureTrace(6)
   const firstToken = run.findIndex((e) => e.type === 'append')
   const soFar = run.slice(0, firstToken + 1) // one of six tokens is there
@@ -94,9 +97,12 @@ test('while a run is being written the scrubber is scaled to its expected length
   usePlayerStore.setState({ traceLength: soFar.length, cursor: 3, status: 'playing' })
   const { rerender } = render(<Controls />)
   const scrubber = screen.getByTestId('scrubber') as HTMLInputElement
-  const scale = Number(scrubber.max)
-  expect(Math.abs(scale - (run.length - 1))).toBeLessThanOrEqual(2)
-  expect(parseFloat(scrubber.style.getPropertyValue('--written'))).toBeCloseTo(((soFar.length - 1) / scale) * 100, 3)
+  const end = Number(scrubber.max)
+  const finished = scrubScale(run).end
+  expect(Math.abs(end - finished) / finished).toBeLessThan(0.02)
+  const newest = scrubScale(soFar).at[soFar.length - 1]
+  expect(parseFloat(scrubber.style.getPropertyValue('--written'))).toBeCloseTo((newest / end) * 100, 3)
+  expect(parseFloat(scrubber.style.getPropertyValue('--written'))).toBeLessThan(25)
   const position = scrubber.style.getPropertyValue('--pos')
 
   // the next token arrives: the scale and the thumb stay, only the written mark moves on
@@ -105,15 +111,17 @@ test('while a run is being written the scrubber is scaled to its expected length
   useTraceStore.setState({ events: more })
   usePlayerStore.setState({ traceLength: more.length })
   rerender(<Controls />)
-  expect(Number(scrubber.max)).toBe(scale)
+  expect(Number(scrubber.max)).toBe(end)
   expect(scrubber.style.getPropertyValue('--pos')).toBe(position)
-  expect(parseFloat(scrubber.style.getPropertyValue('--written'))).toBeCloseTo(((more.length - 1) / scale) * 100, 3)
+  expect(parseFloat(scrubber.style.getPropertyValue('--written'))).toBeCloseTo((scrubScale(more).at[more.length - 1] / end) * 100, 3)
 })
 
-test('a finished run has its own length as the scale and no written mark', () => {
+test('a finished run ends where its last step is, and has no written mark', () => {
+  usePlayerStore.setState({ cursor: useTraceStore.getState().events.length - 1 })
   render(<Controls />)
   const scrubber = screen.getByTestId('scrubber') as HTMLInputElement
-  expect(Number(scrubber.max)).toBe(useTraceStore.getState().events.length - 1)
+  expect(scrubber.value).toBe(scrubber.max)
+  expect(scrubber.style.getPropertyValue('--pos')).toBe('100%')
   expect(scrubber.style.getPropertyValue('--written')).toBe('')
 })
 
@@ -123,8 +131,36 @@ test('dragging beyond what is written lands on the newest event', () => {
   useTraceStore.setState({ events: soFar })
   usePlayerStore.setState({ traceLength: soFar.length, cursor: 3 })
   render(<Controls />)
-  fireEvent.change(screen.getByTestId('scrubber'), { target: { value: String(soFar.length + 20) } })
+  const scrubber = screen.getByTestId('scrubber') as HTMLInputElement
+  fireEvent.change(scrubber, { target: { value: scrubber.max } })
   expect(usePlayerStore.getState().cursor).toBe(soFar.length - 1)
+})
+
+test('on the scrubber an arrow key moves one step, Home and End go to the ends, Page keys to the next token', () => {
+  render(<Controls />)
+  const scrubber = screen.getByTestId('scrubber')
+  const last = useTraceStore.getState().events.length - 1
+  fireEvent.keyDown(scrubber, { key: 'ArrowRight' })
+  expect(usePlayerStore.getState().cursor).toBe(4)
+  fireEvent.keyDown(scrubber, { key: 'ArrowLeft' })
+  fireEvent.keyDown(scrubber, { key: 'ArrowDown' })
+  expect(usePlayerStore.getState().cursor).toBe(2)
+  fireEvent.keyDown(scrubber, { key: 'ArrowUp' })
+  expect(usePlayerStore.getState().cursor).toBe(3)
+  fireEvent.keyDown(scrubber, { key: 'End' })
+  expect(usePlayerStore.getState().cursor).toBe(last)
+  fireEvent.keyDown(scrubber, { key: 'ArrowRight' }) // stays on the last step
+  expect(usePlayerStore.getState().cursor).toBe(last)
+  fireEvent.keyDown(scrubber, { key: 'Home' })
+  expect(usePlayerStore.getState().cursor).toBe(0)
+  fireEvent.keyDown(scrubber, { key: 'PageUp' })
+  expect(useTraceStore.getState().events[usePlayerStore.getState().cursor].type).toBe('append')
+})
+
+test('the scrubber says its position in steps, since its own numbers are playback time', () => {
+  render(<Controls />)
+  const total = useTraceStore.getState().events.length
+  expect(screen.getByTestId('scrubber')).toHaveAttribute('aria-valuetext', `Step 4 of ${total}`)
 })
 
 test('the scrubber has no list of tick positions (browsers snap the thumb to them)', () => {
