@@ -226,22 +226,6 @@ they are IDs, not positions.
   without the KV cache over the whole text, so a prompt near 500 tokens
   may be far slower. Measure it; if so, make the caption depend on the
   length. *(#18 follow-up, 2026-11-01)*
-- [ ] **#26 Two tests in `src/App.test.tsx` fail by chance** — when the
-  whole unit suite runs under load, two tests in this file fail now and
-  then and pass on a rerun; the app is fine. Seen only locally so far, cause
-  unknown. CI does not repeat unit tests, so one chance failure would hold
-  back a deploy. Find the cause (likely a wait that depends on timing) and
-  make both tests stable. Until then: if CI is red on this file, re-run it
-  first. *(polish pass, 2026-11-11)*
-- [ ] **#27 Real model unavailable when WebGPU is exposed without an adapter** —
-  in Playwright's headless Firefox `navigator.gpu` exists but no adapter can
-  be had, and the model did not load at all: "Real model unavailable: no
-  available backend found. ERR: [webgpu] Error: Failed to get GPU adapter".
-  The fallback to WASM in `src/engine/transformers/worker.ts` (`loadOn`) did
-  not rescue it; with `dom.webgpu.enabled` off the model loads on WASM. Not
-  known whether a real browser can get into this state. Find out why the
-  second attempt fails and make the fallback work. *(scrubber
-  investigation, 2026-11-11)*
 - [ ] **#9 Mobile layout** — the app is desktop-first; a narrow-viewport pass
   is substantial design work for an audience that mostly explores on
   laptops. *(v1 spec, out of scope)*
@@ -251,6 +235,8 @@ they are IDs, not positions.
 
 ## Done (for the record)
 
+- [x] Real model loads when WebGPU is offered without an adapter: WebGPU only with an adapter, one loading attempt per worker (transformers.js cannot load a session after a failed one) *(#27, 2026-11-11)*
+- [x] The App tests no longer fail under load: load-proof deadlines, runs in flight stopped after each test *(#26, 2026-11-11)*
 - [x] Chat templating parked minors: folds per run and across scrubbing, import token check, budget and span robustness, tests *(#23, 2026-10-30)*
 - [x] MLP step by step card, sticky section bar, faithful 8-bit model v6 *(#17, #19, 2026-10-21)*
 - [x] Opening the MLP: edit sizes, per-layer votes; export v4 *(#15, 2026-10-11)*
