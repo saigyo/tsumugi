@@ -233,6 +233,15 @@ they are IDs, not positions.
   back a deploy. Find the cause (likely a wait that depends on timing) and
   make both tests stable. Until then: if CI is red on this file, re-run it
   first. *(polish pass, 2026-11-11)*
+- [ ] **#27 Real model unavailable when WebGPU is exposed without an adapter** —
+  in Playwright's headless Firefox `navigator.gpu` exists but no adapter can
+  be had, and the model did not load at all: "Real model unavailable: no
+  available backend found. ERR: [webgpu] Error: Failed to get GPU adapter".
+  The fallback to WASM in `src/engine/transformers/worker.ts` (`loadOn`) did
+  not rescue it; with `dom.webgpu.enabled` off the model loads on WASM. Not
+  known whether a real browser can get into this state. Find out why the
+  second attempt fails and make the fallback work. *(scrubber
+  investigation, 2026-11-11)*
 - [ ] **#9 Mobile layout** — the app is desktop-first; a narrow-viewport pass
   is substantial design work for an audience that mostly explores on
   laptops. *(v1 spec, out of scope)*
