@@ -6,12 +6,12 @@ export function normaliseDecimal(text: string): string | null {
   return /^\d*\.?\d*$/.test(t) ? t : null
 }
 
-/** The number in the text, or null unless it is a finite number within the limits. */
+/** The number in the text, brought within the limits; null when the text holds no number. */
 export function decimalValue(text: string, min: number, max: number): number | null {
   const t = normaliseDecimal(text)
   if (t === null || t === '' || t === '.') return null
   const v = Number(t)
-  return Number.isFinite(v) && v >= min && v <= max ? v : null
+  return Number.isFinite(v) ? Math.min(max, Math.max(min, v)) : null
 }
 
 /** Adds delta, rounds to one decimal and clamps to the limits. */

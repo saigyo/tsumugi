@@ -74,10 +74,10 @@ test('out-of-range typed values are clamped; NaN keeps the previous value', () =
   render(<PromptBar hasRuns={false} mode="sim" onModeChange={noop} onGenerate={onGenerate} busy={false} />)
   fireEvent.change(screen.getByTestId('prompt-input'), { target: { value: 'Hi' } })
   fireEvent.change(screen.getByTestId('topk-input'), { target: { value: '0' } })    // below min → 1
-  fireEvent.change(screen.getByTestId('temp-input'), { target: { value: '9' } })    // above max → keeps 0.8
+  fireEvent.change(screen.getByTestId('temp-input'), { target: { value: '9' } })    // above max → 2
   fireEvent.change(screen.getByTestId('maxtok-input'), { target: { value: '' } })   // NaN → keep 20
   fireEvent.click(screen.getByTestId('btn-generate'))
-  expect(onGenerate).toHaveBeenCalledWith('Hi', { temperature: 0.8, topK: 1, maxNewTokens: 20 }, { kind: 'text' })
+  expect(onGenerate).toHaveBeenCalledWith('Hi', { temperature: 2, topK: 1, maxNewTokens: 20 }, { kind: 'text' })
 })
 
 test('example chips fill the prompt and start generation', () => {
@@ -347,15 +347,29 @@ describe('Temperature field', () => {
     expect(generated(onGenerate)).toBe(0.5)
   })
 
-  test('out-of-range, unreadable and empty text keep the last good value', () => {
+  test('a number beyond the limits takes effect as the limit; unreadable and empty text keep the last value', () => {
     const { onGenerate, field } = setup()
     fireEvent.change(field, { target: { value: '2.5' } })
-    expect(generated(onGenerate)).toBe(0.8)
+    expect(generated(onGenerate)).toBe(2)
     fireEvent.change(field, { target: { value: 'abc' } })
     expect(field).toHaveValue('2.5')
-    expect(generated(onGenerate)).toBe(0.8)
+    expect(generated(onGenerate)).toBe(2)
     fireEvent.change(field, { target: { value: '' } })
-    expect(generated(onGenerate)).toBe(0.8)
+    expect(generated(onGenerate)).toBe(2)
+  })
+
+  test('on leaving, the field shows the value in effect', () => {
+    const { field } = setup()
+    fireEvent.change(field, { target: { value: '9' } })
+    expect(field).toHaveValue('9')
+    fireEvent.blur(field)
+    expect(field).toHaveValue('2')
+    fireEvent.change(field, { target: { value: '' } })
+    fireEvent.blur(field)
+    expect(field).toHaveValue('2')
+    fireEvent.change(field, { target: { value: '0.' } })
+    fireEvent.blur(field)
+    expect(field).toHaveValue('0')
   })
 
   test('arrow keys step by 0.1 within 0 to 2', () => {

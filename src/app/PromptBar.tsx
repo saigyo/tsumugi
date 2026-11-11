@@ -110,9 +110,11 @@ export function PromptBar({ mode, onModeChange, onGenerate, busy, realLoaded = f
               const text = normaliseDecimal(e.target.value)
               if (text === null) return
               setTempText(text)
-              const v = decimalValue(text, 0, 2)
+              const v = decimalValue(text, 0, 2) // a number beyond the limits takes effect as the limit
               if (v !== null) setTemperature(v)
             }}
+            // on leaving, the field shows the value in effect: "9" becomes "2", an empty field its last value
+            onBlur={() => setTempText(String(temperature))}
             onKeyDown={(e) => {
               if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return
               e.preventDefault()
