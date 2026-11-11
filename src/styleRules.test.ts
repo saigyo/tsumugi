@@ -134,7 +134,7 @@ const declared = (prop: string) =>
 
 test('font sizes come from the scale', () => {
   const bad = declared('font-size')
-    .filter((v) => !/^(var\(--t-(title|body|cap|label|tick|brand|prompt|mark|formula)\)|inherit)$/.test(v))
+    .filter((v) => !/^(var\(--t-(title|body|cap|label|tick|brand|prompt|mark|formula|sub)\)|inherit)$/.test(v))
   expect(bad).toEqual([])
 })
 
@@ -156,7 +156,17 @@ test('the type variables exist with the specified sizes', () => {
   expect(get('--t-label')).toBe('.72rem')
   expect(get('--t-tick')).toBe('.66rem')
   expect(get('--t-prompt')).toBe('1.3rem')
+  expect(get('--t-sub')).toBe('1.05rem')
   for (const v of ['--t-brand', '--sans', '--mono', '--mark', '--math']) expect(get(v), v).toBeDefined()
+})
+
+test('corner radii come from the set', () => {
+  const ok = /^(0|2px|4px|6px|8px|14px|999px|50%|2px 2px 0 0)$/
+  expect(declared('border-radius').filter((v) => !ok.test(v))).toEqual([])
+})
+test('bold text is the semibold weight', () => {
+  const rule = blocks.find((b) => b.selector === 'strong, b')
+  expect(rule?.body).toMatch(/font-weight:\s*600/)
 })
 
 function sourceFiles(dir: string): string[] {
