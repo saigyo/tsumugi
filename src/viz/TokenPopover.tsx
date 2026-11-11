@@ -1,5 +1,6 @@
 import type { TraceEvent } from '../trace/types'
 import { visibleToken } from './tokenText'
+import { percent } from '../ui/format'
 
 type SoftmaxEvent = Extract<TraceEvent, { type: 'softmax' }>
 type SampleEvent = Extract<TraceEvent, { type: 'sample' }>
@@ -14,7 +15,7 @@ export function TokenPopover({ softmax, sample, note }: { softmax: SoftmaxEvent;
           className="popover-row">
           <span className="popover-token"><span className="tok tok-sm">{visibleToken(c)}</span></span>
           <span className={`bar${c.id === sample.chosen.id ? ' bar-chosen' : ''}`} style={{ width: `${Math.max(2, c.prob * 100)}px` }} />
-          <span className="popover-pct">{Math.round(c.prob * 100)}%</span>
+          <span className="popover-pct">{percent(c.prob)}</span>
         </div>
       ))}
     </div>

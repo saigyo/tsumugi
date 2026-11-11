@@ -5,6 +5,7 @@ import { seqFill } from './ramps'
 import { SPACE_MARKER, visibleToken } from './tokenText'
 import { Icon } from '../ui/Icon'
 import { washIndexes } from '../ui/tokenWash'
+import { fixed } from '../ui/format'
 
 const NEIGHBORS = 8
 const SPACE_NOTE = `${SPACE_MARKER} marks a leading space, ↵ a newline, ⇥ a tab: whitespace belongs to the token, so " cat" (mid-sentence) and "cat" (after punctuation or at a start) are different tokens with different rows in E, and a paragraph break is two "↵" tokens.`
@@ -83,7 +84,7 @@ export function EmbeddingGeometry({ tokens, selected, vectorFor, asset, loading,
               <div key={n.id} data-testid="embed-neighbor" className="bar-row">
                 <span className="bar-label">{visibleToken(n)}</span>
                 <svg width="120" height="12"><rect y="1" width={120 * n.sim} height="10" rx="2" className="bar-svg" /></svg>
-                <span className="bar-value">{n.sim.toFixed(2)}</span>
+                <span className="bar-value">{fixed(n.sim, 2)}</span>
               </div>
             ))}
           </div>
@@ -97,7 +98,7 @@ export function EmbeddingGeometry({ tokens, selected, vectorFor, asset, loading,
             {range && (
               <span data-testid="embed-sim-legend" className="rs-hover"
                 title="Every pair of ordinary tokens scores high on cosine similarity (embedding spaces are anisotropic), so a fixed 0 to 1 scale would be one dark block. The colours span this matrix's own range; hover a cell for its exact value.">
-                {' '}— colour range {range.lo.toFixed(2)} … {range.hi.toFixed(2)}, diagonal = 1
+                {' '}— colour range {fixed(range.lo, 2)} … {fixed(range.hi, 2)}, diagonal = 1
               </span>
             )}
           </div>
@@ -121,7 +122,7 @@ export function EmbeddingGeometry({ tokens, selected, vectorFor, asset, loading,
                     <rect key={c} data-testid="sim-cell" x={LABEL_W + c * CELL} y={DIAG_PAD + r * CELL}
                       width={CELL - 1} height={CELL - 1}
                       style={{ fill: shade(v, r === c) }}>
-                      <title>{`${label(r)} · ${label(c)}: ${v.toFixed(2)}`}</title>
+                      <title>{`${label(r)} · ${label(c)}: ${fixed(v, 2)}`}</title>
                     </rect>
                   )
                 })}

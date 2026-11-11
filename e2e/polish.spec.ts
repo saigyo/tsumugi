@@ -236,7 +236,7 @@ test('tabbing through the page shows a ring on every stop', async ({ page, brows
   expect(problems).toEqual([])
 })
 
-test.fixme('numbers follow one format', async ({ page }) => {
+test('numbers follow one format', async ({ page }) => {
   const problems: string[] = []
   await inEachTheme(page, async (theme, state) => {
     for (const issue of await page.evaluate(() => window.__polish.textIssues())) problems.push(`${theme}/${state}: ${issue}`)

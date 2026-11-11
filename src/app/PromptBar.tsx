@@ -4,8 +4,9 @@ import { Term } from '../glossary/Term'
 import { parseSeed, type SharedRun } from './shareLink'
 import type { GenParams, Mode, PromptFormat } from '../trace/types'
 import { Icon } from '../ui/Icon'
+import { decimalValue, normaliseDecimal, stepDecimal } from '../ui/decimalField'
 
-const REAL_TITLE = 'Runs SmolLM2-135M-Instruct in your browser from a custom export with attention and readout outputs (its output layer stays full precision). Downloads ~250 MB once on first use; cached afterward. If that fails it falls back to the ~120 MB stock export without them.'
+const REAL_TITLE = 'Runs SmolLM2-135M-Instruct in your browser from a custom export with attention and readout outputs (its output layer stays full precision). Downloads ≈ 250 MB once on first use; cached afterward. If that fails it falls back to the ≈ 120 MB stock export without them.'
 
 export interface PromptExample {
   id: string
@@ -43,6 +44,7 @@ const clampOrKeep = (raw: string, min: number, max: number, prev: number): numbe
 export function PromptBar({ mode, onModeChange, onGenerate, busy, realLoaded = false, generating = false, onStop, activity = 'Generating…', examples, initial, hasRuns }: PromptBarProps) {
   const [prompt, setPrompt] = useState(initial?.prompt ?? '')
   const [temperature, setTemperature] = useState(initial?.params?.temperature ?? 0.8)
+  const [tempText, setTempText] = useState(String(temperature))
   const [topK, setTopK] = useState(initial?.params?.topK ?? 10)
   const [maxNewTokens, setMaxNewTokens] = useState(initial?.params?.maxNewTokens ?? 20)
   const [chatFmt, setChatFmt] = useState(initial?.format?.kind !== 'text')
@@ -103,8 +105,21 @@ export function PromptBar({ mode, onModeChange, onGenerate, busy, realLoaded = f
           </div>
         )}
         <span className="chip">
-          <label>Temperature <input data-testid="temp-input" type="number" step="0.1" min="0" max="2" value={temperature}
-            onChange={(e) => setTemperature(clampOrKeep(e.target.value, 0, 2, temperature))} /></label>
+          <label>Temperature <input data-testid="temp-input" type="text" inputMode="decimal" autoComplete="off" value={tempText}
+            onChange={(e) => {
+              const text = normaliseDecimal(e.target.value)
+              if (text === null) return
+              setTempText(text)
+              const v = decimalValue(text, 0, 2)
+              if (v !== null) setTemperature(v)
+            }}
+            onKeyDown={(e) => {
+              if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return
+              e.preventDefault()
+              const v = stepDecimal(temperature, e.key === 'ArrowUp' ? 0.1 : -0.1, 0, 2)
+              setTemperature(v)
+              setTempText(String(v))
+            }} /></label>
           <Term id="generation-settings" section="temperature" variant="icon" label="About temperature" testId="setting-info"
             tip="0 = always the top token; higher = more varied."><Icon name="info" /></Term>
         </span>

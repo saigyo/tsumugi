@@ -27,7 +27,7 @@ test('closed banner or real mode: the slot is empty', () => {
 
 test('loading shows the file and percentage even after the banner was closed', () => {
   render(<ModelSlot {...base} mode="real" loading bannerClosed progress={{ file: 'onnx/model_quantized.onnx', loaded: 42, total: 100 }} />)
-  expect(screen.getByTestId('model-progress')).toHaveTextContent('Loading the real model: onnx/model_quantized.onnx · 42 %')
+  expect(screen.getByTestId('model-progress')).toHaveTextContent('Loading the real model: onnx/model_quantized.onnx · 42%')
   expect(screen.getByTestId('model-progress-bar')).toHaveAttribute('value', '42')
 })
 

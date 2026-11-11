@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useTheme } from '../app/theme'
 import { readRampEnds, seqRgb } from './ramps'
 import type { TraceEvent } from '../trace/types'
+import { fixed } from '../ui/format'
 
 type GridEvent = Extract<TraceEvent, { type: 'attention-grid' }>
 type GridCell = GridEvent['cells'][number]
@@ -26,7 +27,7 @@ function topStat(c: GridCell): string {
     ['distinctive', c.distinctiveScore],
   ]
   entries.sort((a, b) => b[1] - a[1])
-  return `${entries[0][0]} ${entries[0][1].toFixed(2)}`
+  return `${entries[0][0]} ${fixed(entries[0][1], 2)}`
 }
 
 // The ramp end points, read off the document once per theme (270 thumbnails share them).

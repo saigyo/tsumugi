@@ -2,6 +2,7 @@ import { useLayoutEffect, useRef, useState } from 'react'
 import type { TraceEvent } from '../trace/types'
 import { visibleToken } from './tokenText'
 import { activeStage, eventAt, flowShapes, latestOfType, stageEventIndex, thousands, viewedCycle, type FlowShapes, type StageId } from './selectors'
+import { percent } from '../ui/format'
 
 // what travels along the connector INTO stage i (see FlowShapes)
 const CONNECTOR_SHAPE: Array<keyof FlowShapes> = ['ids', 'ids', 'stream', 'lastRow', 'vocab', 'probs']
@@ -38,7 +39,7 @@ function summaryFor(stage: Exclude<StageId, null>, events: TraceEvent[], cursor:
     case 'softmax': {
       const e = latestOfType(events, cursor, 'softmax')
       const top = e?.topK[0]
-      return top ? `${visibleToken(top)}: ${Math.round(top.prob * 100)}%` : null
+      return top ? `${visibleToken(top)}: ${percent(top.prob)}` : null
     }
     case 'sampler': {
       const e = latestOfType(events, cursor, 'sample')

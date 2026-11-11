@@ -5,16 +5,16 @@
 
 const clamp01 = (t: number) => (Number.isFinite(t) ? Math.min(1, Math.max(0, t)) : t > 0 ? 1 : 0)
 // whole-tenth percentage, so the strings stay short
-const pct = (t: number) => Math.round(clamp01(t) * 1000) / 10
+const mixPercent = (t: number) => Math.round(clamp01(t) * 1000) / 10
 
 // t in 0..1 (clamped): low → high of the value ramp
 export function seqFill(t: number): string {
-  return `color-mix(in hsl, var(--ramp-hi) ${pct(t)}%, var(--ramp-lo))`
+  return `color-mix(in hsl, var(--ramp-hi) ${mixPercent(t)}%, var(--ramp-lo))`
 }
 
 // v relative to peak (clamped to ±1): each side from its own low end to its full colour
 export function divFill(v: number, peak: number): string {
-  const p = pct(Math.abs(v) / peak)
+  const p = mixPercent(Math.abs(v) / peak)
   return v >= 0
     ? `color-mix(in hsl, var(--div-pos) ${p}%, var(--div-pos-lo))`
     : `color-mix(in hsl, var(--div-neg) ${p}%, var(--div-neg-lo))`

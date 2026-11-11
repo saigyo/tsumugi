@@ -15,12 +15,12 @@ export function ModelSlot({ mode, loading, fromCache, progress, error, bannerClo
     </div>
   )
   if (loading) {
-    const pct = progress && progress.total > 0 ? Math.round((progress.loaded / progress.total) * 100) : null
+    const loadedPercent = progress && progress.total > 0 ? Math.round((progress.loaded / progress.total) * 100) : null
     return (
       <div role="status" data-testid="model-progress" className="model-slot model-progress">
         {fromCache ? 'Loading the real model from the browser’s cache…'
-          : progress ? `Loading the real model: ${progress.file} · ${pct ?? 0} %` : 'Loading the real model…'}
-        {pct !== null && <progress aria-label="Download progress" data-testid="model-progress-bar" max={100} value={pct} />}
+          : progress ? `Loading the real model: ${progress.file} · ${loadedPercent ?? 0}%` : 'Loading the real model…'}
+        {loadedPercent !== null && <progress aria-label="Download progress" data-testid="model-progress-bar" max={100} value={loadedPercent} />}
       </div>
     )
   }

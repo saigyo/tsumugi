@@ -3,6 +3,7 @@ import type { productSummary } from '../neurons/steps'
 import { silu } from '../neurons/steps'
 import { cellFill } from './stripMath'
 import { CHART_W, X0, X1, gateX, type Hover } from './stepChartMath'
+import { count, fixed } from '../ui/format'
 
 // The step-by-step card's charts (#17). Every chart is an SVG on a 720-unit-wide
 // frame drawn at width 100 %, so it fills the card's chart column (the #15
@@ -72,8 +73,8 @@ export function GateUpScatter({ gate, up, domain, marked, named, hover, onHover,
       <line x1={X0} x2={X1} y1={y(0)} y2={y(0)} className="step-zero" />
       <text x={x(domain[0]) + 6} y={top + 14} className="step-note">g &lt; 0: SiLU will squash these</text>
       <text x={X1 - 4} y={top + 14} textAnchor="end" className="step-axis">u ↑ · g →</text>
-      {ticks(domain).map((t) => <text key={t} x={x(t)} y={H - 6} textAnchor="middle" className="step-axis">{t}</text>)}
-      {ticks([lo, hi]).map((t) => <text key={t} x={X0 - 6} y={y(t) + 3} textAnchor="end" className="step-axis">{t}</text>)}
+      {ticks(domain).map((t) => <text key={t} x={x(t)} y={H - 6} textAnchor="middle" className="step-axis">{fixed(t, 0)}</text>)}
+      {ticks([lo, hi]).map((t) => <text key={t} x={X0 - 6} y={y(t) + 3} textAnchor="end" className="step-axis">{fixed(t, 0)}</text>)}
       <Dots xs={xs} ys={ys} marked={marked} chart="scatter" height={H} onHover={onHover} />
       <Ring hover={hover} xs={xs} ys={ys} />
       {named.map((i) => <text key={i} x={x(gate[i]) + 6} y={y(up[i]) + 4} className="step-name">N{i}</text>)}
@@ -109,8 +110,8 @@ export function SiluChart({ gate, domain, marked, counts, hover, onHover, box }:
       <text x={Math.min(x(0) + 6, X1 - 84)} y={top + 12} className="step-axis">SiLU ↑ · g →</text>
       <text x={noteX} y={noteY} textAnchor="end" className="step-note">{counts.positive} positive gates pass</text>
       <text x={noteX} y={noteY + 12} textAnchor="end" className="step-note">almost unchanged</text>
-      {ticks(domain).map((t) => <text key={t} x={x(t)} y={H - 6} textAnchor="middle" className="step-axis">{t}</text>)}
-      {ticks([0, yMax]).map((t) => <text key={t} x={X0 - 6} y={y(t) + 3} textAnchor="end" className="step-axis">{t}</text>)}
+      {ticks(domain).map((t) => <text key={t} x={x(t)} y={H - 6} textAnchor="middle" className="step-axis">{fixed(t, 0)}</text>)}
+      {ticks([0, yMax]).map((t) => <text key={t} x={X0 - 6} y={y(t) + 3} textAnchor="end" className="step-axis">{fixed(t, 0)}</text>)}
       <Dots xs={xs} ys={ys} marked={marked} chart="silu" height={H} onHover={onHover} />
       <Ring hover={hover} xs={xs} ys={ys} />
     </Frame>
@@ -151,7 +152,7 @@ export function ProductBars({ h, summary, marked, hover, onHover, box }: {
   const bw = (X1 - X0) / Math.max(order.length, 1)
   const at = (k: number) => X0 + k * bw
   // A count within the bars gets a cut line; one beyond them a note at the right end.
-  const cuts: Array<[number, string, number]> = [[half, 'half', 16], [ninety, '90 %', 30]]
+  const cuts: Array<[number, string, number]> = [[half, 'half', 16], [ninety, '90%', 30]]
   return (
     <Frame testId="steps-product" h={H} label="the largest activations, largest first" box={box}>
       <line x1={X0} x2={X1} y1={mid} y2={mid} className="step-zero" />
@@ -165,10 +166,10 @@ export function ProductBars({ h, summary, marked, hover, onHover, box }: {
             <text x={at(k) + 3} y={ty} className="step-note">{k} {k === 1 ? 'neuron carries' : 'neurons carry'} {name}</text>
           </g>
         : <text key={name} x={X1 - 4} y={ty} textAnchor="end" className="step-note">{name} needs {k} neurons</text>))}
-      <text x={X0 - 6} y={mid - reach + 4} textAnchor="end" className="step-axis">+{peak.toFixed(0)}</text>
-      <text x={X0 - 6} y={mid + reach} textAnchor="end" className="step-axis">−{peak.toFixed(0)}</text>
+      <text x={X0 - 6} y={mid - reach + 4} textAnchor="end" className="step-axis">+{fixed(peak, 0)}</text>
+      <text x={X0 - 6} y={mid + reach} textAnchor="end" className="step-axis">−{fixed(peak, 0)}</text>
       <text x={X1} y={H - 6} textAnchor="end" className="step-axis">
-        the {order.length} largest, largest first →{restMax !== null && ` · the other ${h.length - order.length} are all below ${restMax < 0.1 ? restMax.toFixed(2) : restMax.toFixed(1)}`}</text>
+        the {order.length} largest, largest first →{restMax !== null && ` · the other ${count(h.length - order.length)} are all below ${restMax < 0.1 ? fixed(restMax, 2) : fixed(restMax, 1)}`}</text>
     </Frame>
   )
 }

@@ -1,3 +1,5 @@
+import { fixed, percent } from '../ui/format'
+
 // Copy for the Softmax card, computed from the run's own temperature so the
 // paragraph, the per-bar derivations and the glossary's Softmax entry agree.
 // Kept out of the component files so those export only components
@@ -5,17 +7,17 @@
 
 // How much more probable a candidate d points ahead is, at temperature T:
 // e^(d / T). The familiar "2.7× per point" holds only at T = 1.
-export const leadRatio = (points: number, T: number) => Math.exp(points / T).toFixed(1)
+export const leadRatio = (points: number, T: number) => fixed(Math.exp(points / T), 1)
 
 // One candidate's share, derived on its own numbers: lead below the top score,
 // the relative weight exp(−lead / T), and the resulting percentage.
 export function shareDerivation(logit: number, top: number, T: number, prob: number): string {
-  const pct = `${Math.round(prob * 100)}%`
-  if (T === 0) return logit === top ? `T = 0: the top score takes everything → ${pct}` : `T = 0: not the top score → ${pct}`
-  if (logit === top) return `the top score → weight 1.00 → ${pct}`
+  const share = percent(prob)
+  if (T === 0) return logit === top ? `T = 0: the top score takes everything → ${share}` : `T = 0: not the top score → ${share}`
+  if (logit === top) return `the top score → weight 1.00 → ${share}`
   const lead = top - logit
   const w = Math.exp(-lead / T)
-  return `${lead.toFixed(1)} below the top score → exp(−${lead.toFixed(1)} / ${T}) = ${w.toFixed(2)} of the leader’s weight → ${pct}`
+  return `${fixed(lead, 1)} below the top score → exp(−${fixed(lead, 1)} / ${T}) = ${fixed(w, 2)} of the leader’s weight → ${share}`
 }
 
 export function softmaxExplainer(T: number, shown: number, vocab: string): string {

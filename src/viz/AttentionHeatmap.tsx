@@ -7,6 +7,7 @@ import { LoadRealButton } from './LoadRealButton'
 import { foldMatrix, type FoldedMatrix } from './foldMatrix'
 import { seqFill } from './ramps'
 import { cellSize, labelStep } from './heatmapSizing'
+import { percent } from '../ui/format'
 
 /** What the read-out under the heatmap says while no cell is hovered. */
 export const READOUT_IDLE = 'Hover a cell to see one weight.'
@@ -36,7 +37,7 @@ const Cells = memo(function Cells({ folded, cell, onHover, rowLabel, colLabel }:
         style={{ fill: seqFill(w) }}
         className={fold ? 'attn-cell-fold' : undefined}
         onMouseEnter={() => onHover({ r, c })} onMouseLeave={() => onHover(null)}>
-        <title>{`${rowLabel(r)} → ${colLabel(c)}: ${Math.round(w * 100)}%`}</title>
+        <title>{`${rowLabel(r)} → ${colLabel(c)}: ${percent(w)}`}</title>
       </rect>
     )
   }))}</>
@@ -149,7 +150,7 @@ export function AttentionHeatmap({ heads, tokens, focus, chat, foldToggle = true
       </svg>
       <p data-testid="attn-readout" className="readout attn-readout">
         {hovered
-          ? `${rowLabel(hovered.r)} → ${colLabel(hovered.c)}: ${Math.round(folded.values[hovered.r][hovered.c] * 100)}%`
+          ? `${rowLabel(hovered.r)} → ${colLabel(hovered.c)}: ${percent(folded.values[hovered.r][hovered.c])}`
           : READOUT_IDLE}
       </p>
       <p data-testid="attn-hint" className="note attn-hint">{HINTS[head.label]}{chat && head.label === 'induction' ? ' In Chat mode the template’s markers (<|im_start|>, ↵, <|im_end|>) repeat, and those repeats count too.' : ''}</p>

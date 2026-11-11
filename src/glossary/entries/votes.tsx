@@ -3,6 +3,7 @@ import { visibleToken } from '../../viz/tokenText'
 import { VoteFigure } from '../figures/VoteFigure'
 import { Term } from '../Term'
 import type { GlossaryEntry } from '../types'
+import { signed } from '../../ui/format'
 
 export const votes: GlossaryEntry = {
   id: 'votes',
@@ -51,6 +52,6 @@ export const votes: GlossaryEntry = {
   ),
   inRun: (run) => run.votes ? (
     <p>At this cycle the MLP of layer {run.votes.layer} added the most to “{visibleToken(run.votes.candidate)}”: {' '}
-      {run.votes.value >= 0 ? '+' : '−'}{Math.abs(run.votes.value).toFixed(2)} to its score.</p>
+      {signed(run.votes.value)} to its score.</p>
   ) : null,
 }

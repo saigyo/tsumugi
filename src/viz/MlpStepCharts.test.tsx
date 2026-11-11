@@ -80,7 +80,7 @@ test('one neuron carrying half is named in the singular', () => {
   const one = Float32Array.from([100, 1, 1, 1, 1])
   render(<ProductBars h={one} summary={productSummary(one)} marked={[]} hover={null} onHover={() => {}} box={null} />)
   expect(screen.getByTestId('steps-product')).toHaveTextContent('1 neuron carries half')
-  expect(screen.getByTestId('steps-product')).toHaveTextContent('1 neuron carries 90 %')
+  expect(screen.getByTestId('steps-product')).toHaveTextContent('1 neuron carries 90%')
 })
 
 test('a count beyond the bars shown gets an off-chart note at the right end', () => {
@@ -89,7 +89,7 @@ test('a count beyond the bars shown gets an off-chart note at the right end', ()
   const svg = screen.getByTestId('steps-product')
   expect(svg.querySelectorAll('.step-cut')).toHaveLength(0)
   const notes = [...svg.querySelectorAll('text')].filter((t) => /needs/.test(t.textContent!))
-  expect(notes.map((t) => t.textContent)).toEqual(['half needs 250 neurons', '90 % needs 450 neurons'])
+  expect(notes.map((t) => t.textContent)).toEqual(['half needs 250 neurons', '90% needs 450 neurons'])
   for (const t of notes) expect(t.getAttribute('text-anchor')).toBe('end')
 })
 

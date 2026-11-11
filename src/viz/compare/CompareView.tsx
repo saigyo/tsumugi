@@ -6,6 +6,7 @@ import { Thumb } from '../AttentionGridExplorer'
 import { chatLayout, distributionFor, latestOfType, visibleTokens } from '../selectors'
 import { alignRuns, combinedDistribution, pairedHeads, type CombinedRow, type PairedHead } from './compareSelectors'
 import { visibleToken } from '../tokenText'
+import { percent, points } from '../../ui/format'
 
 const runTokens = (events: TraceEvent[]): TokenInfo[] => {
   const { prompt, generated } = visibleTokens(events, events.length - 1)
@@ -40,7 +41,7 @@ function DistSide({ events, cycle, name, lastCycle }: {
           className="cmp-bar-row">
           <span className="cmp-bar-token"><span className="tok tok-sm" title={visibleToken(t)}><span className="chip-text">{visibleToken(t)}</span></span></span>
           <span className={`bar${t.id === d.sample.chosen.id ? ' bar-chosen' : ''}`} style={{ width: `${Math.max(2, Math.round(t.prob * 100))}%` }} />
-          <span className="cmp-bar-prob">{Math.round(t.prob * 100)}%</span>
+          <span className="cmp-bar-prob">{percent(t.prob)}</span>
         </div>
       ))}
     </div>
@@ -48,8 +49,6 @@ function DistSide({ events, cycle, name, lastCycle }: {
 }
 
 type DeltaSort = 'delta' | 'a' | 'b'
-
-const pct = (p: number | null) => (p === null ? '—' : `${Math.round(p * 100)}%`)
 
 function CombinedDist({ rows, chosenA, chosenB, sort, nameA, nameB }: {
   rows: CombinedRow[]; chosenA: number; chosenB: number; sort: DeltaSort
@@ -70,13 +69,13 @@ function CombinedDist({ rows, chosenA, chosenB, sort, nameA, nameB }: {
           data-chosen-a={String(r.id === chosenA)} data-chosen-b={String(r.id === chosenB)}
           className="cmp-delta-row">
           <span className="cmp-bar-token"><span className="tok tok-sm" title={visibleToken(r)}><span className="chip-text">{visibleToken(r)}</span></span></span>
-          <span className="cmp-delta-p" data-chosen={String(r.id === chosenA)}>{pct(r.pA)}</span>
+          <span className="cmp-delta-p" data-chosen={String(r.id === chosenA)}>{percent(r.pA)}</span>
           <span className="cmp-delta-bar">
             <span className="cmp-delta-fill" data-sign={r.delta > 0 ? 'a' : r.delta < 0 ? 'b' : 'zero'}
               style={{ width: `${Math.abs(r.delta) * 50}%` }} />
           </span>
-          <span className="cmp-delta-value">{r.approx ? '~' : ''}{r.delta > 0 ? '+' : ''}{Math.round(r.delta * 100)}%</span>
-          <span className="cmp-delta-p" data-chosen={String(r.id === chosenB)}>{pct(r.pB)}</span>
+          <span className="cmp-delta-value">{points(r.delta, r.approx)}</span>
+          <span className="cmp-delta-p" data-chosen={String(r.id === chosenB)}>{percent(r.pB)}</span>
         </div>
       ))}
       {rows.some((r) => r.approx) && (

@@ -8,6 +8,7 @@ import { voteFill } from './mlpMath'
 import { useMlpLayer } from './mlpLayerSelection'
 import { visibleToken } from './tokenText'
 import { Icon } from '../ui/Icon'
+import { percent, points } from '../ui/format'
 
 const LAYERS = 30
 const MIN_SCALE = 0.01   // a flat sweep must not blow its noise up to full height
@@ -27,8 +28,6 @@ function noteFor(reason: Ineligible, run: Run): { text: string; action: boolean 
   }
 }
 
-const points = (d: number) => { const n = Math.round(d * 100); return `${n < 0 ? '−' : '+'}${Math.abs(n)} pts` }
-
 // "MLP 15 · preparatory · −58 pts"; a decisive layer names the token change instead
 function chipText(r: { layer: number; role: string }, e: KnockoutLayer | undefined, baseline: number | null, chosen: TokenInfo): string {
   const head = `MLP ${r.layer} · ${r.role}`
@@ -36,7 +35,6 @@ function chipText(r: { layer: number; role: string }, e: KnockoutLayer | undefin
   return r.role === 'decisive' ? `${head} · ${quoted(chosen)} → ${quoted(e.top)}` : `${head} · ${points(e.prob - baseline)}`
 }
 
-const pct = (p: number) => `${Math.round(p * 100)}%`
 const quoted = (t: TokenInfo) => `“${visibleToken(t)}”`
 
 // "Which layers the chosen token depends on": removes one MLP at a time and
@@ -112,13 +110,14 @@ export function KnockoutCard({ run, cycle, seqLen, chosen, votes, sweep, running
               const e = byLayer.get(l)
               if (!e || baseline === null) return <div key={l} className="knockout-col" />
               const drop = baseline - e.prob
+              const heightPercent = (Math.abs(drop) / scale) * 100
               return (
                 <div key={l} className="knockout-col">
                   <button type="button" data-testid="knockout-bar" data-layer={l} data-drop={drop.toFixed(2)}
                     data-flips={String(e.flips)} aria-pressed={picked === l}
-                    aria-label={`MLP ${l}: ${quoted(chosen)} ${pct(baseline)} → ${pct(e.prob)}`}
+                    aria-label={`MLP ${l}: ${quoted(chosen)} ${percent(baseline)} → ${percent(e.prob)}`}
                     className={`knockout-bar ${drop >= 0 ? 'knockout-bar-drop' : 'knockout-bar-rise'}${e.flips ? ' knockout-bar-flips' : ''}`}
-                    style={{ height: `${Math.max(2, (Math.abs(drop) / scale) * 100)}%` }}
+                    style={{ height: `${Math.max(2, heightPercent)}%` }}
                     onClick={() => pick(l)} />
                 </div>
               )
@@ -154,7 +153,7 @@ export function KnockoutCard({ run, cycle, seqLen, chosen, votes, sweep, running
       )}
       {entry && baseline !== null && picked !== null && (
         <div className="knockout-tip">
-          <span data-testid="knockout-detail">MLP {picked} — {quoted(chosen)} {pct(baseline)} → {pct(entry.prob)},{' '}
+          <span data-testid="knockout-detail">MLP {picked} — {quoted(chosen)} {percent(baseline)} → {percent(entry.prob)},{' '}
             {entry.top.id !== chosen.id ? `top token becomes ${quoted(entry.top)}` : 'top token unchanged'}</span>{' '}
           <button type="button" className="btn" disabled={busy || !runKnockout}
             onClick={() => runKnockout?.(picked, cycle)}>Run with MLP {picked} off and compare</button>

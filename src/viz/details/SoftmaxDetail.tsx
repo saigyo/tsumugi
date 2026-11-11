@@ -7,6 +7,7 @@ import { visibleToken } from '../tokenText'
 import { Formula } from '../Formula'
 import { logitsTex, softmaxTex } from '../tex'
 import { Icon } from '../../ui/Icon'
+import { fixed, percent } from '../../ui/format'
 
 const BAR_W = 200
 
@@ -45,8 +46,8 @@ export function SoftmaxDetail({ events, cursor }: { events: TraceEvent[]; cursor
                 {logit !== undefined && <title>{shareDerivation(logit, top, T, c.prob)}</title>}
                 <rect y="2" width={BAR_W * c.prob} height="10" rx="2" className={`bar-svg${i === 0 ? ' bar-svg-chosen' : ''}`} style={{ transition: 'width .4s' }} />
               </svg>
-              <span className="bar-value">{Math.round(c.prob * 100)}%</span>
-              {logit !== undefined && <span className="softmax-logit">from {logit.toFixed(1)}</span>}
+              <span className="bar-value">{percent(c.prob)}</span>
+              {logit !== undefined && <span className="softmax-logit">from {fixed(logit, 1)}</span>}
             </div>
           )
         })}

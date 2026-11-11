@@ -7,11 +7,11 @@ import { blockTotals, layerTotals, topMlpLayers, voteFill } from './mlpMath'
 import type { VotedCandidate } from './selectors'
 import { visibleToken } from './tokenText'
 import { Icon } from '../ui/Icon'
+import { fixed, signed } from '../ui/format'
 
 type Blocks = 'mlp' | 'attn' | 'both'
 const BLOCKS_NAME: Record<Blocks, string> = { mlp: 'MLP', attn: 'attention', both: 'both' }
 
-const signed = (v: number) => `${v >= 0 ? '+' : '−'}${Math.abs(v).toFixed(2)}`
 const sum = (a: number[]) => a.reduce((s, v) => s + v, 0)
 
 // The per-layer votes the grid shows for the chosen blocks.
@@ -74,8 +74,8 @@ function VotesBody({ candidates, selected, onSelect, onLayer }: {
               onClick={() => setBlocks(b)}>{BLOCKS_NAME[b]}</button>
           ))}
         </div>
-        <div data-testid="votes-legend" className="mlp-legend">−{peak.toFixed(1)}{' '}
-          <span className="mlp-ramp-diverging" aria-hidden="true" /> +{peak.toFixed(1)}
+        <div data-testid="votes-legend" className="mlp-legend">−{fixed(peak, 1)}{' '}
+          <span className="mlp-ramp-diverging" aria-hidden="true" /> +{fixed(peak, 1)}
           <span className="mlp-legend-note">blue: pushed toward the candidate · red: pushed away ·
             square-root scale, so small votes stay visible</span></div>
       </div>
@@ -139,7 +139,7 @@ function RunningScore({ candidates, selected }: { candidates: VotedCandidate[]; 
   return (
     <figure className="mlp-chart-fig">
       <figcaption className="mlp-chart-label">running score, “{visibleToken(sel)}” against the rest — ends
-        at <span data-testid="vote-final">{sel.logit.toFixed(2)}</span></figcaption>
+        at <span data-testid="vote-final">{fixed(sel.logit, 2)}</span></figcaption>
       <svg data-testid="votes-lens" className="mlp-chart" viewBox={`0 0 ${W} ${H}`} role="img"
         aria-label="each candidate's score building up across the layers">
         {ticks.map((t) => (
@@ -193,7 +193,7 @@ function Breakdown({ candidate, layers }: { candidate: VotedCandidate; layers: n
           </tr>
         ))}
         <tr data-testid="votes-total" className="votes-total">
-          <th scope="row">score on the Logits card</th><td /><td>{candidate.logit.toFixed(2)}</td>
+          <th scope="row">score on the Logits card</th><td /><td>{fixed(candidate.logit, 2)}</td>
         </tr>
       </tbody>
     </table>

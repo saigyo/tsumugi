@@ -303,3 +303,10 @@ test('the tooltip shadow variable is gone and the floating surface is one rule',
     expect(own, sel).not.toMatch(/background|box-shadow|border/)
   }
 })
+
+test('number formatting lives in src/ui/format.ts only', () => {
+  const others = (pattern: RegExp) => filesWith(pattern).filter((f) => !f.endsWith('src/ui/format.ts') && !f.endsWith('ui/format.ts'))
+  expect(others(/\b(?:const|function|let)\s+(?:pct|signed|percent)\b/)).toEqual([])
+  expect(others(/\* 100\)\}%/)).toEqual([])
+  expect(others(/'~'/)).toEqual([])
+})

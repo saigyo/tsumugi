@@ -1,6 +1,7 @@
 import { visibleToken } from '../../viz/tokenText'
 import { Term } from '../Term'
 import type { GlossaryEntry } from '../types'
+import { percent, points } from '../../ui/format'
 
 export const knockout: GlossaryEntry = {
   id: 'knockout',
@@ -48,16 +49,15 @@ export const knockout: GlossaryEntry = {
   inRun: (run) => {
     const k = run.knockout
     if (!k) return null
-    const pts = (d: number) => `${Math.round(d * 100)} points`
     return (
       <>
-        <p>Cycle {run.cycle + 1}: “{visibleToken(k.chosen)}” had {Math.round(k.baseline * 100)}% with every layer in
+        <p>Cycle {run.cycle + 1}: “{visibleToken(k.chosen)}” had {percent(k.baseline)} with every layer in
           place. Removing the MLP of {k.flipped === 0 ? 'no layer' : k.flipped === 1 ? 'one layer' : `${k.flipped} of ${k.layers} layers`}{' '}
           changes the top token.</p>
         {(k.drop || k.rise) && (
-          <p>{k.drop && `Largest drop: MLP ${k.drop.layer}, ${pts(k.drop.delta)}.`}
+          <p>{k.drop && `Largest drop: MLP ${k.drop.layer}, ${points(-k.drop.delta)}.`}
             {k.drop && k.rise && ' '}
-            {k.rise && `Largest rise: MLP ${k.rise.layer}, ${pts(k.rise.delta)}.`}</p>
+            {k.rise && `Largest rise: MLP ${k.rise.layer}, ${points(k.rise.delta)}.`}</p>
         )}
       </>
     )

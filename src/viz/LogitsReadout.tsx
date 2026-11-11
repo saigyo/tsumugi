@@ -8,6 +8,7 @@ import { visibleToken } from './tokenText'
 import { rowMarkY } from './stripMath'
 import { VectorStrip } from './VectorStrip'
 import { Icon } from '../ui/Icon'
+import { count, fixed } from '../ui/format'
 
 const X_CELL_W = 5, X_CELL_H = 14          // bench strips (full card width available)
 const EQ_CELL_W = 4                        // the x strip in the equation row, next to E and the scores
@@ -52,7 +53,7 @@ export function LogitsReadout({ candidates, lastHidden, dims, vocabSize, selecte
           {xCells ? (
             <VectorStrip cells={xCells} cellW={EQ_CELL_W} cellH={X_CELL_H} testId="readout-x"
               ariaLabel="the last token’s final vector, pooled"
-              titleFor={(c, v) => `dims ${c * per}–${c * per + per - 1}: mean ${v.toFixed(2)}`} />
+              titleFor={(c, v) => `dims ${c * per}–${c * per + per - 1}: mean ${fixed(v, 2)}`} />
           ) : missingX}
           <div className="fine embed-caption">the last position after the final layer and norm</div>
         </div>
@@ -84,7 +85,7 @@ export function LogitsReadout({ candidates, lastHidden, dims, vocabSize, selecte
                 <svg data-testid="logit-bar" data-token={c.text} width={BAR_W} height="14">
                   <rect y="2" width={BAR_W * frac} height="10" rx="2" className={`bar-svg${i === top ? ' bar-svg-chosen' : ''}`} style={{ transition: 'width .4s' }} />
                 </svg>
-                <span className="bar-value">{c.logit.toFixed(1)}</span>
+                <span className="bar-value">{fixed(c.logit, 1)}</span>
               </button>
             )
           })}
@@ -110,14 +111,14 @@ export function LogitsReadout({ candidates, lastHidden, dims, vocabSize, selecte
                 <span className="readout-bench-label">product</span>
                 <VectorStrip cells={sel.dot!} cellW={X_CELL_W} cellH={X_CELL_H} testId="bench-product"
                   ariaLabel="element-wise products, summed per cell"
-                  titleFor={(c, v) => `dims ${c * per}–${c * per + per - 1}: x̄ ${xCells![c].toFixed(2)} · ē ${sel.row![c].toFixed(2)} → ${v.toFixed(2)}`} />
+                  titleFor={(c, v) => `dims ${c * per}–${c * per + per - 1}: x̄ ${fixed(xCells![c], 2)} · ē ${fixed(sel.row![c], 2)} → ${fixed(v, 2)}`} />
               </>
             )}
           </div>
           {exact ? (
             <div data-testid="readout-sum" className="note readout-sum">
-              Σ of the {READOUT_CELLS} cells = {dotSum!.toFixed(1)} — the logit on the bar
-              {Math.abs(dotSum! - sel.logit) > 0.05 ? ` (logit ${sel.logit.toFixed(1)})` : ''}
+              Σ of the {count(READOUT_CELLS)} cells = {fixed(dotSum!, 1)} — the logit on the bar
+              {Math.abs(dotSum! - sel.logit) > 0.05 ? ` (logit ${fixed(sel.logit, 1)})` : ''}
             </div>
           ) : (
             <div data-testid="readout-sum" className="note readout-sum">
@@ -129,7 +130,7 @@ export function LogitsReadout({ candidates, lastHidden, dims, vocabSize, selecte
           )}
           {exact && (
             <div className="fine embed-caption">
-              {READOUT_CELLS} cells of {per} dimensions; blue cells add to the score, red cells subtract.
+              {count(READOUT_CELLS)} cells of {per} dimensions; blue cells add to the score, red cells subtract.
             </div>
           )}
         </div>

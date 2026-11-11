@@ -16,11 +16,12 @@ import { useNeuronMode } from './neuronMode'
 import type { VotedCandidate } from './selectors'
 import { visibleToken } from './tokenText'
 import { Icon } from '../ui/Icon'
+import { fixed } from '../ui/format'
+const fixed2 = (v: number) => fixed(v, 2)
 
 const LOADING = 'Loading the MLP weights (about 0.9 MB per layer, once per model version)…'
 const MISMATCH = 'This run’s step data doesn’t match the MLP weights file.'
 const INCONSISTENT = 'This run’s step data is inconsistent and can’t be shown.'
-const f2 = (v: number) => `${v < 0 ? '−' : ''}${Math.abs(v).toFixed(2)}`
 
 const acts = new WeakMap<NeuronData, Float32Array>()
 const activationsOf = (d: NeuronData) => { let a = acts.get(d); if (!a) { a = unpackHalf(d.activations); acts.set(d, a) } return a }
@@ -89,7 +90,7 @@ function StepsBody({ data, candidates, selected, layer }: { data: NeuronData; ca
         {weights ? <NormStrips s={s} w={weights.layer.normWeight} eps={weights.asset.manifest.rmsNormEps} /> : pending}
       </Step>
       <Step n={2} name="Gate and up" tex={String.raw`g = W_{\text{gate}} \cdot n \quad u = W_{\text{up}} \cdot n`}
-        text="Two different weight matrices turn n into two lists of 1,536 numbers, one pair per neuron. Each dot is one neuron.">
+        text="Two different weight matrices turn n into two lists of 1536 numbers, one pair per neuron. Each dot is one neuron.">
         <GateUpScatter gate={s.gate} up={s.up} domain={sum.domain} marked={marked} named={named} hover={hover} onHover={setHover} box={box('scatter')} />
         {named.length > 0 && <p data-testid="steps-scatter-note" className="fine">{namedNote(named.length)}</p>}
       </Step>
@@ -127,7 +128,7 @@ const NormStrips = memo(function NormStrips({ s, w, eps }: { s: LayerSteps; w: F
   return (
     <div>
       <StepStrip values={s.x} lim={2 * rms(s.x)} label="x, into the MLP" testId="strip-x" />
-      <StepStrip values={w} lim={peakW} label={`÷ rms(x) = ${r.toFixed(1)}, ⊙ w`} testId="strip-w" />
+      <StepStrip values={w} lim={peakW} label={`÷ rms(x) = ${fixed(r, 1)}, ⊙ w`} testId="strip-w" />
       <StepStrip values={n} lim={2 * rms(n)} label="n, normalized" testId="strip-n" />
       <p className="fine">{s.x.length} numbers each; blue positive, red negative; x and n clipped at 2× their typical size, w scaled to its largest value.</p>
     </div>
@@ -142,11 +143,11 @@ const DownStrips = memo(function DownStrips({ s, layer, dims, marked, ring }: { 
     <div>
       {/* the wrapper carries the ring, so a hover leaves the strip itself (and its cells) untouched */}
       {top.map(({ i, values }) => <div key={i} className={i === ring ? 'step-row-ring' : undefined}>
-        <StepStrip values={values} lim={lim} label={`N${i}: ${f2(s.h[i])} × column`} testId={`strip-c${i}`} labelClass="step-strip-mono" /></div>)}
+        <StepStrip values={values} lim={lim} label={`N${i}: ${fixed2(s.h[i])} × column`} testId={`strip-c${i}`} labelClass="step-strip-mono" /></div>)}
       <div className="step-strip-row"><span className="step-strip-label">+ {s.h.length - top.length} more</span><span className="note">…</span></div>
       <StepStrip values={s.edit} lim={lim} label="= edit" testId="strip-edit" labelClass="step-strip-sum" />
-      <p data-testid="steps-ratio" className="fine">‖edit‖ = {Math.hypot(...s.edit).toFixed(0)},{' '}
-        {editRatio(s.edit, s.x).toFixed(2)} of the stream’s length (the edit size card’s cell). Same colour scale on every row.</p>
+      <p data-testid="steps-ratio" className="fine">‖edit‖ = {fixed(Math.hypot(...s.edit), 0)},{' '}
+        {fixed(editRatio(s.edit, s.x), 2)} of the stream’s length (the edit size card’s cell). Same colour scale on every row.</p>
     </div>
   )
 })
@@ -174,8 +175,8 @@ function HoverBox({ s, hover, weights }: { s: LayerSteps; hover: Hover; weights:
   return (
     <div ref={ref} data-testid="steps-box" className="step-box pop" role="status" style={style}>
       <b>N{i}</b>
-      <span>g {f2(s.gate[i])} → SiLU {f2(silu(s.gate[i]))}</span>
-      <span>× u {f2(s.up[i])} = h {f2(s.h[i])}</span>
+      <span>g {fixed2(s.gate[i])} → SiLU {fixed2(silu(s.gate[i]))}</span>
+      <span>× u {fixed2(s.up[i])} = h {fixed2(s.h[i])}</span>
       {labels.length > 0 && <span className="step-box-labels">pushes toward {labels.join(', ')}…</span>}
     </div>
   )

@@ -1,5 +1,5 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { afterEach, expect, test, vi } from 'vitest'
+import { afterEach, describe, expect, test, vi } from 'vitest'
 import { PromptBar } from './PromptBar'
 import { CHAT_EXAMPLE } from './chatExample'
 import { DEFAULT_SYSTEM_PROMPT } from '../engine/chatTemplate'
@@ -74,10 +74,10 @@ test('out-of-range typed values are clamped; NaN keeps the previous value', () =
   render(<PromptBar hasRuns={false} mode="sim" onModeChange={noop} onGenerate={onGenerate} busy={false} />)
   fireEvent.change(screen.getByTestId('prompt-input'), { target: { value: 'Hi' } })
   fireEvent.change(screen.getByTestId('topk-input'), { target: { value: '0' } })    // below min → 1
-  fireEvent.change(screen.getByTestId('temp-input'), { target: { value: '9' } })    // above max → 2
+  fireEvent.change(screen.getByTestId('temp-input'), { target: { value: '9' } })    // above max → keeps 0.8
   fireEvent.change(screen.getByTestId('maxtok-input'), { target: { value: '' } })   // NaN → keep 20
   fireEvent.click(screen.getByTestId('btn-generate'))
-  expect(onGenerate).toHaveBeenCalledWith('Hi', { temperature: 2, topK: 1, maxNewTokens: 20 }, { kind: 'text' })
+  expect(onGenerate).toHaveBeenCalledWith('Hi', { temperature: 0.8, topK: 1, maxNewTokens: 20 }, { kind: 'text' })
 })
 
 test('example chips fill the prompt and start generation', () => {
@@ -224,7 +224,7 @@ test('initial values fill the fields', () => {
     initial={{ prompt: 'Hi', format: { kind: 'chat', system: 'Be brief.' }, params: { temperature: 0, topK: 3, maxNewTokens: 40 }, seed: 9 }} />)
   expect(screen.getByTestId('prompt-input')).toHaveValue('Hi')
   expect(screen.getByTestId('system-input')).toHaveValue('Be brief.')
-  expect(screen.getByTestId('temp-input')).toHaveValue(0)
+  expect(screen.getByTestId('temp-input')).toHaveValue('0')
   expect(screen.getByTestId('topk-input')).toHaveValue(3)
   expect(screen.getByTestId('maxtok-input')).toHaveValue(40)
   expect(screen.getByTestId('seed-input')).toHaveValue('9')
@@ -325,4 +325,62 @@ test('while generating, Stop comes before Generate and both are large buttons', 
   expect(stop.compareDocumentPosition(generate) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   expect(stop).toHaveClass('btn', 'btn-danger', 'btn-lg')
   expect(generate).toHaveClass('btn', 'btn-accent', 'btn-lg')
+})
+
+describe('Temperature field', () => {
+  const setup = () => {
+    const onGenerate = vi.fn()
+    render(<PromptBar hasRuns={false} mode="sim" onModeChange={noop} onGenerate={onGenerate} busy={false} />)
+    fireEvent.change(screen.getByTestId('prompt-input'), { target: { value: 'Hi' } })
+    return { onGenerate, field: screen.getByTestId('temp-input') as HTMLInputElement }
+  }
+  const generated = (onGenerate: ReturnType<typeof vi.fn>) => {
+    fireEvent.click(screen.getByTestId('btn-generate'))
+    return onGenerate.mock.calls.at(-1)![1].temperature
+  }
+
+  test('is a text field and accepts a comma as the decimal sign', () => {
+    const { onGenerate, field } = setup()
+    expect(field.type).toBe('text')
+    fireEvent.change(field, { target: { value: '0,5' } })
+    expect(field).toHaveValue('0.5')
+    expect(generated(onGenerate)).toBe(0.5)
+  })
+
+  test('out-of-range, unreadable and empty text keep the last good value', () => {
+    const { onGenerate, field } = setup()
+    fireEvent.change(field, { target: { value: '2.5' } })
+    expect(generated(onGenerate)).toBe(0.8)
+    fireEvent.change(field, { target: { value: 'abc' } })
+    expect(field).toHaveValue('2.5')
+    expect(generated(onGenerate)).toBe(0.8)
+    fireEvent.change(field, { target: { value: '' } })
+    expect(generated(onGenerate)).toBe(0.8)
+  })
+
+  test('arrow keys step by 0.1 within 0 to 2', () => {
+    const { onGenerate, field } = setup()
+    fireEvent.keyDown(field, { key: 'ArrowUp' })
+    expect(field).toHaveValue('0.9')
+    fireEvent.keyDown(field, { key: 'ArrowDown' })
+    expect(field).toHaveValue('0.8')
+    fireEvent.change(field, { target: { value: '2' } })
+    fireEvent.keyDown(field, { key: 'ArrowUp' })
+    expect(field).toHaveValue('2')
+    fireEvent.change(field, { target: { value: '0' } })
+    fireEvent.keyDown(field, { key: 'ArrowDown' })
+    expect(field).toHaveValue('0')
+    expect(generated(onGenerate)).toBe(0)
+  })
+
+  test('arrow keys step from the last good value after rejected or cleared text', () => {
+    const { onGenerate, field } = setup()
+    fireEvent.change(field, { target: { value: 'abc' } })
+    fireEvent.keyDown(field, { key: 'ArrowUp' })
+    expect(field).toHaveValue('0.9')
+    fireEvent.change(field, { target: { value: '' } })
+    fireEvent.keyDown(field, { key: 'ArrowDown' })
+    expect(field).toHaveValue('0.8')
+    expect(generated(onGenerate)).toBe(0.8)
+  })
 })

@@ -13,6 +13,7 @@ import { useNeuronMode, type NeuronMode as Mode } from './neuronMode'
 import type { VotedCandidate } from './selectors'
 import { visibleToken } from './tokenText'
 import { Icon } from '../ui/Icon'
+import { count, fixed, signed } from '../ui/format'
 
 const MODE_NAME: Record<Mode, string> = { vote: 'behind the vote', size: 'firing most' }
 const LOADING = 'Loading the MLP weights (about 0.9 MB per layer, once per model version)…'
@@ -21,7 +22,6 @@ const NO_ROW = 'No neuron data for this candidate.'
 const APPROX = 'The neuron votes don’t add up exactly to the votes card here. Runs saved with an earlier version of Tsumugi show this: its browser model rounded each MLP’s inputs.'
 const BAR_MAX = 70
 
-const signed = (v: number, digits = 2) => `${v >= 0 ? '+' : '−'}${Math.abs(v).toFixed(digits)}`
 const BADGE_CLASS: Record<string, string> = { 'top 0.1%': 'strong', 'top 1%': 'mid', 'top 10%': 'low', 'not in top 10%': 'none' }
 
 // Decoding 46 080 float16 values once per cycle's data, not per render.
@@ -69,7 +69,7 @@ function NeuronBody({ data, candidates, selected, layer }: {
   return (
     <>
       <p className="mlp-caption">{mode === 'vote'
-        ? 'The MLP’s edit is the sum of 1,536 neuron edits, so its vote splits into one vote per neuron. Click a layer in either card above to open it here.'
+        ? 'The MLP’s edit is the sum of 1536 neuron edits, so its vote splits into one vote per neuron. Click a layer in either card above to open it here.'
         : 'The neurons that changed the vector most for the last token, whatever they voted for. Size = |activation| × length of the neuron’s column.'}</p>
       <div className="mlp-controls">
         <div className="seg" role="group" aria-label="Which neurons">
@@ -128,7 +128,7 @@ function NeuronTable({ data, asset, weights, layer, mode, cand }: {
         <tbody>{rows.map((r) => (
           <tr key={r.neuron} data-testid="neuron-row">
             <td className="tk">N{r.neuron}</td><td className="tk">{signed(r.activation, 1)}</td>
-            <td><span className="bar" style={{ width: `${(r.size / peak) * BAR_MAX}px` }} />{r.size.toFixed(2)}</td>
+            <td><span className="bar" style={{ width: `${(r.size / peak) * BAR_MAX}px` }} />{fixed(r.size, 2)}</td>
             <td>{chips(r.labels)}</td>
           </tr>
         ))}</tbody>
@@ -155,7 +155,7 @@ function NeuronTable({ data, asset, weights, layer, mode, cand }: {
             </tr>
           ))}
           <tr data-testid="neuron-rest" className="neuron-rest">
-            <td colSpan={2}>the other {(m.neurons - table.rows.length).toLocaleString('en-US')} neurons</td>
+            <td colSpan={2}>the other {count(m.neurons - table.rows.length)} neurons</td>
             <td colSpan={3}>{signed(table.rest)}</td></tr>
           <tr data-testid="neuron-total" className="neuron-total">
             <td colSpan={2}>layer {layer} MLP, total</td>

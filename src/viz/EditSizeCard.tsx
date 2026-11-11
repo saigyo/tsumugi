@@ -9,6 +9,7 @@ import { useChatFold } from './chatFolds'
 import type { EditRows } from './selectors'
 import { visibleToken } from './tokenText'
 import { Icon } from '../ui/Icon'
+import { fixed } from '../ui/format'
 
 type Block = 'attn' | 'mlp'
 const BLOCK_NAME: Record<Block, string> = { attn: 'attention', mlp: 'MLP' }
@@ -101,7 +102,7 @@ function EditHeatmap({ rows, items, open, onToggle, block, selected, onSelect, o
             {rows[block][r].map((v, l) => (
               <div key={l} data-testid="edit-cell" data-block={block} data-row={r} data-layer={l}
                 style={{ background: ratioFill(v) }} onClick={() => { onSelect(r); onLayer?.(l) }}
-                title={`“${visibleToken(t)}”, layer ${l}, ${BLOCK_NAME[block]}: ${v.toFixed(2)}`} />
+                title={`“${visibleToken(t)}”, layer ${l}, ${BLOCK_NAME[block]}: ${fixed(v, 2)}`} />
             ))}
           </div>
         </div>
@@ -136,7 +137,7 @@ function EditBars({ rows, index, onLayer }: { rows: EditRows; index: number; onL
           <g key={t}>
             <line x1={X0} x2={W - 6} y1={y(t)} y2={y(t)} data-testid={t === 1 ? 'edit-bars-ref' : undefined}
               className={t === 1 ? 'mlp-ref-line' : 'mlp-grid-line'} />
-            <text x={X0 - 6} y={y(t) + 3} textAnchor="end" className="mlp-tick">{t.toFixed(1)}</text>
+            <text x={X0 - 6} y={y(t) + 3} textAnchor="end" className="mlp-tick">{fixed(t, 1)}</text>
           </g>
         ))}
         <text x={W - 8} y={y(1) - 4} textAnchor="end" className="mlp-ref-label">edit as large as the stream itself</text>
@@ -148,7 +149,7 @@ function EditBars({ rows, index, onLayer }: { rows: EditRows; index: number; onL
               data-capped={String(capped)} className={`edit-bar edit-bar-${block}${capped ? ' edit-bar-capped' : ''}${onLayer ? ' edit-bar-clickable' : ''}`}
               onClick={() => onLayer?.(l)}
               x={X0 + l * slot + 2 + j * (bw + 1)} y={y(v)} width={bw} height={Y0 - y(v)}>
-              <title>{`layer ${l}, ${BLOCK_NAME[block]}: ${v.toFixed(2)}`}</title>
+              <title>{`layer ${l}, ${BLOCK_NAME[block]}: ${fixed(v, 2)}`}</title>
             </rect>
           )
         }))}
