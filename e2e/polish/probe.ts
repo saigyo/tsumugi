@@ -6,8 +6,6 @@ export type ControlState = {
   text: string // text colour, normalised
   contrast: number | null // text colour over the effective background behind the control
   disabled: boolean
-  hasName: boolean
-  focusRing: boolean
 }
 
 /** The page-side API, defined by installProbe as window.__polish. */
@@ -17,7 +15,7 @@ export type Polish = {
   snapshot(): void
   movedVertically(exceptIndex: number): string[]
   ring(index: number): { signature: string; visible: boolean } | null
-  unnamedControls(): string[]
+  unnamedControls(): { checked: number; unnamed: string[] }
   textIssues(): string[]
   clippedLabels(): string[]
   overflowingTips(): string[]
@@ -169,8 +167,6 @@ export async function installProbe(page: Page): Promise<void> {
           text: hex(text),
           contrast: text ? Math.round(contrastOf(over({ ...text, a: text.a * Number(s.opacity) }, bg), bg) * 100) / 100 : null,
           disabled: (el as HTMLButtonElement).disabled === true || el.getAttribute('aria-disabled') === 'true',
-          hasName: nameOf(el) !== '',
-          focusRing: ringOf(el).visible,
         }
       },
       ring(index: number) {
@@ -179,11 +175,13 @@ export async function installProbe(page: Page): Promise<void> {
       },
       unnamedControls() {
         const out = new Set<string>()
+        let checked = 0
         for (const el of document.body.querySelectorAll(INTERACTIVE)) {
           if (!visible(el)) continue
+          checked++
           if (!nameOf(el)) out.add(`${keyOf(el)} "${(el.textContent ?? '').trim().slice(0, 20)}"`)
         }
-        return [...out]
+        return { checked, unnamed: [...out] }
       },
       snapshot() {
         snapshotRects = []

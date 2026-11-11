@@ -24,6 +24,9 @@ async function inEachTheme(page: Page, visit: (theme: Theme, state: string) => P
 }
 
 /** Controls that may legitimately never be reachable by the pointer. Empty on purpose: add an entry only with a reason. */
+/** A theme that checks fewer controls than this was not really surveyed (a full walk reaches about 90). */
+const MIN_CONTROLS = 20
+
 const NEVER_REACHABLE: string[] = []
 
 const stateOf = (page: Page, index: number) => page.evaluate((i) => window.__polish.state(i), index)
@@ -94,6 +97,8 @@ function surveyHovers(page: Page): Promise<HoverSurvey> {
           survey.records.push({ theme, state, control, rest, hovered, moved })
         })
       })
+      const surveyed = survey.records.filter((r) => r.theme === theme).length
+      if (surveyed < MIN_CONTROLS) throw new Error(`${theme}: the hover survey reached only ${surveyed} controls, expected at least ${MIN_CONTROLS}`)
       survey.unreachable.push(...tracker.finish().map((m) => `${theme}: ${m}`))
     }
     return survey
@@ -157,7 +162,9 @@ test.fixme('hovering moves nothing vertically', async ({ page }) => {
 test.fixme('every control has an accessible name', async ({ page }) => {
   const problems = new Set<string>()
   await inEachTheme(page, async (theme, state) => {
-    for (const control of await page.evaluate(() => window.__polish.unnamedControls())) problems.add(`${theme}/${state}: ${control} has no accessible name`)
+    const { checked, unnamed } = await page.evaluate(() => window.__polish.unnamedControls())
+    if (checked === 0) problems.add(`${theme}/${state}: no controls were checked`)
+    for (const control of unnamed) problems.add(`${theme}/${state}: ${control} has no accessible name`)
   })
   expect([...problems]).toEqual([])
 })
@@ -166,10 +173,12 @@ test.fixme('every control shows a focus ring', async ({ page }) => {
   const problems: string[] = []
   for (const theme of THEMES) {
     const tracker = reachTracker(page)
+    let checkedCount = 0
     await setTheme(page, theme)
     await walk(page, async (state) => {
       await tracker.eachNew(state, async (control, locator) => {
         await page.mouse.move(2, 2)
+        await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur()) // an autofocused field is not "resting"
         await page.waitForTimeout(60)
         const before = await page.evaluate((i) => window.__polish.ring(i), control.index)
         await page.keyboard.press('Shift') // so that script focus counts as keyboard focus
@@ -180,8 +189,10 @@ test.fixme('every control shows a focus ring', async ({ page }) => {
         else if (!after.visible || after.signature === before.signature)
           problems.push(`${theme}/${state}: ${control.key} "${control.text}" shows no focus ring (${after.signature})`)
         await locator.blur()
+        checkedCount++
       })
     })
+    if (checkedCount < MIN_CONTROLS) problems.push(`${theme}: only ${checkedCount} controls were checked, expected at least ${MIN_CONTROLS}`)
     problems.push(...tracker.finish().map((m) => `${theme}: ${m}`))
   }
   expect(problems).toEqual([])
