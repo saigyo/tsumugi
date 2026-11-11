@@ -641,8 +641,9 @@ input[type="number"] { width: 4rem; }
 /* ── Icons: drawn, one size, the colour of the text around them ────── */
 .icon { width: 1rem; height: 1rem; flex: none; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round;
   stroke-linejoin: round; vertical-align: -0.15em; }
-/* a closed fold points right, an open one down */
-.token-fold[aria-expanded="false"] .icon, .mlp-fold[aria-expanded="false"] .icon { transform: rotate(-90deg); }
+/* anything that opens in place (a fold, the system prompt, the examples) points right when closed and down when open;
+   the "+N more" menu drops a list and always points down */
+[aria-expanded="false"]:not(.run-more) > .icon[data-icon="chevron"] { transform: rotate(-90deg); }
 
 /* ── Glossary: terms, tooltips, sections ─────────────────────────────── */
 .gl-term-wrap { position: relative; display: inline; }
