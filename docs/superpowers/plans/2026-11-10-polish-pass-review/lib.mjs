@@ -180,8 +180,7 @@ export const makeTools = (page, OUT) => {
   mkdirSync(OUT, { recursive: true })
   const $ = (id) => page.getByTestId(id)
   const log = (...a) => { console.log(...a); appendFileSync(`${OUT}/log.txt`, a.join(' ') + '\n') }
-  let theme = 'light'
-  const setTheme = async (t) => { theme = t; await page.emulateMedia({ colorScheme: t }); await page.waitForTimeout(250) }
+  const setTheme = async (t) => { await page.emulateMedia({ colorScheme: t }); await page.waitForTimeout(250) }
   const data = { inventory: {}, text: {}, overflow: {}, blocks: {}, hover: {}, focus: {} }
   const save = () => writeFileSync(`${OUT}/data.json`, JSON.stringify(data, null, 1))
   const metrics = async (label) => {

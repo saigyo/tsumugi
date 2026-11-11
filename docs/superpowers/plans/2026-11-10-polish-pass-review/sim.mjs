@@ -14,7 +14,7 @@ await context.grantPermissions(['clipboard-read', 'clipboard-write']).catch(() =
 const page = context.pages()[0] ?? await context.newPage()
 await installPageFns(page)
 const T = makeTools(page, OUT)
-const { $, log, metrics, hoverAudit, shotEl, shotApp, shotView, scene, topNum, newerThan, openExamples, unstick } = T
+const { $, log, metrics, hoverAudit, shotEl, shotApp, shotView, scene, topNum, newerThan, unstick } = T
 try {
   await page.goto(URL)
   await page.waitForTimeout(800)

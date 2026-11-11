@@ -25,7 +25,6 @@ if (what === 'inter' || what === 'boxes') {
   for (const [label, rows] of Object.entries(d.inventory)) for (const r of rows) {
     if ((what === 'inter') !== r.inter) continue
     const id = `${r.key} h${r.h} fs${r.fs} fw${r.fw} r${r.rad} p[${r.pad}] bg${r.bg} fg${r.color} b${r.bw}${r.bs !== '-' ? ' ' + r.bs + ' ' + r.bc : ''} sh${r.shadow} tr[${r.trans}] ${r.cursor}`
-    const k = r.key.replace(/\[.*$/, '')
     if (!m.has(id)) m.set(id, { r, labels: new Set() })
     m.get(id).labels.add(label)
   }

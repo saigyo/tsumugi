@@ -124,7 +124,6 @@ try {
     for (const w of [1024, 768, 400]) {
       await page.setViewportSize({ width: w, height: 900 }); await page.waitForTimeout(600)
       const u = await unstick()
-      const top = await page.locator('.app-header').boundingBox()
       await page.evaluate(() => scrollTo(0, 0))
       if (w !== 1024) await shotApp(`25-real-layers-w${w}`, ['light'])
       await metrics(`real-layers-w${w}`)
