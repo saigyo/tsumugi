@@ -182,3 +182,14 @@ test('an ordinary run has no removed-layer note', () => {
   card()
   expect(screen.queryByTestId('removed-layer-note')).toBeNull()
 })
+
+test('candidate chips and the word lists are plain chips; the table uses the one bar', async () => {
+  card()
+  await waitFor(() => screen.getAllByTestId('neuron-row'))
+  const cands = screen.getAllByTestId('neuron-cand')
+  expect(cands.every((c) => c.classList.contains('tok') && !/tok-wash-/.test(c.className))).toBe(true)
+  const labels = screen.getAllByTestId('neuron-label')
+  expect(labels.every((l) => l.classList.contains('tok') && l.classList.contains('tok-sm'))).toBe(true)
+  screen.queryAllByTestId('neuron-away').forEach((a) => expect(a).toHaveClass('tok', 'tok-sm', 'tok-away'))
+  expect(screen.getAllByTestId('neuron-row').every((r) => r.querySelector('.bar') !== null)).toBe(true)
+})

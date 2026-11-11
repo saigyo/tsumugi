@@ -54,7 +54,6 @@
 
   --vote-pos: hsl(211 45% 45%);
   --vote-pos-deep: hsl(211 45% 40%);
-  --vote-neg: hsl(13 55% 55%);
   --ramp-lo: hsl(211 30% 94%);
   --ramp-hi: hsl(211 55% 24%);
   --div-neg: hsl(13 55% 50%);
@@ -130,7 +129,6 @@
 
   --vote-pos: hsl(211 60% 62%);
   --vote-pos-deep: hsl(211 60% 70%);
-  --vote-neg: hsl(13 80% 65%);
   --ramp-lo: hsl(211 30% 16%);
   --ramp-hi: hsl(211 70% 72%);
   --div-neg: hsl(13 80% 62%);
@@ -258,8 +256,8 @@ input[type="number"] { width: 4rem; }
 .token-end { border-color: var(--shu); color: var(--shu-deep); background: var(--shu-wash); font-family: var(--mono); font-size: var(--t-cap); }
 .token-fold { border: 1px dashed var(--line-strong); color: var(--ink-soft); background: var(--washi); font: inherit; cursor: pointer; }
 .token-fold:hover, .token-fold:focus-visible { border-color: var(--ai); }
-.token-chip.token-template { border: 1px dashed var(--line-strong); background: transparent; }
-.token-chip.token-special { border: 1px dashed var(--ai-soft); color: var(--ai); background: transparent; }
+.tok.token-template { border: 1px dashed var(--line-strong); background: transparent; }
+.tok.token-special { border: 1px dashed var(--ai-soft); color: var(--ai); background: transparent; }
 
 .token-popover {
   position: absolute; top: calc(100% + 4px); left: 0; z-index: 10; background: var(--card);
@@ -272,9 +270,7 @@ input[type="number"] { width: 4rem; }
 .popover-title { color: var(--ink-soft); margin-bottom: .3rem; }
 .popover-row { display: flex; align-items: center; gap: .4rem; line-height: 1.5; }
 .popover-row[data-chosen="true"] .popover-token { font-weight: 600; color: var(--shu); }
-.popover-token { min-width: 3.5rem; white-space: pre; }
-.popover-bar { display: inline-block; height: 8px; background: var(--ai); border-radius: 2px; }
-.popover-row[data-chosen="true"] .popover-bar { background: var(--shu); }
+.popover-token { min-width: 3.5rem; white-space: pre; display: inline-flex; }
 .popover-pct { color: var(--ink-soft); font-variant-numeric: tabular-nums; font-size: var(--t-label); }
 
 .pipeline-band { display: flex; align-items: center; gap: .25rem; position: relative; padding-bottom: 1.5rem; padding-right: 1.4rem; overflow-x: auto; }
@@ -351,7 +347,11 @@ input[type="number"] { width: 4rem; }
 .bar-row { display: flex; align-items: center; gap: .5rem; }
 .bar-label { width: 5rem; text-align: right; white-space: pre; }
 .bar-value { font-variant-numeric: tabular-nums; font-size: var(--t-cap); color: var(--ink-soft); }
-.bar-rect { fill: var(--ai); }
+/* the one bar (R6): a 10px bar in the working indigo, coral for the chosen row; bars drawn inside an svg keep the same height, corner and colours */
+.bar { display: inline-block; height: 10px; border-radius: 2px; background: var(--ai); vertical-align: middle; }
+.bar-chosen, .bar-neg { background: var(--shu); }
+.bar-svg { fill: var(--ai); }
+.bar-svg-chosen { fill: var(--shu); }
 .slice { fill: var(--ai-wash-strong); stroke: var(--card); }
 .slice-chosen { fill: var(--shu); }
 .chosen-marker { color: var(--shu); font-weight: 600; }
@@ -389,17 +389,24 @@ input[type="number"] { width: 4rem; }
 .model-progress { display: flex; gap: .6rem; align-items: center; border: 1px solid var(--line); background: var(--card); color: var(--ink-soft); }
 .model-progress progress { flex: 1; max-width: 16rem; height: .4rem; accent-color: var(--ai); }
 
-.token-chip-row { display: flex; flex-wrap: wrap; gap: .3rem; margin-top: .5rem; }
-.token-chip { display: inline-flex; align-items: baseline; gap: .35rem; padding: .15rem .55rem; border-radius: 999px; }
-.chip-text { font-weight: 400; white-space: pre; }
-.chip-id { font-size: var(--t-label); opacity: .7; font-family: var(--mono); }
+.tok-row { display: flex; flex-wrap: wrap; gap: .3rem; margin-top: .5rem; }
+/* the one token chip (R5): a pill with the token in the monospace font. Only prompt tokens carry a wash. */
+.tok { display: inline-flex; align-items: baseline; gap: .35rem; font-family: var(--mono); font-size: var(--t-cap); font-weight: 400;
+  padding: .15rem .55rem; border-radius: 999px; border: 1px solid var(--line); background: var(--washi); color: var(--ink); white-space: pre; }
+.tok-sm { padding: 0 .45rem; }
+.tok-id { font-size: var(--t-label); color: var(--ink-soft); }
+.tok[class*="tok-wash-"] .tok-id, .tok-away .tok-id { color: var(--ink); }
+button.tok { cursor: pointer; transition: border-color .15s; }
+button.tok:hover:not(:disabled) { border-color: var(--ai); }
 /* --wash is what a picked chip keeps (see the selected looks at the end) */
-.hue-0 { --wash: var(--dye-0); background: var(--wash); }
-.hue-1 { --wash: var(--dye-1); background: var(--wash); }
-.hue-2 { --wash: var(--dye-2); background: var(--wash); }
-.hue-3 { --wash: var(--dye-3); background: var(--wash); }
-.hue-4 { --wash: var(--dye-4); background: var(--wash); }
-.hue-5 { --wash: var(--dye-5); background: var(--wash); }
+.tok-wash-0 { --wash: var(--dye-0); }
+.tok-wash-1 { --wash: var(--dye-1); }
+.tok-wash-2 { --wash: var(--dye-2); }
+.tok-wash-3 { --wash: var(--dye-3); }
+.tok-wash-4 { --wash: var(--dye-4); }
+.tok-wash-5 { --wash: var(--dye-5); }
+.tok[class*="tok-wash-"] { background: var(--wash); border-color: transparent; }
+.tok.tok-away { background: var(--shu-wash); border-color: transparent; }
 
 .grid-explorer { margin-top: .6rem; border-top: 1px dashed var(--line); padding-top: .5rem; }
 .grid-explorer-header { display: flex; justify-content: space-between; align-items: baseline; gap: .8rem; flex-wrap: wrap; }
@@ -488,12 +495,10 @@ input[type="number"] { width: 4rem; }
 .cmp-badge { font-size: var(--t-cap); color: var(--ink-soft); font-style: italic; margin: .2rem 0; }
 .cmp-stream { display: flex; flex-wrap: wrap; align-items: center; gap: .15rem; margin: .25rem 0; }
 .cmp-side-name { font-variant-numeric: tabular-nums; font-size: var(--t-label); color: var(--ai-deep); margin-right: .4rem; }
-.cmp-token { border: 1px solid var(--line); border-radius: 4px; background: var(--washi); color: var(--ink);
-  padding: .05rem .3rem; font-size: var(--t-cap); white-space: pre; }
-.cmp-token-prompt { color: var(--ink-soft); }
+/* the two token rows look like the token strip (token, token-generated); the fork keeps its coral */
+.cmp-token { font-size: var(--t-cap); }
+button.cmp-token { cursor: pointer; }
 .cmp-token[data-fork="true"]:not(.is-picked) { border-color: var(--shu); background: var(--shu-wash); font-weight: 600; }
-.cmp-token-generated { font: inherit; font-size: var(--t-cap); cursor: pointer; }
-.cmp-token-generated:hover { border-color: var(--ai); }
 .cmp-meta-head { margin-bottom: .15rem; }
 /* the embedded single-head heatmap's own chip row duplicates the union chips above */
 .cmp-attn-side .head-chip-row { display: none; }
@@ -508,8 +513,9 @@ input[type="number"] { width: 4rem; }
 .cmp-dist-side { display: grid; gap: .15rem; }
 .cmp-bar-row { display: grid; grid-template-columns: 4.5rem 1fr 2.5rem; align-items: center;
   gap: .4rem; font-size: var(--t-label); }
-.cmp-bar-row[data-chosen="true"] .cmp-bar { background: var(--shu); }
-.cmp-bar { display: inline-block; height: .55rem; background: var(--ai-soft); border-radius: 2px; }
+.cmp-bar-token { min-width: 0; display: flex; }
+.cmp-bar-token .tok { max-width: 100%; overflow: hidden; }
+.cmp-bar-token .chip-text { overflow: hidden; text-overflow: ellipsis; }
 .cmp-bar-prob { font-variant-numeric: tabular-nums; font-size: var(--t-tick); color: var(--ink-faint); }
 /* breathing room between the compare view's inspection sections — the
    attention header must visually claim its own diagrams, not hang off the
@@ -524,7 +530,7 @@ input[type="number"] { width: 4rem; }
 .cmp-delta-head > span:nth-child(4) { text-align: center; }
 .cmp-delta-p { font-variant-numeric: tabular-nums; font-size: var(--t-label); color: var(--ink-soft); text-align: right; }
 .cmp-delta-p[data-chosen="true"] { color: var(--shu); font-weight: 600; }
-.cmp-delta-bar { position: relative; height: .55rem; background: var(--washi);
+.cmp-delta-bar { position: relative; height: 10px; background: var(--washi);
   border-radius: 2px; overflow: hidden; }
 .cmp-delta-bar::before { content: ''; position: absolute; left: 50%; top: 0; bottom: 0;
   width: 1px; background: var(--line-strong); }
@@ -554,7 +560,6 @@ input[type="number"] { width: 4rem; }
   gap: .8rem 1.2rem; align-items: start; margin: .4rem 0 .6rem; }
 .embed-col-label { font-family: var(--mono); font-size: var(--t-label); color: var(--ai-deep); margin-bottom: .3rem; }
 .embed-chips { margin-top: 0; }
-.embed-chip { font: inherit; border: 1px solid transparent; color: var(--ink); cursor: pointer; }
 .embed-row-mark { fill: var(--shu); }
 .embed-strip-wrap { overflow-x: auto; }
 .embed-strip-missing { font-size: var(--t-cap); color: var(--ink-faint); padding: .2rem 0; }
@@ -563,7 +568,7 @@ input[type="number"] { width: 4rem; }
 .embed-stack-placeholder { fill: var(--ai-soft); }
 .embed-stack-frame { fill: none; stroke: none; stroke-width: 1; }
 .embed-stack-row[data-newest="true"] .embed-stack-frame { stroke: var(--ai-deep); }
-.embed-stack-row[data-selected="true"] .embed-stack-frame { stroke: var(--shu); stroke-width: 1.5; }
+.embed-stack-row[data-selected="true"] .embed-stack-frame { stroke: var(--ai); stroke-width: 1.5; }
 .embed-callouts { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: .4rem 1.2rem;
   font-size: var(--t-cap); color: var(--ai-deep); }
 .embed-callout { border-bottom: 1px dotted var(--ai-soft); }
@@ -587,16 +592,15 @@ input[type="number"] { width: 4rem; }
 .readout-op { font-size: var(--t-prompt); color: var(--ai-deep); align-self: start; padding-top: 1.3rem; }
 .readout-x-missing { font-variant-numeric: tabular-nums; font-size: var(--t-cap); color: var(--ink-faint);
   border: 1px dashed var(--ai-soft); border-radius: 4px; padding: .25rem .5rem; display: inline-block; }
-.readout-row-mark { opacity: .9; }
-.hue-fill-0 { fill: var(--dye-0); } .hue-fill-1 { fill: var(--dye-1); } .hue-fill-2 { fill: var(--dye-2); }
-.hue-fill-3 { fill: var(--dye-3); } .hue-fill-4 { fill: var(--dye-4); } .hue-fill-5 { fill: var(--dye-5); }
+/* the matrix drawing: plain indigo marks, the picked candidate's at full strength against a lighter rest */
+.readout-row-mark { fill: var(--ai); opacity: .35; }
+.readout-row-mark[data-selected="true"] { opacity: 1; }
 .readout-scores { display: flex; flex-direction: column; row-gap: .3rem; }
 .readout-candidate { display: grid; grid-template-columns: minmax(5rem, max-content) 128px 120px 3rem; align-items: center; gap: .5rem;
   font: inherit; color: var(--ink); background: none; border: 1px solid transparent; border-radius: 8px; padding: .1rem .3rem; cursor: pointer; text-align: left; }
 .readout-candidate.is-picked .bar-value { color: var(--ink); }
-.readout-candidate[data-top="true"] .bar-rect, .softmax-candidate[data-top="true"] .bar-rect { fill: var(--shu); }
-.readout-candidate .token-chip, .softmax-candidate .token-chip { justify-self: start; max-width: 9rem; overflow: hidden; }
-.readout-candidate .chip-text, .softmax-candidate .chip-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-family: var(--mono); }
+.readout-candidate .tok, .softmax-candidate .tok { justify-self: start; max-width: 9rem; overflow: hidden; }
+.readout-candidate .chip-text, .softmax-candidate .chip-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .readout-nostrip { display: inline-block; width: 128px; height: 10px; border-bottom: 1px dotted var(--ai-soft); }
 .readout-bench { border-top: 1px solid var(--line); margin-top: .8rem; padding-top: .6rem; }
 .readout-bench-rows { display: grid; grid-template-columns: 4.5rem auto; gap: .35rem .6rem; align-items: center; }
@@ -749,9 +753,9 @@ math { font-family: var(--math); color: var(--ink); }
 .votes-cells > div:hover { outline: 1.5px solid var(--ink); }
 .mlp-axis { font-variant-numeric: tabular-nums; font-size: var(--t-tick); color: var(--ink-faint); }
 .mlp-axis > span { white-space: nowrap; overflow: visible; }
-.mlp-tok, .mlp-cand { justify-self: end; font: inherit; font-size: var(--t-cap); white-space: pre; border-radius: 999px;
+.mlp-tok { justify-self: end; font: inherit; font-size: var(--t-cap); white-space: pre; border-radius: 999px;
   padding: .02rem .55rem; border: 1px solid transparent; background: transparent; color: var(--ink-soft); }
-.mlp-cand { background: var(--dye-2); color: var(--ink); }
+.votes-grid-row .tok { justify-self: end; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 .edit-bar-clickable, .votes-cells > div, .mlp-cells > div[data-testid="edit-cell"] { cursor: pointer; }
 .votes-total-cell { font-size: var(--t-cap); display: inline-flex; align-items: center; gap: .4rem; font-variant-numeric: tabular-nums; }
 .votes-swatch { display: inline-block; width: 14px; height: 14px; border-radius: 2px; }
@@ -817,24 +821,19 @@ math { font-family: var(--math); color: var(--ink); }
 .votes-breakdown td:last-child { text-align: right; }
 .votes-sub th { padding-left: 1rem; color: var(--ai); }
 .votes-total th, .votes-total td { border-top: 1.5px solid var(--line-strong); border-bottom: 0; font-weight: 600; color: var(--ai-deep); }
-.votes-bar { display: inline-block; height: 8px; vertical-align: middle; border-radius: 2px; }
-.votes-bar-pos { background: var(--vote-pos); }
-.votes-bar-neg { background: var(--vote-neg); }
 .neuron-stepper { display: inline-flex; gap: .25rem; margin-left: .5rem; vertical-align: middle; }
 .neuron-cands { display: flex; flex-wrap: wrap; gap: .25rem; align-items: center; font-size: var(--t-cap); color: var(--ink-soft); }
 .neuron-table { width: 100%; border-collapse: collapse; font-size: var(--t-cap); }
 .neuron-table th { text-align: left; font-weight: 600; color: var(--ink-soft); font-size: var(--t-label); padding: .3rem .4rem; border-bottom: 1px solid var(--line); }
 .neuron-table td { padding: .3rem .4rem; border-bottom: 1px solid var(--line); vertical-align: middle; }
 .neuron-table .tk { font-family: var(--mono); font-size: var(--t-cap); white-space: nowrap; }
-.neuron-table .votes-bar { margin-right: .35rem; vertical-align: middle; }
-.neuron-chip { display: inline-block; white-space: pre; padding: 0 .45rem; margin: .1rem .15rem; border-radius: 999px; background: var(--ai-wash); font-size: var(--t-cap); }
-.neuron-away { background: var(--shu-wash); }
+.neuron-table .bar { margin-right: .35rem; }
+.neuron-table td .tok { margin: .1rem .15rem; }
 .neuron-badge { font-size: var(--t-label); padding: .05rem .4rem; border-radius: 4px; white-space: nowrap; background: var(--line); }
 .neuron-badge-strong { background: var(--fill-hover); color: var(--on-ai); }
 .neuron-badge-mid { background: var(--ai-wash-strong); }
 .neuron-rest td { color: var(--ink-soft); font-style: italic; }
 .neuron-total td { font-weight: 600; border-bottom: 0; }
-.neuron-size-bar { display: inline-block; height: 10px; background: var(--ink-soft); margin-right: .35rem; vertical-align: middle; }
 @media (max-width: 640px) { .neuron-table { display: block; overflow-x: auto; } }
 
 /* Layers detail: sticky section bar (#17) */
@@ -894,4 +893,4 @@ math { font-family: var(--math); color: var(--ink); }
 .is-picked, .is-picked:hover:not(:disabled) { border-color: var(--ai); background: var(--ai-wash-strong); color: var(--ai-deep); font-weight: 600; }
 .is-chosen, .is-chosen:hover:not(:disabled) { border-color: var(--shu); background: var(--shu-wash); color: var(--ink); }
 /* a picked prompt-token chip keeps its wash and its ink */
-.token-chip.is-picked, .token-chip.is-picked:hover:not(:disabled) { background: var(--wash, var(--ai-wash-strong)); color: var(--ink); }
+.tok[class*="tok-wash-"].is-picked, .tok[class*="tok-wash-"].is-picked:hover:not(:disabled) { background: var(--wash); color: var(--ink); }

@@ -8,6 +8,7 @@ import { VectorStrip } from './VectorStrip'
 import { EMBEDDING_CALLOUTS } from '../glossary/callouts'
 import { Term } from '../glossary/Term'
 import { Icon } from '../ui/Icon'
+import { washIndexes } from '../ui/tokenWash'
 
 const STRIP_CELLS = 96
 const CELL_W = 5
@@ -33,6 +34,8 @@ export function EmbeddingLookup({ tokens, dims, vocabSize, selected, onSelect, v
   missingNote: string
 }) {
   const token = tokens[selected]
+  // the prompt's washes (first appearance, by token id); generated tokens extend the same sequence
+  const washes = washIndexes(tokens.map((t) => t.id))
   const vec = token ? vectorFor(selected) : undefined
   const cells = vec ? poolRow(vec, STRIP_CELLS) : []
   const vocab = vocabSize ? thousands(vocabSize) : '?'
@@ -47,13 +50,13 @@ export function EmbeddingLookup({ tokens, dims, vocabSize, selected, onSelect, v
     <div data-testid="embed-lookup" className="embed-lookup">
       <div className="embed-ids">
         <div className="embed-col-label">ids</div>
-        <div className="token-chip-row embed-chips">
+        <div className="tok-row embed-chips">
           {tokens.map((t, i) => (
             <button key={i} type="button" data-testid="embed-token" data-selected={String(i === selected)}
-              className={`token-chip embed-chip hue-${i % 6}${i === selected ? ' is-picked' : ''}`} onClick={() => onSelect(i)}
+              className={`tok tok-wash-${washes[i]}${i === selected ? ' is-picked' : ''}`} onClick={() => onSelect(i)}
               title={`Show row ${t.id} of E`}>
               <span className="chip-text">{visibleToken(t)}</span>
-              <span className="chip-id">{t.id}</span>
+              <span className="tok-id">{t.id}</span>
             </button>
           ))}
         </div>

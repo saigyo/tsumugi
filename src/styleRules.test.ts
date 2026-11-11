@@ -129,6 +129,26 @@ test('the three selected looks and the pill are defined as specified', () => {
   expect(body('.pill:hover:not(:disabled)')).toMatch(/border-color: var\(--ai\)/)
 })
 
+test('the old chip and bar selectors are gone, and the vote colours are not used for bars', () => {
+  const gone = [/\.token-chip(?![\w-])/, /\.hue-\d/, /\.hue-fill-\d/, /\.mlp-cand(?![\w-])/, /\.neuron-chip(?![\w-])/, /\.cmp-bar(?![\w-])/,
+    /\.popover-bar(?![\w-])/, /\.votes-bar(?![\w-])/, /\.neuron-size-bar(?![\w-])/, /\.bar-rect(?![\w-])/]
+  for (const re of gone) expect(rest, String(re)).not.toMatch(re)
+  const usesVote = blocks.filter((b) => /--vote-pos/.test(b.body)).map((b) => b.selector)
+  expect(usesVote.filter((sel) => !/^\.gl-vote-/.test(sel))).toEqual([])
+})
+
+test('the token chip and the bar are defined as specified', () => {
+  const body = (selector: string) => blocks.find((b) => b.selector === selector)?.body ?? ''
+  expect(body('.tok')).toMatch(/font-family: var\(--mono\);\s*font-size: var\(--t-cap\)/)
+  expect(body('.tok')).toMatch(/border-radius: 999px; border: 1px solid var\(--line\); background: var\(--washi\)/)
+  for (let i = 0; i < 6; i++) expect(body(`.tok-wash-${i}`)).toContain(`--wash: var(--dye-${i})`)
+  expect(body('.tok.tok-away')).toMatch(/background: var\(--shu-wash\)/)
+  expect(body('.bar')).toMatch(/height: 10px; border-radius: 2px; background: var\(--ai\)/)
+  expect(body('.bar-chosen, .bar-neg')).toMatch(/background: var\(--shu\)/)
+  expect(body('.bar-svg')).toMatch(/fill: var\(--ai\)/)
+  expect(body('.bar-svg-chosen')).toMatch(/fill: var\(--shu\)/)
+})
+
 test('--on-ai text sits on --fill or --fill-hover, never on --ai-deep, --ai or --shu', () => {
   const bad = blocks
     .filter((b) => /color\s*:\s*var\(--on-ai\)/.test(b.body.replace(/background-color/g, '')))

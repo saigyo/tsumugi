@@ -44,7 +44,7 @@ test('candidate without dot renders without a product strip and gets the asset b
 test('the picked row has the picked look; the top candidate chip is chosen, picked or not', () => {
   const { rerender } = render(<LogitsReadout {...props({ selected: 0 })} />)
   const rows = () => screen.getAllByTestId('readout-candidate')
-  const chip = (i: number) => rows()[i].querySelector('.token-chip')!
+  const chip = (i: number) => rows()[i].querySelector('.tok')!
   expect(rows().map((r) => r.classList.contains('is-picked'))).toEqual([true, false, false])
   expect(chip(0)).toHaveClass('is-chosen')
   rerender(<LogitsReadout {...props({ selected: 1 })} />)
@@ -90,4 +90,22 @@ test('matrix sketch marks every candidate and the callouts explain the tie', () 
   expect(callouts.map((c) => c.textContent?.trim())).toEqual(['tied with Embeddings', 'similar rows, similar scores', '49 152 scores, 3 shown'])
   expect(callouts.map((c) => c.dataset.section)).toEqual(['tied', 'similar-rows', 'top-k'])
   expect(callouts.every((c) => c.dataset.term === 'logit')).toBe(true)
+})
+
+test('candidate chips carry no wash; only the top candidate has the chosen bar, and the matrix marks are plain', () => {
+  render(<LogitsReadout {...props({ selected: 1 })} />)
+  const chips = screen.getAllByTestId('readout-candidate').map((r) => r.querySelector('.tok')!)
+  expect(chips.every((c) => !/tok-wash-/.test(c.className))).toBe(true)
+  const bars = screen.getAllByTestId('logit-bar').map((b) => b.querySelector('rect')!)
+  expect(bars.map((b) => b.classList.contains('bar-svg-chosen'))).toEqual([true, false, false])
+  expect(bars.every((b) => b.classList.contains('bar-svg') && b.getAttribute('height') === '10' && b.getAttribute('rx') === '2')).toBe(true)
+  const marks = screen.getAllByTestId('readout-row-mark')
+  expect(marks.every((m) => m.getAttribute('class') === 'readout-row-mark')).toBe(true)
+  expect(marks.map((m) => m.dataset.selected)).toEqual(['false', 'true', 'false'])
+})
+
+test('a candidate with a long text keeps its full text in the chip title', () => {
+  const long = 'x'.repeat(40)
+  render(<LogitsReadout {...props({ candidates: [{ id: 300, text: long, logit: 9 }, ...sim.slice(1)] })} />)
+  expect(screen.getAllByTestId('readout-candidate')[0].querySelector('.tok')).toHaveAttribute('title', long)
 })

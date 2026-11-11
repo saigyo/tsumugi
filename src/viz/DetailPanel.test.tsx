@@ -40,7 +40,7 @@ test('the picked token chip in Embeddings has the picked look and keeps its hue'
   render(<DetailPanel events={trace} cursor={2} mode="sim" />)
   const chips = screen.getAllByTestId('embed-token')
   expect(chips.map((c) => c.classList.contains('is-picked'))).toEqual(chips.map((c) => c.dataset.selected === 'true'))
-  expect(chips.find((c) => c.classList.contains('is-picked'))?.className).toMatch(/hue-\d/)
+  expect(chips.find((c) => c.classList.contains('is-picked'))?.className).toMatch(/tok-wash-\d/)
 })
 
 test('layers detail lights the active layer; sim shows norms', () => {

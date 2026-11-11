@@ -16,9 +16,9 @@ export const token: GlossaryEntry = {
         entries and replaces each piece with its id. Common words are one token; rare words are split into
         several.</p>
       <p className="gl-example">“The cat sat” →{' '}
-        <span className="token-chip hue-0"><span className="chip-text">The</span></span>{' '}
-        <span className="token-chip hue-1"><span className="chip-text">␣cat</span></span>{' '}
-        <span className="token-chip hue-2"><span className="chip-text">␣sat</span></span> → three ids</p>
+        <span className="tok tok-wash-0"><span className="chip-text">The</span></span>{' '}
+        <span className="tok tok-wash-1"><span className="chip-text">␣cat</span></span>{' '}
+        <span className="tok tok-wash-2"><span className="chip-text">␣sat</span></span> → three ids</p>
       <p>A leading space belongs to the token, shown as ␣: “␣cat” and “cat” are different vocabulary entries.
         Some ids are control markers rather than text, such as <code>{'<|im_end|>'}</code>, which ends a turn.{' '}In Chat mode the prompt is wrapped in more of these: see <Term id="chat-template">chat template</Term>.</p>
       <p>Generation works on ids too: each cycle produces one new id, which the tokenizer turns back into

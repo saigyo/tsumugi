@@ -84,7 +84,7 @@ function VotesBody({ candidates, selected, onSelect, onLayer }: {
         {candidates.map((c, r) => (
           <div key={c.id} className="votes-grid-row">
             <button type="button" data-testid="vote-row-label" aria-pressed={r === selected}
-              className={`mlp-cand${r === selected ? ' is-picked' : ''}`} onClick={() => onSelect(r)}>{visibleToken(c)}</button>
+              title={visibleToken(c)} className={`tok${r === selected ? ' is-picked' : ''}`} onClick={() => onSelect(r)}><span className="chip-text">{visibleToken(c)}</span></button>
             <div className="mlp-cells votes-cells" style={columns}>
               {values[r].map((v, l) => (
                 <div key={l} data-testid="vote-cell" data-row={r} data-layer={l} data-value={v.toFixed(2)}
@@ -187,7 +187,7 @@ function Breakdown({ candidate, layers }: { candidate: VotedCandidate; layers: n
         {rows.map((r) => (
           <tr key={r.label} data-testid="votes-row" className={r.sub ? 'votes-sub' : undefined}>
             <th scope="row">{r.label}</th>
-            <td><span className={`votes-bar ${r.value >= 0 ? 'votes-bar-pos' : 'votes-bar-neg'}`}
+            <td><span className={`bar${r.value >= 0 ? '' : ' bar-neg'}`}
               style={{ width: `${(Math.abs(r.value) / barMax) * BAR_MAX}px` }} /></td>
             <td>{signed(r.value)}</td>
           </tr>

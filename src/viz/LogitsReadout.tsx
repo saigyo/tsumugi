@@ -64,7 +64,7 @@ export function LogitsReadout({ candidates, lastHidden, dims, vocabSize, selecte
           <text x="81" y="98" textAnchor="middle" className="rs-shape">[{dims} × {vocab}]</text>
           {candidates.map((c, i) => (
             <rect key={c.id} data-testid="readout-row-mark" x="36" y={rowMarkY(c.id)} width="90" height={i === selected ? 4 : 2}
-              className={`readout-row-mark hue-fill-${i % 6}`} data-selected={String(i === selected)} />
+              className="readout-row-mark" data-selected={String(i === selected)} />
           ))}
           <text x="4" y="60" className="rs-note">rows</text>
         </svg>
@@ -76,13 +76,13 @@ export function LogitsReadout({ candidates, lastHidden, dims, vocabSize, selecte
             return (
               <button key={c.id} type="button" data-testid="readout-candidate" data-selected={String(i === selected)} data-top={String(i === top)}
                 className={`readout-candidate${i === selected ? ' is-picked' : ''}`} onClick={() => onSelect(i)} title="Show this dot product on the bench">
-                <span className={`token-chip hue-${i % 6}${i === top ? ' is-chosen' : ''}`}><span className="chip-text">{visibleToken(c)}</span></span>
+                <span className={`tok${i === top ? ' is-chosen' : ''}`} title={visibleToken(c)}><span className="chip-text">{visibleToken(c)}</span></span>
                 {c.dot ? (
                   <VectorStrip cells={c.dot} cellW={DOT_CELL_W} cellH={DOT_CELL_H} gap={0} testId="readout-product"
                     ariaLabel={`products for ${readableTokenText(c.id, c.text)}`} />
                 ) : <span className="readout-nostrip" aria-hidden="true" />}
                 <svg data-testid="logit-bar" data-token={c.text} width={BAR_W} height="14">
-                  <rect width={BAR_W * frac} height="14" className="bar-rect" style={{ transition: 'width .4s' }} />
+                  <rect y="2" width={BAR_W * frac} height="10" rx="2" className={`bar-svg${i === top ? ' bar-svg-chosen' : ''}`} style={{ transition: 'width .4s' }} />
                 </svg>
                 <span className="bar-value">{c.logit.toFixed(1)}</span>
               </button>

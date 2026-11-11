@@ -149,3 +149,11 @@ test('clicking a vote cell reports its layer', () => {
   fireEvent.click(screen.getAllByTestId('vote-cell').find((c) => c.dataset.row === '1' && c.dataset.layer === '2')!)
   expect(onLayer).toHaveBeenCalledWith(2)
 })
+
+test('candidate chips are plain chips without a wash, and the breakdown bars are the one bar', () => {
+  render(<LayerVotesCard candidates={cands} note="unused" />)
+  const chips = screen.getAllByTestId('vote-row-label')
+  expect(chips.every((c) => c.classList.contains('tok') && !/tok-wash-/.test(c.className))).toBe(true)
+  const bars = screen.getAllByTestId('votes-row').map((r) => r.querySelector('.bar'))
+  expect(bars.every((b) => b !== null)).toBe(true)
+})

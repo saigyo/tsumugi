@@ -49,6 +49,10 @@ test('clicking a ruler tick opens paired distributions with the chosen token mar
   expect(sides).toHaveLength(2)
   const chosen = screen.getAllByTestId('cmp-bar-row').filter((r) => r.dataset.chosen === 'true')
   expect(chosen).toHaveLength(2)
+  // the chosen row's bar is coral, the rest indigo; the tokens are small chips without a wash
+  const rows = screen.getAllByTestId('cmp-bar-row')
+  expect(rows.map((r) => r.querySelector('.bar')!.classList.contains('bar-chosen'))).toEqual(rows.map((r) => r.dataset.chosen === 'true'))
+  expect(rows.every((r) => r.querySelector('.tok.tok-sm') !== null && !/tok-wash-/.test(r.querySelector('.tok')!.className))).toBe(true)
 })
 
 test('a cycle past one run\'s end shows the run-ended side', () => {

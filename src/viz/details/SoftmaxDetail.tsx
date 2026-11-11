@@ -40,10 +40,10 @@ export function SoftmaxDetail({ events, cursor }: { events: TraceEvent[]; cursor
           const logit = logitOf.get(c.id)
           return (
             <div key={c.id} data-testid="softmax-candidate" data-top={String(i === 0)} className="softmax-candidate">
-              <span className={`token-chip hue-${i % 6}`}><span className="chip-text">{visibleToken(c)}</span></span>
+              <span className="tok" title={visibleToken(c)}><span className="chip-text">{visibleToken(c)}</span></span>
               <svg data-testid="prob-bar" data-token={c.text} width={BAR_W} height="14">
                 {logit !== undefined && <title>{shareDerivation(logit, top, T, c.prob)}</title>}
-                <rect width={BAR_W * c.prob} height="14" className="bar-rect" style={{ transition: 'width .4s' }} />
+                <rect y="2" width={BAR_W * c.prob} height="10" rx="2" className={`bar-svg${i === 0 ? ' bar-svg-chosen' : ''}`} style={{ transition: 'width .4s' }} />
               </svg>
               <span className="bar-value">{Math.round(c.prob * 100)}%</span>
               {logit !== undefined && <span className="softmax-logit">from {logit.toFixed(1)}</span>}

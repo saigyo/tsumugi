@@ -81,7 +81,7 @@ function NeuronBody({ data, candidates, selected, layer }: {
         {mode === 'vote' && (
           <div className="neuron-cands" role="group" aria-label="Candidate">candidate:{' '}
             {candidates.map((c, i) => (
-              <button key={c.id} type="button" data-testid="neuron-cand" className={`mlp-cand${i === selected ? ' is-picked' : ''}`} aria-pressed={i === selected}
+              <button key={c.id} type="button" data-testid="neuron-cand" title={visibleToken(c)} className={`tok${i === selected ? ' is-picked' : ''}`} aria-pressed={i === selected}
                 onClick={() => select(candidates, i)}>{visibleToken(c)}</button>
             ))}
           </div>
@@ -117,7 +117,7 @@ function NeuronTable({ data, asset, weights, layer, mode, cand }: {
   const sizeRows = useMemo(() => (acts && mode === 'size' ? firingMost(m, weights, acts) : null), [acts, mode, m, weights])
   if (!acts) return <p data-testid="neuron-note" className="mlp-note">{MISMATCH}</p>
   const chips = (ids: number[]) => ids.map((id, j) => (
-    <span key={j} data-testid="neuron-label" className="neuron-chip">{visibleToken(asset.text(id))}</span>
+    <span key={j} data-testid="neuron-label" className="tok tok-sm">{visibleToken(asset.text(id))}</span>
   ))
   if (mode === 'size' && sizeRows) {
     const rows = sizeRows
@@ -128,7 +128,7 @@ function NeuronTable({ data, asset, weights, layer, mode, cand }: {
         <tbody>{rows.map((r) => (
           <tr key={r.neuron} data-testid="neuron-row">
             <td className="tk">N{r.neuron}</td><td className="tk">{signed(r.activation, 1)}</td>
-            <td><span className="neuron-size-bar" style={{ width: `${(r.size / peak) * BAR_MAX}px` }} />{r.size.toFixed(2)}</td>
+            <td><span className="bar" style={{ width: `${(r.size / peak) * BAR_MAX}px` }} />{r.size.toFixed(2)}</td>
             <td>{chips(r.labels)}</td>
           </tr>
         ))}</tbody>
@@ -147,9 +147,9 @@ function NeuronTable({ data, asset, weights, layer, mode, cand }: {
           {table.rows.map((r: VoteRow) => (
             <tr key={r.neuron} data-testid="neuron-row">
               <td className="tk">N{r.neuron}</td><td className="tk">{signed(r.activation, 1)}</td>
-              <td><span className={`votes-bar ${r.vote >= 0 ? 'votes-bar-pos' : 'votes-bar-neg'}`}
+              <td><span className={`bar${r.vote >= 0 ? '' : ' bar-neg'}`}
                 style={{ width: `${(Math.abs(r.vote) / peak) * BAR_MAX}px` }} /><span data-testid="neuron-vote">{signed(r.vote)}</span></td>
-              <td>{r.away && <span data-testid="neuron-away" className="neuron-chip neuron-away">away from</span>}{chips(r.labels)}</td>
+              <td>{r.away && <span data-testid="neuron-away" className="tok tok-sm tok-away">away from</span>}{chips(r.labels)}</td>
               <td><span data-testid="neuron-badge" className={`neuron-badge neuron-badge-${BADGE_CLASS[r.badge]}`}>
                 {r.badge}{r.away ? ' (away)' : ''}</span></td>
             </tr>

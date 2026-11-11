@@ -82,3 +82,20 @@ test('a candidate that is part of a character shows its bytes, not "�"', () =>
     expect(screen.getByTestId('detail-softmax')).not.toHaveTextContent('\uFFFD')
   } finally { setTokenPieces(null) }
 })
+
+test('candidate chips carry no wash; only the top candidate has the chosen bar', () => {
+  render(<SoftmaxDetail events={makeFixtureTrace()} cursor={8} />)
+  const rows = screen.getAllByTestId('softmax-candidate')
+  expect(rows.every((r) => { const c = r.querySelector('.tok')!; return !/tok-wash-/.test(c.className) })).toBe(true)
+  const bars = screen.getAllByTestId('prob-bar').map((b) => b.querySelector('rect')!)
+  expect(bars.map((b) => b.classList.contains('bar-svg-chosen'))).toEqual([true, false, false])
+  expect(bars.every((b) => b.getAttribute('height') === '10' && b.getAttribute('rx') === '2')).toBe(true)
+})
+
+test('a candidate with a long text keeps its full text in the chip title', () => {
+  const long = 'y'.repeat(40)
+  const events = buildFixtureTrace({}).map((e) =>
+    e.type === 'softmax' ? { ...e, topK: e.topK.map((c, i) => (i === 0 ? { ...c, text: long } : c)) } : e)
+  render(<SoftmaxDetail events={events} cursor={8} />)
+  expect(screen.getAllByTestId('softmax-candidate')[0].querySelector('.tok')).toHaveAttribute('title', long)
+})

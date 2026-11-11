@@ -112,7 +112,7 @@ export async function installProbe(page: Page): Promise<void> {
       return k
     }
     const INTERACTIVE = 'button, a[href], input, select, textarea, summary, [role="button"], [tabindex]:not([tabindex="-1"])'
-    const MOVERS = INTERACTIVE + ', .token, .token-chip, .run-chip, .stage-card'
+    const MOVERS = INTERACTIVE + ', .token, .tok, .run-chip, .stage-card'
 
     // A name is an aria-label, an aria-labelledby that resolves to text, an associated label, or own text with a letter or digit.
     // Symbols alone ("×", "▶") and a title alone are not names.
@@ -250,7 +250,7 @@ export async function installProbe(page: Page): Promise<void> {
           let text = ''
           for (const child of el.childNodes) if (child.nodeType === Node.TEXT_NODE) text += child.textContent ?? ''
           if (!text.trim() || !visible(el)) continue
-          if (el.closest('textarea, input, .token, .token-chip, code, script, style')) continue
+          if (el.closest('textarea, input, .token, .tok, code, script, style')) continue
           for (const [name, re] of rules) {
             const m = text.match(re)
             if (m) issues.add(`${name}: "${text.trim().slice(Math.max(0, (m.index ?? 0) - 12), (m.index ?? 0) + 18)}" in ${keyOf(el)}`)

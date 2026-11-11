@@ -4,6 +4,7 @@ import type { EmbedSource, TokenInfo } from '../trace/types'
 import { seqFill } from './ramps'
 import { SPACE_MARKER, visibleToken } from './tokenText'
 import { Icon } from '../ui/Icon'
+import { washIndexes } from '../ui/tokenWash'
 
 const NEIGHBORS = 8
 const SPACE_NOTE = `${SPACE_MARKER} marks a leading space, ↵ a newline, ⇥ a tab: whitespace belongs to the token, so " cat" (mid-sentence) and "cat" (after punctuation or at a start) are different tokens with different rows in E, and a paragraph break is two "↵" tokens.`
@@ -74,14 +75,14 @@ export function EmbeddingGeometry({ tokens, selected, vectorFor, asset, loading,
       {neighbors && token && (
         <div data-testid="embed-neighbors" className="embed-neighbors">
           <div className="embed-caption">
-            Nearest to <span className="chip-text">{visibleToken(token)}</span> in E — click any token above to change
+            Nearest to <span className={`tok tok-sm tok-wash-${washIndexes(tokens.map((t) => t.id))[selected]}`}><span className="chip-text">{visibleToken(token)}</span></span> in E — click any token above to change
             {' '}<span data-testid="embed-space-note" className="embed-callout rs-hover" title={SPACE_NOTE}><Icon name="info" /> {SPACE_MARKER}</span>
           </div>
           <div className="bar-chart">
             {neighbors.map((n) => (
               <div key={n.id} data-testid="embed-neighbor" className="bar-row">
                 <span className="bar-label">{visibleToken(n)}</span>
-                <svg width="120" height="12"><rect width={120 * n.sim} height="12" className="bar-rect" /></svg>
+                <svg width="120" height="12"><rect y="1" width={120 * n.sim} height="10" rx="2" className="bar-svg" /></svg>
                 <span className="bar-value">{n.sim.toFixed(2)}</span>
               </div>
             ))}

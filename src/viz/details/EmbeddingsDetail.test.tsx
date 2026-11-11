@@ -1,6 +1,8 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, expect, test, vi } from 'vitest'
-import { buildFixtureTrace, makeFixtureTrace } from '../../test/fixtures'
+import { buildFixtureTrace, CHAT_PROMPT_TOKENS, makeFixtureTrace } from '../../test/fixtures'
+import { washIndexes } from '../../ui/tokenWash'
+import { TokenizerDetail } from './TokenizerDetail'
 import { makeGeometryAsset } from '../../test/geometryFixture'
 import type { GeometryState } from '../../geometry/useGeometry'
 import { EmbeddingsDetail } from './EmbeddingsDetail'
@@ -127,4 +129,17 @@ test('a token id outside the asset vocabulary does not crash and hides its geome
   expect(screen.getByTestId('embed-strip-missing')).toBeInTheDocument()
   expect(screen.queryAllByTestId('embed-neighbor')).toHaveLength(0)
   expect(screen.queryAllByTestId('sim-cell')).toHaveLength(0)
+})
+
+test('prompt chips carry the same washes as the Tokenizer card, by token id', () => {
+  const events = buildFixtureTrace({ chat: true })
+  const cursor = events.findIndex((e) => e.type === 'embed')
+  render(<EmbeddingsDetail events={events} cursor={cursor} />)
+  const chips = screen.getAllByTestId('embed-token')
+  const washOf = (el: Element) => Number(/tok-wash-(\d)/.exec(el.className)?.[1])
+  expect(chips.map(washOf)).toEqual(washIndexes(CHAT_PROMPT_TOKENS.map((t) => t.id)))
+  cleanup()
+  render(<TokenizerDetail tokens={CHAT_PROMPT_TOKENS} chat={{ system: [1, 21], user: [24, 31] }} />)
+  fireEvent.click(screen.getByTestId('system-fold'))
+  expect([...document.querySelectorAll('.tok:not(.token-fold)')].map(washOf)).toEqual(chips.map(washOf))
 })

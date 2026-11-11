@@ -4,6 +4,7 @@ import { SPACE_MARKER, visibleToken } from '../tokenText'
 import { Term } from '../../glossary/Term'
 import { FOLD_TITLE, foldItems, foldLabel, tokenRole, type TokenRole } from '../chatFold'
 import { Icon } from '../../ui/Icon'
+import { washIndexes } from '../../ui/tokenWash'
 
 const ROLE_CLASS: Record<TokenRole, string> = { prompt: '', template: ' token-template', special: ' token-special' }
 
@@ -11,6 +12,8 @@ export function TokenizerDetail({ tokens, truncated, chat }: { tokens: TokenInfo
   // the fold is opened for one token list: a new run closes it again
   const [openFor, setOpenFor] = useState<TokenInfo[] | null>(null)
   const open = openFor === tokens
+  // by word over the whole prompt, also while the system prompt is folded: the same washes as in Embeddings
+  const washes = washIndexes(tokens.map((t) => t.id))
   const anySpace = tokens.some((t) => t.text.startsWith(' '))
   return (
     <div data-testid="detail-tokenizer" className="detail">
@@ -34,17 +37,17 @@ export function TokenizerDetail({ tokens, truncated, chat }: { tokens: TokenInfo
           Prompt was longer than the model's context window — it was truncated to fit.
         </p>
       )}
-      <div className="token-chip-row">
+      <div className="tok-row">
         {foldItems(tokens.length, chat?.system, open).map((item) => item.kind === 'fold' ? (
-          <button key="fold" type="button" data-testid="system-fold" className="token-chip token-fold"
+          <button key="fold" type="button" data-testid="system-fold" className="tok token-fold"
             aria-expanded={open} title={FOLD_TITLE} onClick={() => setOpenFor(open ? null : tokens)}>
             {foldLabel(item.count)} <Icon name="chevron" />
           </button>
         ) : (
           <span key={item.index}
-            className={`token-chip hue-${item.index % 6}${ROLE_CLASS[tokenRole(item.index, tokens[item.index].text, chat)]}`}>
+            className={`tok tok-wash-${washes[item.index]}${ROLE_CLASS[tokenRole(item.index, tokens[item.index].text, chat)]}`}>
             <span className="chip-text">{visibleToken(tokens[item.index])}</span>
-            <span className="chip-id">{tokens[item.index].id}</span>
+            <span className="tok-id">{tokens[item.index].id}</span>
           </span>
         ))}
       </div>
