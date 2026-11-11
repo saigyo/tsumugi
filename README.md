@@ -429,12 +429,19 @@ Then open the printed local URL (defaults to `http://localhost:5173`).
 
 ```bash
 npm test      # unit tests (vitest)
-npm run e2e   # end-to-end smoke test (playwright, chromium)
+npm run e2e            # browser tests in Chromium (playwright); CI runs these
+npm run e2e:browsers   # the rendering checks in Firefox and WebKit
 ```
 
-The end-to-end test drives the app in simulated mode only — it never
-downloads or runs the real model, so it works fully offline and in CI. Run
-`npx playwright install chromium` once before the first `npm run e2e`.
+The browser tests drive the app in simulated mode only — they never
+download or run the real model, so they work fully offline and in CI. Run
+`npx playwright install chromium` once before the first `npm run e2e`, and
+`npx playwright install firefox webkit` before the first
+`npm run e2e:browsers`.
+
+CI runs Chromium only. Run the Firefox and WebKit checks after larger changes
+to the design: locally, or on GitHub by starting the **Other browsers**
+workflow by hand.
 
 ## Docs
 

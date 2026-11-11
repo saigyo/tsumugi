@@ -403,3 +403,8 @@ Decisions taken while building, each with its reason.
   so no wait has to outlast a transition. It reaches the Knockouts card with
   bars of all three chip categories and a flipping bar, the chat run's
   Embeddings card, and the borders of hovered controls.
+- **Where the engines run.** CI runs Chromium only (`npm run e2e`), so a push
+  stays short. Firefox and WebKit run on request: `npm run e2e:browsers`
+  locally, or the "Other browsers" workflow started by hand on GitHub. They
+  are meant for after larger changes to the design, and the deploy does not
+  wait for them.
