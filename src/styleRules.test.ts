@@ -126,6 +126,10 @@ test('coral is a fill and a border; as text it is --shu-deep', () => {
   // (c) no text colour variable is --shu
   const vars = [...rest.matchAll(/(--[\w-]*-text)\s*:\s*([^;]+);/g)].filter((m) => new RegExp(SHU).test(m[2]))
   expect(vars.map((m) => m[1])).toEqual([])
+  // (d) no variable that holds --shu is used as a text colour (how the knockout chips once got coral text)
+  const holders = [...rest.matchAll(/(--[\w-]+)\s*:\s*var\(--shu\)\s*;/g)].map((m) => m[1])
+  const viaVar = blocks.filter((b) => holders.some((h) => new RegExp(`(?:^|[;{\\s])color:\\s*var\\(${h}\\)`).test(b.body)))
+  expect(viaVar.map((b) => b.selector)).toEqual([])
 })
 
 describe.each(Object.keys(themes))('%s theme contrast', (theme) => {

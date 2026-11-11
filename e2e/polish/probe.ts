@@ -175,9 +175,11 @@ export async function installProbe(page: Page): Promise<void> {
         const s = getComputedStyle(el)
         const text = parse(s.color)
         const bg = effectiveBackground(el)
-        // a slider, checkbox or radio button, or a bar-shaped button with neither text nor an icon: nothing is written on it
+        // a slider, checkbox or radio button, or a bar-shaped button with neither text, nor an icon, nor text drawn by
+        // a pseudo-element: nothing is written on it
+        const pseudo = (which: string) => { const c = getComputedStyle(el, which).content; return c !== 'none' && c !== 'normal' && c !== '""' }
         const noText = (el instanceof HTMLInputElement && ['range', 'checkbox', 'radio'].includes(el.type))
-          || (el instanceof HTMLButtonElement && !(el.textContent ?? '').trim() && !el.querySelector('svg'))
+          || (el instanceof HTMLButtonElement && !(el.textContent ?? '').trim() && !el.querySelector('svg') && !pseudo('::before') && !pseudo('::after'))
         return {
           background: norm(s.backgroundColor),
           border: parseFloat(s.borderTopWidth) > 0 && s.borderTopStyle !== 'none' ? norm(s.borderTopColor) : 'transparent',

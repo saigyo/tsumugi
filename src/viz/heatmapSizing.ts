@@ -28,10 +28,9 @@ const COL_RISE = 5  // between a column label's start and the matrix
 const SLANT = Math.SQRT1_2
 const glyphEm = (ch: string): number =>
   ch.charCodeAt(0) >= 0x2e80 ? 1 : /[WMmw@%]/.test(ch) ? 0.95 : /[A-Z&#]/.test(ch) ? 0.76 : 0.62
-export const textWidth = (text: string): number => {
-  const tick = tickPx()
-  return Math.ceil([...text].reduce((w, ch) => w + glyphEm(ch) * tick, 0))
-}
+/** The estimated width of a label. `tick` is the label font size in px; pass it when measuring many labels at once. */
+export const textWidth = (text: string, tick: number = tickPx()): number =>
+  Math.ceil([...text].reduce((w, ch) => w + glyphEm(ch) * tick, 0))
 
 /** The longest label a matrix draws; a longer token is cut with an ellipsis so one long token cannot squeeze the cells. */
 export const MAX_LABEL_CHARS = 22
@@ -49,10 +48,11 @@ export interface LabelMargins { left: number; top: number; right: number }
  * The old fixed margins are the minimum, so short labels draw as before.
  */
 export function labelMargins(rows: string[], cols: string[], opts: { folded?: boolean; minLeft: number; minTop: number; minRight: number }): LabelMargins {
-  const left = Math.max(opts.minLeft, Math.max(0, ...rows.map(textWidth)) + GAP + 2)
-  const rise = Math.max(0, ...cols.map((c) => textWidth(c) * SLANT + tickPx() * SLANT))
+  const tick = tickPx() // read once: the root font size does not change between labels
+  const left = Math.max(opts.minLeft, Math.max(0, ...rows.map((r) => textWidth(r, tick))) + GAP + 2)
+  const rise = Math.max(0, ...cols.map((c) => textWidth(c, tick) * SLANT + tick * SLANT))
   const top = Math.max(opts.minTop, Math.ceil(rise) + COL_RISE + 4 + (opts.folded ? MAX_CELL / 2 : 0))
   // a label starting over column i reaches textWidth * SLANT to the right; MIN_CELL is the narrowest the columns can be
-  const right = Math.max(opts.minRight, Math.ceil(Math.max(0, ...cols.map((c, i) => textWidth(c) * SLANT - (cols.length - i - 0.5) * MIN_CELL))) + 4)
+  const right = Math.max(opts.minRight, Math.ceil(Math.max(0, ...cols.map((c, i) => textWidth(c, tick) * SLANT - (cols.length - i - 0.5) * MIN_CELL))) + 4)
   return { left, top, right }
 }

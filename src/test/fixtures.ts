@@ -35,9 +35,9 @@ export interface FixtureTraceOpts {
   // with neurons: include the v6 step data (default true)
   steps?: boolean
   // a chat run: the real 37-token chat prompt, the answer, spans and format
+  chat?: boolean
   // a real run that a loaded model could measure (seed and revision 7), so the Knockouts card offers its sweep
   sweepable?: boolean
-  chat?: boolean
 }
 
 const DEFAULT_WORDS = [' sat', ' on', ' the', ' mat']
