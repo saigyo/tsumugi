@@ -226,6 +226,14 @@ they are IDs, not positions.
   without the KV cache over the whole text, so a prompt near 500 tokens
   may be far slower. Measure it; if so, make the caption depend on the
   length. *(#18 follow-up, 2026-11-01)*
+- [ ] **#28 Follow transformers.js #1767** — a failed session load or run
+  leaves the library unable to do another in the same worker
+  (huggingface/transformers.js issue #1767, pull request #1780). The app
+  works around it for loading (one attempt per worker, `loadPlan.ts`). Not
+  covered: a run that fails inside the library makes every later run in that
+  worker fail, until the page is reloaded. When a release contains the fix,
+  upgrade and decide whether the fresh worker per attempt is still wanted.
+  *(#27 follow-up, 2026-11-11)*
 - [ ] **#9 Mobile layout** — the app is desktop-first; a narrow-viewport pass
   is substantial design work for an audience that mostly explores on
   laptops. *(v1 spec, out of scope)*

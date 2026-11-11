@@ -47,7 +47,9 @@ export class TransformersEngine implements PipelineEngine {
   // The worker tries one entry of its loading plan (the custom export or the stock one, on the graphics card
   // or the CPU). When that fails, the next entry is tried in a fresh worker: after one failed session load,
   // transformers.js (4.2) cannot load another session in the same worker, because it queues all session loads
-  // on one promise chain and a rejected chain stays rejected.
+  // on one promise chain and a rejected chain stays rejected. Known upstream: huggingface/transformers.js
+  // issue #1767, fix proposed in pull request #1780 (open on 2026-11-11). The same holds for runs
+  // (`webInferenceChain`): after a run that failed inside the library, later runs in that worker fail too.
   prepare(onProgress?: (p: ProgressInfo) => void): Promise<void> {
     return new Promise((resolve, reject) => {
       let attempt = 0
