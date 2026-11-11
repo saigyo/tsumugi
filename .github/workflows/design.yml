@@ -1,0 +1,27 @@
+name: Design check
+# Walks the app through its states in both themes and checks hover, focus, contrast, number
+# format and clipped labels (e2e/polish.spec.ts, Chromium). It takes a few minutes, so it runs
+# beside CI: the deploy waits for CI only, and a failure here shows after the deploy.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: design-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run e2e:design

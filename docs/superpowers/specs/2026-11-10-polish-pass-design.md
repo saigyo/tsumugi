@@ -407,8 +407,10 @@ Decisions taken while building, each with its reason.
   so no wait has to outlast a transition. It reaches the Knockouts card with
   bars of all three chip categories and a flipping bar, the chat run's
   Embeddings card, and the borders of hovered controls.
-- **Where the engines run.** CI runs Chromium only (`npm run e2e`), so a push
-  stays short. Firefox and WebKit run on request: `npm run e2e:browsers`
-  locally, or the "Other browsers" workflow started by hand on GitHub. They
-  are meant for after larger changes to the design, and the deploy does not
-  wait for them.
+- **Where the checks run.** CI runs the Chromium browser tests without the
+  walk (`npm run e2e`), so a push stays short; the deploy waits for CI only.
+  The walk in Chromium (`npm run e2e:design`) runs beside CI on every push,
+  in the "Design check" workflow; a failure there shows after the deploy.
+  Firefox and WebKit run on request: `npm run e2e:browsers` locally, or the
+  "Other browsers" workflow started by hand, after larger changes to the
+  design.

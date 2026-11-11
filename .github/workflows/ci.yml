@@ -21,6 +21,7 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build
-      # Chromium only, to keep a push short; Firefox and WebKit run by hand (browsers.yml)
+      # Chromium only and without the design check, to keep a push short: the design check runs
+      # beside this workflow (design.yml), Firefox and WebKit run by hand (browsers.yml)
       - run: npx playwright install --with-deps chromium
       - run: npm run e2e

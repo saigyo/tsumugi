@@ -11,6 +11,7 @@
     "preview": "vite preview",
     "test": "vitest run",
     "e2e": "playwright test --project=chromium",
+    "e2e:design": "playwright test --project=design",
     "e2e:browsers": "playwright test --project=firefox --project=webkit",
     "screenshots": "node scripts/capture-screenshots.mjs"
   },

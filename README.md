@@ -428,8 +428,9 @@ Then open the printed local URL (defaults to `http://localhost:5173`).
 ## Testing
 
 ```bash
-npm test      # unit tests (vitest)
+npm test               # unit tests (vitest)
 npm run e2e            # browser tests in Chromium (playwright); CI runs these
+npm run e2e:design     # the design check: walks the app in both themes (Chromium)
 npm run e2e:browsers   # the rendering checks in Firefox and WebKit
 ```
 
@@ -439,8 +440,11 @@ download or run the real model, so they work fully offline and in CI. Run
 `npx playwright install firefox webkit` before the first
 `npm run e2e:browsers`.
 
-CI runs Chromium only. Run the Firefox and WebKit checks after larger changes
-to the design: locally, or on GitHub by starting the **Other browsers**
+On GitHub, **CI** runs the unit tests and the Chromium browser tests, and the
+deploy waits for it. The **Design check** runs beside it on every push; it
+takes a few minutes, so the deploy does not wait for it, and a failure there
+shows after the deploy. Run the Firefox and WebKit checks after larger
+changes to the design: locally, or by starting the **Other browsers**
 workflow by hand.
 
 ## Docs
