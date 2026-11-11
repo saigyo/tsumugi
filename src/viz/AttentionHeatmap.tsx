@@ -6,7 +6,7 @@ import { visibleToken } from './tokenText'
 import { LoadRealButton } from './LoadRealButton'
 import { foldMatrix, type FoldedMatrix } from './foldMatrix'
 import { seqFill } from './ramps'
-import { cellSize, labelMargins, labelStep } from './heatmapSizing'
+import { cellSize, labelMargins, labelStep, shortLabel } from './heatmapSizing'
 import { percent } from '../ui/format'
 
 /** What the read-out under the heatmap says while no cell is hovered. */
@@ -98,7 +98,8 @@ export function AttentionHeatmap({ heads, tokens, focus, chat, foldToggle = true
   // cannot come back if the matrix grows again
   const hovered = hoveredRaw && hoveredRaw.r < nRows && hoveredRaw.c < nCols ? hoveredRaw : null
   if (hoveredRaw && !hovered) setHovered(null)
-  const margins = labelMargins(folded.rows.map(rowLabel), folded.cols.map((_, j) => colLabel(j)), {
+  // drawn labels are shortened; the read-out and the cell titles keep the full text
+  const margins = labelMargins(folded.rows.map((_, i) => shortLabel(rowLabel(i))), folded.cols.map((_, j) => shortLabel(colLabel(j))), {
     folded: folded.cols.some((c) => c.to - c.from > 1), minLeft: MIN_LABEL_W, minTop: MIN_DIAG_PAD, minRight: MIN_RIGHT_PAD })
   const LABEL_W = margins.left, DIAG_PAD = margins.top, RIGHT_PAD = margins.right
   const cell = cellSize(width, nCols, LABEL_W + RIGHT_PAD)
@@ -136,14 +137,14 @@ export function AttentionHeatmap({ heads, tokens, focus, chat, foldToggle = true
             <text key={`c${i}`} data-testid="col-label" data-hl={String(hovered?.c === i)}
               x={cx} y={cy} textAnchor="start" transform={`rotate(-45 ${cx} ${cy})`}
               className="attn-label attn-col-label">
-              {i % step === 0 || hovered?.c === i ? colLabel(i) : ''}
+              {i % step === 0 || hovered?.c === i ? shortLabel(colLabel(i)) : ''}
             </text>
           )
         })}
         {folded.rows.map((_, r) => (
           <text key={`r${r}`} data-testid="row-label" data-hl={String(hovered?.r === r)}
             x={LABEL_W - 8} y={DIAG_PAD + r * cell + cell / 2 + 4} textAnchor="end" className="attn-label">
-            {r % step === 0 || hovered?.r === r ? rowLabel(r) : ''}
+            {r % step === 0 || hovered?.r === r ? shortLabel(rowLabel(r)) : ''}
           </text>
         ))}
         <Cells folded={folded} cell={cell} labelW={LABEL_W} diagPad={DIAG_PAD} onHover={setHovered} rowLabel={rowLabel} colLabel={colLabel} />

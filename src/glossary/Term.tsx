@@ -5,7 +5,7 @@ import type { GlossaryId } from './types'
 
 const CLASS = { text: 'gl-term', chip: 'embed-callout gl-term gl-term-chip', icon: 'gl-term-icon' } as const
 // .gl-tip is at most 280px wide plus padding; keep it inside the viewport
-const TIP_SPACE = 296
+const TIP_SPACE = 308 // the tip's outer width (280 + padding + border) plus the edge gap
 const GAP = 4
 const EDGE = 8
 

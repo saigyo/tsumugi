@@ -13,15 +13,25 @@ export function cellSize(width: number | null, columns: number, chrome: number):
 export const labelStep = (cell: number): number => (cell >= LABEL_MIN ? 1 : Math.ceil(LABEL_MIN / cell))
 
 // Label margins. The labels are SVG text in the --t-tick size, so their
-// width is estimated from the characters (about 0.62 em each, a full em for
-// wide characters) instead of measured: the margin always has room for the
-// longest label, including special tokens and the folded system prompt.
+// width is estimated from the characters instead of measured (about 0.62 em
+// each, more for capitals and the widest letters, a full em for CJK and
+// emoji): the margin has room for the longest label, including special
+// tokens and the folded system prompt.
 const TICK_PX = 10.56
 const GAP = 8       // between a row label and the matrix
 const COL_RISE = 5  // between a column label's start and the matrix
 const SLANT = Math.SQRT1_2
+const glyphEm = (ch: string): number =>
+  ch.charCodeAt(0) >= 0x2e80 ? 1 : /[WMmw@%]/.test(ch) ? 0.95 : /[A-Z&#]/.test(ch) ? 0.76 : 0.62
 export const textWidth = (text: string): number =>
-  Math.ceil([...text].reduce((w, ch) => w + (ch.charCodeAt(0) < 0x2e80 ? 0.62 : 1) * TICK_PX, 0))
+  Math.ceil([...text].reduce((w, ch) => w + glyphEm(ch) * TICK_PX, 0))
+
+/** The longest label a matrix draws; a longer token is cut with an ellipsis so one long token cannot squeeze the cells. */
+export const MAX_LABEL_CHARS = 22
+export const shortLabel = (text: string): string => {
+  const chars = [...text]
+  return chars.length > MAX_LABEL_CHARS ? chars.slice(0, MAX_LABEL_CHARS - 1).join('') + '…' : text
+}
 
 export interface LabelMargins { left: number; top: number; right: number }
 

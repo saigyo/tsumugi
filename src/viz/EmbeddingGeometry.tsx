@@ -6,7 +6,7 @@ import { SPACE_MARKER, visibleToken } from './tokenText'
 import { Icon } from '../ui/Icon'
 import { washIndexes } from '../ui/tokenWash'
 import { fixed } from '../ui/format'
-import { labelMargins } from './heatmapSizing'
+import { labelMargins, shortLabel } from './heatmapSizing'
 
 const NEIGHBORS = 8
 const SPACE_NOTE = `${SPACE_MARKER} marks a leading space, ↵ a newline, ⇥ a tab: whitespace belongs to the token, so " cat" (mid-sentence) and "cat" (after punctuation or at a start) are different tokens with different rows in E, and a paragraph break is two "↵" tokens.`
@@ -59,7 +59,7 @@ export function EmbeddingGeometry({ tokens, selected, vectorFor, asset, loading,
   }
   const neighbors = asset && token ? renderableNeighbors(asset, token.id, NEIGHBORS) : null
   const label = (i: number) => (shown[i] ? visibleToken(shown[i]) : '') || `#${start + i}`
-  const labels = shown.map((_, i) => label(i))
+  const labels = shown.map((_, i) => shortLabel(label(i))) // drawn labels are shortened; the cell titles keep the full text
   const { left: LABEL_W, top: DIAG_PAD, right: RIGHT_PAD } = labelMargins(labels, labels, { minLeft: MIN_LABEL_W, minTop: MIN_DIAG_PAD, minRight: MIN_RIGHT_PAD })
   const w = LABEL_W + shown.length * CELL + RIGHT_PAD
   const h = DIAG_PAD + shown.length * CELL + 4
@@ -113,13 +113,13 @@ export function EmbeddingGeometry({ tokens, selected, vectorFor, asset, loading,
               const cy = DIAG_PAD - 5
               return (
                 <text key={`c${i}`} x={cx} y={cy} textAnchor="start" transform={`rotate(-45 ${cx} ${cy})`}
-                  className="attn-label">{label(i)}</text>
+                  className="attn-label">{labels[i]}</text>
               )
             })}
             {matrix.map((row, r) => (
               <g key={r}>
                 <text x={LABEL_W - 8} y={DIAG_PAD + r * CELL + CELL / 2 + 4} textAnchor="end" className="attn-label">
-                  {label(r)}
+                  {labels[r]}
                 </text>
                 {row.map((v, c) => {
                   return (

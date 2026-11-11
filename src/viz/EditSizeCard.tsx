@@ -96,7 +96,9 @@ function EditHeatmap({ rows, items, open, onToggle, block, selected, onSelect, o
         const r = item.index, t = rows.tokens[r]
         return (
         <div key={r} className="mlp-heatmap-row">
-          <button type="button" data-testid="edit-row-label" aria-pressed={r === selected} aria-label={`token ${r + 1}: ${visibleToken(t)}`}
+          <button type="button" data-testid="edit-row-label" aria-pressed={r === selected}
+            // a token of symbols only (↵, ?, .) has nothing to read out; words keep their own text as the name
+            aria-label={/[\p{L}\p{N}]/u.test(visibleToken(t)) ? undefined : `token ${r + 1}: ${visibleToken(t)}`}
             className={`mlp-tok${r === selected ? ' is-picked' : ''}`} onClick={() => onSelect(r)}>{visibleToken(t)}</button>
           <div className="mlp-cells" style={{ gridTemplateColumns: `repeat(${layers}, 1fr)` }}>
             {rows[block][r].map((v, l) => (
