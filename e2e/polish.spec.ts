@@ -2,13 +2,13 @@ import { errors, expect, test, type Locator, type Page } from '@playwright/test'
 import { installProbe, type Control, type ControlState } from './polish/probe'
 import { setTheme, THEMES, walk, type Theme } from './polish/walk'
 
-test.setTimeout(240_000)
+test.setTimeout(480_000)
 test.use({ viewport: { width: 1380, height: 940 } })
 
 const STATES = [
   'first-visit', 'sim-run-end', 'sim-embeddings', 'sim-layers', 'sim-logits', 'sim-softmax', 'sim-sampler',
   'settings-tip', 'term-tip', 'glossary-index', 'glossary-softmax', 'glossary-mlp', 'runs-8', 'runs-list',
-  'compare-armed', 'compare-side', 'compare-combined', 'real-layers', 'chat-layers',
+  'compare-armed', 'compare-side', 'compare-combined', 'real-layers', 'chat-layers', 'chat-embeddings',
 ]
 
 test.beforeEach(async ({ page }) => {
@@ -91,7 +91,7 @@ function surveyHovers(page: Page): Promise<HoverSurvey> {
           const rest = await stateOf(page, control.index)
           await page.evaluate(() => window.__polish.snapshot())
           await locator.hover({ timeout: 1000 })
-          await page.waitForTimeout(250) // the 0.2s hover transitions
+          await page.waitForTimeout(80) // transitions are off (reduced motion): one frame for the hover style to apply
           const hovered = await stateOf(page, control.index)
           const moved = await page.evaluate((i) => window.__polish.movedVertically(i), control.index)
           survey.records.push({ theme, state, control, rest, hovered, moved })
@@ -146,6 +146,16 @@ test('hover keeps fills and chart colours', async ({ page }) => {
     if (!allowed.includes(r.hovered.background))
       problems.push(`${label(r)} background ${r.rest.background} became ${r.hovered.background}, expected ${allowed.join(' or ')}`)
   }
+  // a hover must not remove a selection mark: a border in indigo, coral or the fill colour stays
+  for (const r of survey.records) {
+    if (!r.rest || !r.hovered) continue
+    const palette = survey.palettes[r.theme]
+    const marks = [palette.ai, palette.shu, palette.fill, palette['shu-deep']]
+    // the fill colour follows its hover form, as the background does
+    const allowed = r.rest.border === palette.fill ? [r.rest.border, palette['fill-hover']] : [r.rest.border]
+    if (marks.includes(r.rest.border) && !allowed.includes(r.hovered.border))
+      problems.push(`${label(r)} border ${r.rest.border} became ${r.hovered.border}`)
+  }
   expect(problems).toEqual([])
 })
 
@@ -185,7 +195,7 @@ test('every control shows a focus ring', async ({ page, browserName }) => {
         const before = await page.evaluate((i) => window.__polish.ring(i), control.index)
         await page.keyboard.press('Shift') // so that script focus counts as keyboard focus
         await locator.focus({ timeout: 1000 })
-        await page.waitForTimeout(250) // focus transitions
+        await page.waitForTimeout(80) // transitions are off (reduced motion): one frame for the ring to apply
         const after = await page.evaluate((i) => window.__polish.ring(i), control.index)
         if (!before || !after) problems.push(`${theme}/${state}: ${control.key} "${control.text}" vanished when focused`)
         else if (!after.visible || after.signature === before.signature)

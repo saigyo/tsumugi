@@ -1,20 +1,22 @@
 import { expect, type Page } from '@playwright/test'
-import { importChatRun, openFixtureRun } from '../fixtureRun'
+import { announceKnockoutModel, importChatRun, openFixtureRun, serveGeometry } from '../fixtureRun'
 
 export const THEMES = ['light', 'dark'] as const
 export type Theme = (typeof THEMES)[number]
 
-/** Emulates the system setting with no stored choice, then waits for colour transitions to finish. */
+/**
+ * Emulates the system setting with no stored choice, and reduced motion: the stylesheet then switches every transition off
+ * and scrolling jumps instead of gliding, so a state is final as soon as it is rendered and no wait has to outlast a transition.
+ */
 export async function setTheme(page: Page, theme: Theme): Promise<void> {
-  await page.emulateMedia({ colorScheme: theme })
-  await page.waitForTimeout(700)
+  await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' })
 }
 
 async function settle(page: Page) {
   // the pause button exists only while playback runs
   const pause = page.getByTestId('btn-pause')
   if (await pause.count()) await pause.first().click()
-  await page.waitForTimeout(450)
+  await page.waitForTimeout(100)
 }
 
 /** Empties the run archive and local storage, so every walk starts like a first visit. The deletion runs on a blank page of the same origin, where no connection of the app can block it. */
@@ -62,7 +64,6 @@ export async function walk(page: Page, visit: (state: string) => Promise<void>):
   await forgetEverything(page)
   await page.goto('/')
   await page.getByTestId('example-chip').first().waitFor()
-  await page.waitForTimeout(500)
   await at('first-visit', async () => {
     await expect(page.getByTestId('example-chip').first()).toBeVisible()
     await expect(page.getByTestId('run-chip')).toHaveCount(0)
@@ -75,33 +76,28 @@ export async function walk(page: Page, visit: (state: string) => Promise<void>):
 
   for (const [i, name] of [[1, 'embeddings'], [2, 'layers'], [3, 'logits'], [4, 'softmax'], [5, 'sampler']] as const) {
     await stage(i).click()
-    await page.waitForTimeout(300)
     await at(`sim-${name}`, stageActive(i))
   }
 
   await page.evaluate(() => scrollTo(0, 0))
   await page.getByTestId('setting-info').first().hover()
-  await page.waitForTimeout(400)
   await at('settings-tip', tipShowing)
   await page.mouse.move(2, 2)
 
   // the first stage whose detail card holds a glossary term
   for (const i of [3, 2, 1, 4, 0]) {
     await stage(i).click()
-    await page.waitForTimeout(300)
     if (await page.locator('.detail .gl-term').count()) break
   }
   const term = page.locator('.detail .gl-term').first()
   await term.scrollIntoViewIfNeeded()
   await term.hover()
-  await page.waitForTimeout(400)
   await at('term-tip', tipShowing)
   await page.mouse.move(2, 2)
 
   await page.evaluate(() => scrollTo(0, 0))
   await page.getByTestId('btn-help').first().click()
   await page.getByTestId('glossary-drawer').waitFor()
-  await page.waitForTimeout(400)
   await at('glossary-index', async () => {
     await expect(page.getByTestId('glossary-drawer')).toBeVisible()
     await expect(page.getByTestId('gl-heading')).toHaveText('Glossary')
@@ -112,14 +108,12 @@ export async function walk(page: Page, visit: (state: string) => Promise<void>):
     const row = page.locator(`[data-testid="gl-index-row"][data-entry="${entry}"]`)
     if (!(await row.count())) await page.getByTestId('gl-all-entries').click()
     await row.click()
-    await page.waitForTimeout(350)
     await at(`glossary-${entry}`, async () => {
       await expect(page.getByTestId('glossary-drawer')).toBeVisible()
       await expect(page.getByTestId('gl-heading')).toContainText(entry === 'mlp' ? /MLP/i : /softmax/i)
     })
   }
   if (await page.getByTestId('glossary-drawer').count()) await page.getByTestId('gl-close').click()
-  await page.waitForTimeout(300)
 
   for (const p of ['The cat sat on the mat', 'Once upon a time', 'Paris is the capital of', 'Hello', 'The farmer bought a horse', '2 + 2 =', 'A very long prompt that keeps going to see how a run chip shortens its label']) {
     await runOnce(page, p)
@@ -129,7 +123,6 @@ export async function walk(page: Page, visit: (state: string) => Promise<void>):
   await chip.hover() // the pin button shows on hover
   await chip.getByTestId('btn-chip-pin').click({ timeout: 5000 })
   await page.mouse.move(2, 2)
-  await page.waitForTimeout(300)
   await at('runs-8', async () => {
     await expect(page.getByTestId('run-chip').first()).toContainText('#8')
     await expect(page.getByTestId('run-more')).toBeVisible()
@@ -137,13 +130,10 @@ export async function walk(page: Page, visit: (state: string) => Promise<void>):
 
   await page.getByTestId('run-more').click()
   await page.getByTestId('run-list').waitFor()
-  await page.waitForTimeout(300)
   await at('runs-list', async () => { await expect(page.getByTestId('run-list')).toBeVisible() })
   await page.keyboard.press('Escape')
-  await page.waitForTimeout(200)
 
   await page.getByTestId('btn-compare-arm').click()
-  await page.waitForTimeout(300)
   await at('compare-armed', async () => {
     await expect(page.getByTestId('btn-compare-exit')).toBeVisible()
     await expect(page.getByTestId('compare-view')).toHaveCount(0)
@@ -154,32 +144,46 @@ export async function walk(page: Page, visit: (state: string) => Promise<void>):
   // the distribution switch appears only once a cycle is picked
   await page.getByTestId('cmp-tick').nth(2).click()
   await page.getByTestId('dist-mode-side').click()
-  await page.waitForTimeout(400)
   await at('compare-side', async () => {
     await expect(page.getByTestId('compare-view')).toBeVisible()
     await expect(page.getByTestId('dist-mode-side')).toHaveAttribute('data-active', 'true')
   })
   await page.getByTestId('dist-mode-combined').click()
-  await page.waitForTimeout(400)
   await at('compare-combined', async () => {
     await expect(page.getByTestId('dist-mode-combined')).toHaveAttribute('data-active', 'true')
   })
   await page.getByTestId('btn-compare-exit').click()
 
   await forgetEverything(page) // openFixtureRun expects an empty archive
+  await serveGeometry(page)
   await openFixtureRun(page)
-  await page.waitForTimeout(500)
+  await announceKnockoutModel(page)
+  await page.waitForTimeout(200) // the attention matrix measures its card before it draws
   await at('real-layers', async () => {
     await stageActive(2)()
     await expect(page.getByTestId('run-chip').filter({ hasText: 'steps fixture' })).toHaveCount(1)
+    // the Knockouts card shows the stored sweep: bars, one that flips the top token, and a chip of each category
+    await expect(page.getByTestId('knockout-bar').first()).toBeAttached()
+    await expect(page.locator('[data-testid="knockout-bar"][data-flips="true"]').first()).toBeAttached()
+    for (const role of ['decisive', 'compensated', 'dampening'])
+      await expect(page.locator(`[data-testid="knockout-chip"][data-role="${role}"]`)).toHaveCount(1)
   })
 
   await importChatRun(page)
   await page.locator('[data-testid="stage-card"][data-stage="layers"]').click()
-  await page.waitForTimeout(500)
+  await page.waitForTimeout(200) // the attention matrix measures its card before it draws
   await at('chat-layers', async () => {
     await stageActive(2)()
     await expect(page.getByTestId('token-stream').getByTestId('system-fold')).toBeVisible()
     await expect(page.getByTestId('run-chip').filter({ hasText: 'What is the' })).toHaveCount(1)
+  })
+
+  // the Embeddings card of the same run: the similarity grid is labelled with the chat template's special tokens
+  await page.locator('[data-testid="stage-card"][data-stage="embeddings"]').click()
+  await at('chat-embeddings', async () => {
+    await stageActive(1)()
+    await expect(page.getByTestId('run-chip').filter({ hasText: 'What is the' })).toHaveCount(1)
+    await expect(page.getByTestId('embed-similarity')).toBeVisible()
+    await expect(page.getByTestId('embed-similarity')).toContainText('<|im_start|>')
   })
 }

@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Locator, type Page } from '@playwright/test'
 
 async function openSoftmax(page: Page) {
   await page.goto('/')
@@ -13,9 +13,8 @@ async function openSoftmax(page: Page) {
   await page.waitForTimeout(450)
 }
 
-test('the fraction line of the Softmax formula is drawn', async ({ page }) => {
-  await openSoftmax(page)
-  const frac = page.getByTestId('softmax-formula').locator('mfrac').first()
+/** Looks at the picture of a fraction: the line between numerator and denominator must be dark across most of its width. */
+async function expectFractionLine(page: Page, frac: Locator) {
   await frac.scrollIntoViewIfNeeded()
   const box = (await frac.boundingBox())!
   const num = (await frac.locator('> *').nth(0).boundingBox())!
@@ -43,4 +42,20 @@ test('the fraction line of the Softmax formula is drawn', async ({ page }) => {
     return best
   }, { png, top: num.y + num.height - box.y, bottom: den.y - box.y, scaleBox: box.width })
   expect(best).toBeGreaterThanOrEqual(0.6)
+}
+
+test('the fraction line of the Softmax formula is drawn', async ({ page }) => {
+  await openSoftmax(page)
+  await expectFractionLine(page, page.getByTestId('softmax-formula').locator('mfrac').first())
+})
+
+test('the fraction line in the Softmax glossary entry is drawn', async ({ page }) => {
+  await page.goto('/')
+  await page.getByTestId('btn-help').first().click()
+  await page.getByTestId('glossary-drawer').waitFor()
+  await page.locator('[data-testid="gl-index-row"][data-entry="softmax"]').click()
+  await expect(page.getByTestId('gl-heading')).toContainText(/softmax/i)
+  await page.evaluate(() => document.fonts.ready)
+  await page.waitForTimeout(450)
+  await expectFractionLine(page, page.getByTestId('glossary-drawer').locator('mfrac').first())
 })

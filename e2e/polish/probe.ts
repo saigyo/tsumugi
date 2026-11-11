@@ -3,6 +3,7 @@ import type { Page } from '@playwright/test'
 export type Control = { index: number; key: string; text: string }
 export type ControlState = {
   background: string // the control's own computed background, normalised (hex, or hex@alpha)
+  border: string // the control's top border colour, normalised; 'transparent' when it has no border
   text: string // text colour, normalised
   contrast: number | null // text colour over the effective background behind the control
   disabled: boolean
@@ -174,9 +175,12 @@ export async function installProbe(page: Page): Promise<void> {
         const s = getComputedStyle(el)
         const text = parse(s.color)
         const bg = effectiveBackground(el)
-        const noText = el instanceof HTMLInputElement && ['range', 'checkbox', 'radio'].includes(el.type)
+        // a slider, checkbox or radio button, or a bar-shaped button with neither text nor an icon: nothing is written on it
+        const noText = (el instanceof HTMLInputElement && ['range', 'checkbox', 'radio'].includes(el.type))
+          || (el instanceof HTMLButtonElement && !(el.textContent ?? '').trim() && !el.querySelector('svg'))
         return {
           background: norm(s.backgroundColor),
+          border: parseFloat(s.borderTopWidth) > 0 && s.borderTopStyle !== 'none' ? norm(s.borderTopColor) : 'transparent',
           text: hex(text),
           contrast: text && !noText ? Math.round(contrastOf(over({ ...text, a: text.a * Number(s.opacity) }, bg), bg) * 100) / 100 : null,
           disabled: (el as HTMLButtonElement).disabled === true || el.getAttribute('aria-disabled') === 'true',
@@ -243,6 +247,9 @@ export async function installProbe(page: Page): Promise<void> {
           ['thousands comma', /\d,\d{3}(?!\d)/],
           ['space before %', /\d %/],
           ['tilde before sign or digit', /~[-+−\d]/],
+          // groups of three are separated by a narrow no-break space (U+202F), and only from 10 000 up
+          ['digits grouped with an ordinary or no-break space', /(?<![\d.,])\d{1,3}[ \u00a0]\d{3}(?!\d)/],
+          ['four-digit number grouped', /(?<![\d.,])\d[\s\u00a0\u202f]\d{3}(?![\d.,]?\d)/],
         ]
         const issues = new Set<string>()
         // React renders "~", the sign and the number as neighbouring text nodes, so test the joined direct text of each element
@@ -308,7 +315,7 @@ export async function installProbe(page: Page): Promise<void> {
       },
       palette() {
         const out: Record<string, string> = {}
-        for (const name of ['card', 'washi', 'white', 'seg-ground', 'fill', 'fill-hover']) {
+        for (const name of ['card', 'washi', 'white', 'seg-ground', 'fill', 'fill-hover', 'ai', 'shu', 'shu-deep']) {
           const probe = document.createElement('div')
           probe.style.cssText = `position:absolute;visibility:hidden;background-color:var(--${name})`
           document.body.appendChild(probe)

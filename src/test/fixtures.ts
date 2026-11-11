@@ -1,5 +1,5 @@
 import { DEFAULT_SYSTEM_PROMPT } from '../engine/chatTemplate'
-import { READOUT_CELLS, type AttentionGridCell, type LayerVotes, type LogitCandidate, type Mode, type RunEndReason, type TraceEvent, type TokenInfo } from '../trace/types'
+import { READOUT_CELLS, type AttentionGridCell, type KnockoutSweep, type LayerVotes, type LogitCandidate, type Mode, type RunEndReason, type TraceEvent, type TokenInfo } from '../trace/types'
 import type { RunRecord } from '../app/runsStore'
 import { fixtureMlpVotes, fixtureNeuronData } from './neuronFixture'
 
@@ -35,6 +35,8 @@ export interface FixtureTraceOpts {
   // with neurons: include the v6 step data (default true)
   steps?: boolean
   // a chat run: the real 37-token chat prompt, the answer, spans and format
+  // a real run that a loaded model could measure (seed and revision 7), so the Knockouts card offers its sweep
+  sweepable?: boolean
   chat?: boolean
 }
 
@@ -89,7 +91,8 @@ export function buildFixtureTrace(opts: FixtureTraceOpts = {}): TraceEvent[] {
     { type: 'run-start', prompt: opts.prompt ?? (opts.chat ? 'What is the capital of France?' : 'The cat'),
       mode: opts.mode ?? 'sim', modelId: 'fixture',
       params: { temperature, topK: 10, maxNewTokens: cycles }, vocabSize: 49152,
-      ...(opts.chat ? { format: { kind: 'chat', system: DEFAULT_SYSTEM_PROMPT } as const } : {}) },
+      ...(opts.chat ? { format: { kind: 'chat', system: DEFAULT_SYSTEM_PROMPT } as const } : {}),
+      ...(opts.sweepable ? { seed: 7, revision: 'v7' } : {}) },
     { type: 'tokenize', tokens: promptTokens, ...(opts.chat ? { chat: { system: [1, 21] as [number, number], user: [24, 31] as [number, number] } } : {}) },
   ]
   for (let c = 0; c < cycles; c++) {
@@ -190,4 +193,31 @@ export function makeGridEvent(layers = 2, heads = 2): Extract<TraceEvent, { type
     }
   }
   return { type: 'attention-grid', layers, heads, cells }
+}
+
+/**
+ * A knockout sweep of one cycle of a trace built with `mlp`, shaped so that all three chip categories appear:
+ * the layer with the largest direct vote is compensated (the probability hardly moves), the one with the
+ * smallest is decisive (the top token flips), the one between them is dampening (the probability rises).
+ */
+export function fixtureSweep(events: TraceEvent[], cycle: number): KnockoutSweep {
+  const logits = events.find((e) => e.type === 'logits' && e.cycle === cycle)
+  const sample = events.find((e) => e.type === 'sample' && e.cycle === cycle)
+  const softmax = events.find((e) => e.type === 'softmax' && e.cycle === cycle)
+  if (logits?.type !== 'logits' || sample?.type !== 'sample' || softmax?.type !== 'softmax') throw new Error(`no complete cycle ${cycle}`)
+  const chosen = sample.chosen
+  const votes = logits.topK.find((c) => c.id === chosen.id)?.votes?.mlp
+  if (!votes || votes.length < 3) throw new Error('the trace needs MLP votes for at least 3 layers (build it with mlp)')
+  const baseline = softmax.topK.find((c) => c.id === chosen.id)!.prob
+  const byVote = votes.map((v, layer) => ({ layer, mag: Math.abs(v) })).sort((a, b) => b.mag - a.mag).map((x) => x.layer)
+  const [compensated, dampening, decisive] = [byVote[0], byVote[1], byVote.at(-1)!]
+  const other = { id: 200, text: ' ran' }
+  return {
+    cycle, revision: 'v7', chosen, baseline,
+    layers: votes.map((_, layer) => {
+      if (layer === decisive && layer !== dampening) return { layer, prob: 0.05, top: { ...other, prob: 0.6 }, flips: true }
+      if (layer === dampening) return { layer, prob: Math.min(1, baseline + 0.15), top: { ...chosen, prob: Math.min(1, baseline + 0.15) }, flips: false }
+      return { layer, prob: baseline - (layer === compensated ? 0.03 : 0.02), top: { ...chosen, prob: baseline - 0.03 }, flips: false }
+    }),
+  }
 }
