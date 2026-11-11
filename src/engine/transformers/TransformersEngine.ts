@@ -25,25 +25,46 @@ export class TransformersEngine implements PipelineEngine {
   revision: string | null = null
   private listeners = new Set<(msg: WorkerResponse) => void>()
 
+  private workerFactory: () => Worker
+
   constructor(workerFactory: () => Worker = () =>
     new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' })) {
-    this.worker = workerFactory()
-    this.worker.onmessage = (e: MessageEvent<WorkerResponse>) => {
+    this.workerFactory = workerFactory
+    this.worker = this.spawn()
+  }
+
+  private spawn(): Worker {
+    const worker = this.workerFactory()
+    worker.onmessage = (e: MessageEvent<WorkerResponse>) => {
+      if (worker !== this.worker) return // a worker that was replaced has nothing more to say
       for (const l of [...this.listeners]) l(e.data)
     }
+    return worker
   }
 
   private post(msg: WorkerRequest) { this.worker.postMessage(msg) }
 
+  // The worker tries one entry of its loading plan (the custom export or the stock one, on the graphics card
+  // or the CPU). When that fails, the next entry is tried in a fresh worker: after one failed session load,
+  // transformers.js (4.2) cannot load another session in the same worker, because it queues all session loads
+  // on one promise chain and a rejected chain stays rejected.
   prepare(onProgress?: (p: ProgressInfo) => void): Promise<void> {
     return new Promise((resolve, reject) => {
+      let attempt = 0
       const listener = (msg: WorkerResponse) => {
         if (msg.type === 'progress') onProgress?.(msg.info)
         if (msg.type === 'ready') { this.device = msg.device; this.attentions = msg.attentions; this.knockout = msg.knockout; this.revision = msg.revision ?? null; this.listeners.delete(listener); resolve() }
+        if (msg.type === 'attempt-failed') {
+          if (!msg.more) { this.listeners.delete(listener); reject(new Error(msg.message)); return }
+          this.worker.terminate()
+          this.worker = this.spawn()
+          attempt += 1
+          this.post({ type: 'prepare', modelId: MODEL_ID, attempt })
+        }
         if (msg.type === 'fatal') { this.listeners.delete(listener); reject(new Error(msg.message)) }
       }
       this.listeners.add(listener)
-      this.post({ type: 'prepare', modelId: MODEL_ID })
+      this.post({ type: 'prepare', modelId: MODEL_ID, attempt })
     })
   }
 

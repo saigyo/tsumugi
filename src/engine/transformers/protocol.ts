@@ -2,7 +2,8 @@ import type { AttentionLabel, GenParams, KnockoutLayer, PromptFormat, TraceEvent
 import type { ProgressInfo, RunOptions } from '../types'
 
 export type WorkerRequest =
-  | { type: 'prepare'; modelId: string }
+  // `attempt`: which entry of the loading plan to try (see loadPlan); one attempt per worker
+  | { type: 'prepare'; modelId: string; attempt?: number }
   | { type: 'run'; runId: number; prompt: string; params: GenParams; format: PromptFormat
       seed?: number; knockout?: RunOptions['knockout'] }
   | { type: 'abort' }
@@ -15,6 +16,8 @@ export type WorkerResponse =
   | { type: 'progress'; info: ProgressInfo }
   | { type: 'ready'; device: 'webgpu' | 'wasm'; attentions: boolean
       knockout: boolean; revision?: string }
+  // this worker's loading attempt failed; `more`: the plan has another one, to be tried in a fresh worker
+  | { type: 'attempt-failed'; message: string; more: boolean }
   | { type: 'trace'; runId: number; event: TraceEvent }
   | { type: 'done'; runId: number }
   | { type: 'sweep-baseline'; sweepId: number; prob: number }

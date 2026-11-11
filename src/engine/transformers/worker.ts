@@ -5,6 +5,7 @@ import { forcedToken, mlpScale, sweepEntry } from '../knockout'
 import { cycleDraw } from '../prng'
 import { sampleIndex, softmax, topK } from '../math'
 import { ATTN_MODEL_ID, ATTN_MODEL_REVISION } from '../tokenizer'
+import { loadPlan } from './loadPlan'
 import { addAttentionOutput, createAccumulator, type AttnAccumulator } from './attentionAccum'
 import { extractEmbedRows } from './embedRows'
 import { extractReadout, type ReadoutResult } from './readout'
@@ -42,45 +43,35 @@ let aborted = false
 // starts (memory already bounded by ATTN_MAX_SEQ)
 let lastRun: { acc: AttnAccumulator; stats: HeadStats[] } | null = null
 
-async function prepare(modelId: string) {
+// A browser may offer navigator.gpu and still have no adapter (headless, a blocked driver, a remote desktop).
+async function hasGpuAdapter(): Promise<boolean> {
+  const gpu = (navigator as unknown as { gpu?: { requestAdapter(): Promise<unknown> } }).gpu
+  if (!gpu) return false
+  try { return (await gpu.requestAdapter()) != null } catch { return false }
+}
+
+// Tries one entry of the loading plan. A failure is reported, not followed by the next entry here: after a
+// failed session load transformers.js cannot load another session in this worker, so the engine starts a
+// fresh worker for the next entry (see TransformersEngine.prepare).
+async function prepare(modelId: string, attempt: number) {
   loadedModelId = modelId
   const { AutoTokenizer, AutoModelForCausalLM } = await import('@huggingface/transformers')
   const progress_callback = (p: any) => {
     if (p.status === 'progress') post({ type: 'progress', info: { file: p.file, loaded: p.loaded ?? 0, total: p.total ?? 0 } })
   }
   tokenizer = await AutoTokenizer.from_pretrained(modelId, { progress_callback })
-  const preferred = 'gpu' in navigator ? 'webgpu' : 'wasm'
-
-  // WebGPU->WASM fallback for a single (modelId, dtype) attempt; returns the device that
-  // actually succeeded, since a caught GPU failure means the load happened on WASM instead.
-  const loadOn = async (id: string, dtype: 'q4' | 'q8' | 'fp16', revision = 'main'): Promise<{ m: any; device: 'webgpu' | 'wasm' }> => {
-    const opts = { dtype, progress_callback, revision }
-    try {
-      return { m: await AutoModelForCausalLM.from_pretrained(id, { ...opts, device: preferred }), device: preferred }
-    } catch {
-      return { m: await AutoModelForCausalLM.from_pretrained(id, { ...opts, device: 'wasm' }), device: 'wasm' }
-    }
-  }
-
-  let device: 'webgpu' | 'wasm'
+  const plan = loadPlan(modelId, await hasGpuAdapter())
+  const step = plan[Math.min(attempt, plan.length - 1)]
   try {
-    // model_quantized.onnx (dtype 'q8') is the attn repo's sole published variant: from v6
-    // weight-only 8-bit with fp32 activations, the same next token as fp32 in browsers (#19);
-    // see tools/export/src/tsumugi_export/quantize.py.
-    ;({ m: model, device } = await loadOn(ATTN_MODEL_ID, 'q8', ATTN_MODEL_REVISION))
-    loadedModelId = ATTN_MODEL_ID
-    hasAttentions = true
-  } catch {
-    try {
-      ;({ m: model, device } = await loadOn(ATTN_MODEL_ID, 'fp16', ATTN_MODEL_REVISION))
-      loadedModelId = ATTN_MODEL_ID
-      hasAttentions = true
-    } catch {
-      ;({ m: model, device } = await loadOn(modelId, 'q4'))
-      loadedModelId = modelId
-      hasAttentions = false
-    }
+    model = await AutoModelForCausalLM.from_pretrained(step.modelId,
+      { dtype: step.dtype, progress_callback, revision: step.revision, device: step.device })
+  } catch (e) {
+    post({ type: 'attempt-failed', message: e instanceof Error ? e.message : String(e), more: attempt + 1 < plan.length })
+    return
   }
+  loadedModelId = step.modelId
+  hasAttentions = step.attentions
+  const device = step.device
   // Guarded like the other export features: a missing sessions/inputNames means no knockout.
   try { hasScale = model.sessions.model.inputNames.includes('mlp_scale') } catch { hasScale = false }
   post({ type: 'ready', device, attentions: hasAttentions, knockout: hasScale,
@@ -387,7 +378,7 @@ async function sweep(msg: Extract<WorkerRequest, { type: 'sweep-request' }>) {
 self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
   try {
     const msg = e.data
-    if (msg.type === 'prepare') await prepare(msg.modelId)
+    if (msg.type === 'prepare') await prepare(msg.modelId, msg.attempt ?? 0)
     if (msg.type === 'run') await run(msg.runId, msg.prompt, msg.params, msg.format ?? TEXT_FORMAT, msg.knockout, msg.seed)
     if (msg.type === 'abort') aborted = true
     if (msg.type === 'sweep-request') await sweep(msg)

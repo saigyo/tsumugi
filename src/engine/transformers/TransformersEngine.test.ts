@@ -178,3 +178,72 @@ test('fatal during a sweep resolves done with the message', async () => {
   worker.respond({ type: 'fatal', message: 'boom' })
   expect(await h.done).toEqual({ ok: false, error: 'boom' })
 })
+
+// A failed session load leaves transformers.js unable to load another session in the same worker, so every
+// loading attempt gets a worker of its own.
+function makeMany() {
+  const workers: Array<FakeWorker & { terminated?: boolean }> = []
+  const engine = new TransformersEngine(() => {
+    const w = new FakeWorker() as FakeWorker & { terminated?: boolean }
+    w.terminate = () => { w.terminated = true }
+    workers.push(w)
+    return w as unknown as Worker
+  })
+  return { workers, engine }
+}
+
+test('a failed loading attempt is followed by the next one in a fresh worker', async () => {
+  const { workers, engine } = makeMany()
+  const onProgress = vi.fn()
+  const p = engine.prepare(onProgress)
+  expect(workers).toHaveLength(1)
+  expect(workers[0].sent[0]).toMatchObject({ type: 'prepare', attempt: 0 })
+  workers[0].respond({ type: 'progress', info: { file: 'model.onnx', loaded: 1, total: 2 } })
+  workers[0].respond({ type: 'attempt-failed', message: 'no available backend found', more: true })
+
+  expect(workers[0].terminated).toBe(true)
+  expect(workers).toHaveLength(2)
+  expect(workers[1].sent[0]).toMatchObject({ type: 'prepare', attempt: 1 })
+  workers[1].respond({ type: 'progress', info: { file: 'model.onnx', loaded: 2, total: 2 } })
+  workers[1].respond({ type: 'ready', device: 'wasm', attentions: true, knockout: true, revision: 'v7' })
+  await p
+  expect(engine.device).toBe('wasm')
+  expect(engine.attentions).toBe(true)
+  expect(onProgress).toHaveBeenCalledTimes(2)
+})
+
+test('after a fresh worker took over, runs go to it and its answers are heard', async () => {
+  const { workers, engine } = makeMany()
+  const p = engine.prepare()
+  workers[0].respond({ type: 'attempt-failed', message: 'first failed', more: true })
+  workers[1].respond({ type: 'ready', device: 'wasm', attentions: true, knockout: true })
+  await p
+  const events: TraceEvent[] = []
+  const handle = engine.run('Hi', { temperature: 1, topK: 10, maxNewTokens: 2 }, (e) => events.push(e))
+  expect(workers[0].sent.some((m) => m.type === 'run')).toBe(false)
+  const runId = (workers[1].sent.at(-1) as Extract<WorkerRequest, { type: 'run' }>).runId
+  workers[1].respond({ type: 'trace', runId, event: { type: 'run-end', reason: 'max-tokens' } })
+  workers[1].respond({ type: 'done', runId })
+  await handle.done
+  expect(events).toHaveLength(1)
+})
+
+test('when the last attempt fails, prepare rejects with its message', async () => {
+  const { workers, engine } = makeMany()
+  const p = engine.prepare()
+  workers[0].respond({ type: 'attempt-failed', message: 'first failed', more: true })
+  workers[1].respond({ type: 'attempt-failed', message: 'the last one failed too', more: false })
+  await expect(p).rejects.toThrow('the last one failed too')
+  expect(workers).toHaveLength(2)
+})
+
+test('a message from a worker that was replaced is ignored', async () => {
+  const { workers, engine } = makeMany()
+  const p = engine.prepare()
+  workers[0].respond({ type: 'attempt-failed', message: 'first failed', more: true })
+  workers[0].respond({ type: 'ready', device: 'webgpu', attentions: true, knockout: true }) // too late
+  expect(engine.device).toBeNull()
+  workers[1].respond({ type: 'ready', device: 'wasm', attentions: true, knockout: true })
+  await p
+  expect(engine.device).toBe('wasm')
+})
