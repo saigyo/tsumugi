@@ -216,7 +216,8 @@ input[type="number"] { width: 4rem; }
   flex: 1; min-width: 0; border: 0; background: transparent; padding: .3rem 0;
   font-size: var(--t-prompt); border-radius: 0;
 }
-.prompt-line input[data-testid="prompt-input"]:focus-visible { outline: none; box-shadow: 0 2px 0 -1px var(--ai); }
+.prompt-line input[data-testid="prompt-input"]:focus-visible { outline: none; }
+.prompt-line:has(input[data-testid="prompt-input"]:focus-visible) { box-shadow: 0 2px 0 -1px var(--ai); }
 .btn-accent .generate-activity { background: var(--on-shu); }
 .settings-line {
   display: flex; flex-wrap: wrap; align-items: center; gap: .4rem .4rem;
@@ -238,8 +239,8 @@ input[type="number"] { width: 4rem; }
 .chip input.seed-input { width: 10ch; }
 .chip input::placeholder { color: var(--ink-faint); font-weight: 400; }
 .chip input:hover { border-color: var(--line-strong); }
-.chip:has(input:focus) { background: var(--white); }
-.chip input:focus, .chip input:focus-visible { background: var(--white); border-color: transparent; outline: none; box-shadow: 0 0 0 1.5px var(--ai); }
+.chip:has(input:focus) { background: var(--white); box-shadow: 0 0 0 1.5px var(--ai); }
+.chip input:focus, .chip input:focus-visible { background: var(--white); border-color: transparent; outline: none; }
 .toggles { margin-left: auto; display: inline-flex; gap: .1rem; }
 .sub-row { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; padding-top: .55rem;
   border-top: 1px solid var(--line); font-size: var(--t-cap); color: var(--ink-soft); }

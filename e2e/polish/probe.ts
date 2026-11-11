@@ -6,6 +6,7 @@ export type ControlState = {
   text: string // text colour, normalised
   contrast: number | null // text colour over the effective background behind the control
   disabled: boolean
+  noText: boolean // a slider, checkbox or radio button: it has no text, so there is no contrast to read
 }
 
 /** The page-side API, defined by installProbe as window.__polish. */
@@ -15,6 +16,7 @@ export type Polish = {
   snapshot(): void
   movedVertically(exceptIndex: number): string[]
   ring(index: number): { signature: string; visible: boolean } | null
+  activeRing(): { key: string; text: string; signature: string; visible: boolean } | null
   unnamedControls(): { checked: number; unnamed: string[] }
   textIssues(): string[]
   clippedLabels(): string[]
@@ -129,7 +131,7 @@ export async function installProbe(page: Page): Promise<void> {
       const img = el.querySelector('img[alt]:not([alt=""])')
       return img ? img.getAttribute('alt')! : ''
     }
-    const ringOf = (el: Element) => {
+    const ringOfOne = (el: Element) => {
       const s = getComputedStyle(el)
       const outlineVisible = s.outlineStyle !== 'none' && parseFloat(s.outlineWidth) > 0
       const shadowVisible = s.boxShadow !== 'none'
@@ -137,6 +139,13 @@ export async function installProbe(page: Page): Promise<void> {
         signature: `${s.outlineStyle} ${s.outlineWidth} ${s.outlineColor} | ${s.boxShadow}`,
         visible: outlineVisible || shadowVisible,
       }
+    }
+    // a field may show its ring on its container (the prompt line, the settings chip): read the element and its two nearest ancestors
+    const ringOf = (el: Element) => {
+      const tag = el.tagName
+      if (tag !== 'INPUT' && tag !== 'SELECT' && tag !== 'TEXTAREA') return ringOfOne(el)
+      const three = [el, el.parentElement, el.parentElement?.parentElement].filter((e): e is Element => !!e).map(ringOfOne)
+      return { signature: three.map((r) => r.signature).join(' || '), visible: three.some((r) => r.visible) }
     }
 
     let snapshotRects: [Element, number, number][] = []
@@ -162,12 +171,19 @@ export async function installProbe(page: Page): Promise<void> {
         const s = getComputedStyle(el)
         const text = parse(s.color)
         const bg = effectiveBackground(el)
+        const noText = el instanceof HTMLInputElement && ['range', 'checkbox', 'radio'].includes(el.type)
         return {
           background: norm(s.backgroundColor),
           text: hex(text),
-          contrast: text ? Math.round(contrastOf(over({ ...text, a: text.a * Number(s.opacity) }, bg), bg) * 100) / 100 : null,
+          contrast: text && !noText ? Math.round(contrastOf(over({ ...text, a: text.a * Number(s.opacity) }, bg), bg) * 100) / 100 : null,
           disabled: (el as HTMLButtonElement).disabled === true || el.getAttribute('aria-disabled') === 'true',
+          noText,
         }
+      },
+      activeRing() {
+        const el = document.activeElement
+        if (!el || el === document.body || el === document.documentElement) return null
+        return { key: keyOf(el), text: (el.textContent || el.getAttribute('aria-label') || '').trim().slice(0, 24), ...ringOf(el) }
       },
       ring(index: number) {
         const el = document.querySelector(`[data-polish="${index}"]`)

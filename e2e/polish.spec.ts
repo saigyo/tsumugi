@@ -125,7 +125,7 @@ test('hovered controls stay readable', async ({ page }) => {
   const problems = [...survey.unreachable]
   for (const r of survey.records) {
     if (!r.hovered) problems.push(`${label(r)} vanished when hovered`)
-    else if (!r.hovered.disabled && (r.hovered.contrast ?? 0) < 4.5)
+    else if (!r.hovered.disabled && !r.hovered.noText && (r.hovered.contrast ?? 0) < 4.5)
       problems.push(`${label(r)} contrast ${r.hovered.contrast} (${r.hovered.text} on ${r.hovered.background})`)
   }
   expect(problems).toEqual([])
@@ -169,7 +169,8 @@ test('every control has an accessible name', async ({ page }) => {
   expect([...problems]).toEqual([])
 })
 
-test('every control shows a focus ring', async ({ page }) => {
+test('every control shows a focus ring', async ({ page, browserName }) => {
+  test.skip(browserName !== 'chromium', 'programmatic focus only shows the keyboard ring in Chromium')
   const problems: string[] = []
   for (const theme of THEMES) {
     const tracker = reachTracker(page)
@@ -177,6 +178,7 @@ test('every control shows a focus ring', async ({ page }) => {
     await setTheme(page, theme)
     await walk(page, async (state) => {
       await tracker.eachNew(state, async (control, locator) => {
+        if ((await stateOf(page, control.index))?.disabled) return // a disabled control cannot take focus
         await page.mouse.move(2, 2)
         await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur()) // an autofocused field is not "resting"
         await page.waitForTimeout(60)
@@ -195,6 +197,40 @@ test('every control shows a focus ring', async ({ page }) => {
     if (checkedCount < MIN_CONTROLS) problems.push(`${theme}: only ${checkedCount} controls were checked, expected at least ${MIN_CONTROLS}`)
     problems.push(...tracker.finish().map((m) => `${theme}: ${m}`))
   }
+  expect(problems).toEqual([])
+})
+
+/** Thrown by the tab test to leave the walk once it has seen the two states it needs. */
+class StopWalk extends Error {}
+
+test('tabbing through the page shows a ring on every stop', async ({ page, browserName }) => {
+  await setTheme(page, 'light')
+  // plain Tab skips buttons in WebKit unless the system setting is on; Alt+Tab reaches every control there
+  const tab = browserName === 'webkit' ? 'Alt+Tab' : 'Tab'
+  const problems: string[] = []
+  const visited = new Set<string>()
+  try {
+    await walk(page, async (state) => {
+      if (state !== 'first-visit' && state !== 'sim-run-end') return
+      await page.evaluate(() => { (document.activeElement as HTMLElement | null)?.blur(); window.scrollTo(0, 0) })
+      await page.mouse.click(2, 2) // the page's top-left corner is where sequential navigation starts
+      const stops = new Set<string>()
+      for (let i = 0; i < 30; i++) {
+        await page.keyboard.press(tab)
+        await page.waitForTimeout(80)
+        const ring = await page.evaluate(() => window.__polish.activeRing())
+        if (!ring) continue
+        stops.add(ring.key)
+        if (!ring.visible) problems.push(`${state}: stop ${i + 1} ${ring.key} "${ring.text}" shows no ring (${ring.signature})`)
+      }
+      if (stops.size < 10) problems.push(`${state}: only ${stops.size} distinct stops were visited, expected at least 10`)
+      stops.forEach((k) => visited.add(k))
+      if (state === 'sim-run-end') throw new StopWalk()
+    })
+  } catch (error) {
+    if (!(error instanceof StopWalk)) throw error
+  }
+  expect(visited.size).toBeGreaterThan(0)
   expect(problems).toEqual([])
 })
 
