@@ -79,6 +79,9 @@ try {
     if (storedTheme !== null) await page.evaluate((v) => localStorage.setItem('tsumugi.theme', v), storedTheme)
   }
   const $ = (id) => page.getByTestId(id)
+  // before every shot: the pointer off the controls and the 0.15 to 0.3 s colour transitions finished, so no
+  // picture shows a hovered button or a colour caught half way
+  const settle = async () => { await page.mouse.move(2, 2); await page.waitForTimeout(400) }
 
   // The profile persists IndexedDB, so runs from earlier sessions survive reloads. The shelf shows only the newest
   // five runs plus the active one, so runs are told apart by their number (the newest chip is first), not counted.
@@ -169,6 +172,7 @@ try {
     await $('embed-callout').filter({ hasText: 'why exponentiate' }).click()
     await $('gl-in-run').waitFor({ timeout: 5000 })
     await page.waitForTimeout(800)                           // let the section scroll and the highlight settle
+    await settle()
     await page.screenshot({ path: `${DIR}/glossary.png` })
     await $('gl-close').click()
     console.log('glossary.png')
@@ -192,6 +196,7 @@ try {
     const head = await page.locator('.app-header').boundingBox()
     const end = await $('detail-run-end').boundingBox()
     const pad = 16
+    await settle()
     await page.screenshot({ path: `${DIR}/pipeline.png`, clip: {
       x: head.x - pad, y: Math.max(0, head.y - pad), width: head.width + 2 * pad, height: end.y + end.height - head.y + 2 * pad,
     } })
@@ -210,11 +215,13 @@ try {
     await $('btn-live').click()
     await $('stage-card').nth(2).click()                     // Layers
     await $('detail-layers').scrollIntoViewIfNeeded()
+    await settle()
     await page.screenshot({ path: `${DIR}/real-attention.png` })
     console.log('real-attention.png')
     // dark.png: the same view with the system set to dark (the theme is on Auto)
     await page.emulateMedia({ colorScheme: 'dark' })
     await page.waitForTimeout(400)
+    await settle()
     await page.screenshot({ path: `${DIR}/dark.png` })
     await page.emulateMedia({ colorScheme: 'light' })
     await page.waitForTimeout(400)
@@ -222,6 +229,7 @@ try {
     await $('btn-explore-heads').click()
     await $('grid-explorer').scrollIntoViewIfNeeded()
     await page.waitForTimeout(500)                           // let the canvases paint
+    await settle()
     await page.screenshot({ path: `${DIR}/head-explorer.png` })
     console.log('head-explorer.png')
   }
@@ -250,9 +258,11 @@ try {
   await ((await fork.count()) ? fork.first() : $('cmp-tick').nth(2)).click()
   await $('cmp-dist-side').first().waitFor({ timeout: 5000 })
   await page.evaluate(() => window.scrollTo(0, 0))
+  await settle()
   await page.screenshot({ path: `${DIR}/compare.png` })
   console.log('compare.png')
   await $('cmp-attn-side').first().scrollIntoViewIfNeeded()
+  await settle()
   await page.screenshot({ path: `${DIR}/compare-attention.png` })
   console.log('compare-attention.png')
   }
@@ -277,6 +287,7 @@ try {
     const card = await $('detail-embeddings').boundingBox()
     const pad = 12
     const topPad = 4   // tight: the pipeline band's loop arrow sits just above the controls
+    await settle()
     await page.screenshot({ path: `${DIR}/embeddings.png`, clip: {
       x: card.x - pad, y: top.y - topPad, width: card.width + 2 * pad, height: card.y + card.height - top.y + topPad + pad,
     } })
@@ -300,6 +311,7 @@ try {
     await page.waitForTimeout(300)
     const box = await $('detail-logits').boundingBox()
     const pad = 12
+    await settle()
     await page.screenshot({ path: `${DIR}/logits-readout.png`, clip: {
       x: box.x - pad, y: box.y - pad, width: box.width + 2 * pad, height: box.height + 2 * pad,
     } })
@@ -311,6 +323,7 @@ try {
     await $('detail-softmax').scrollIntoViewIfNeeded()
     await page.waitForTimeout(300)
     const sbox = await $('detail-softmax').boundingBox()
+    await settle()
     await page.screenshot({ path: `${DIR}/logits-softmax.png`, clip: {
       x: sbox.x - pad, y: sbox.y - pad, width: sbox.width + 2 * pad, height: sbox.height + 2 * pad,
     } })
@@ -338,6 +351,7 @@ try {
     const unstick = await page.addStyleTag({ content: '.controls, .layers-nav { position: static !important; }' })
     await $('knockout-card').scrollIntoViewIfNeeded()
     await page.waitForTimeout(300)
+    await settle()
     await $('knockout-card').screenshot({ path: `${DIR}/knockouts.png` })
     await unstick.evaluate((el) => el.remove())
     await $('temp-input').fill('0.8')
@@ -360,6 +374,7 @@ try {
     const crop = await page.addStyleTag({ content: '#layers-neurons, #layers-steps { display: none !important; } '
       + '.controls, .layers-nav { position: static !important; }' })
     await page.waitForTimeout(300)
+    await settle()
     await $('mlp-cards').screenshot({ path: `${DIR}/mlp.png` })
     await crop.evaluate((el) => el.remove())
     console.log('mlp.png')
@@ -370,6 +385,7 @@ try {
     // steps 1 and 5 need the layer's weights, fetched once per model version
     await page.waitForFunction(() => !document.querySelector('[data-testid="steps-loading"]'), null, { timeout: 60000 })
     await page.waitForTimeout(500)
+    await settle()
     await $('steps-card').screenshot({ path: `${DIR}/mlp-steps.png` })
     await unstick.evaluate((el) => el.remove())
     console.log('mlp-steps.png')
@@ -394,6 +410,7 @@ try {
     }
     const unstick = await page.addStyleTag({ content: '.controls { position: static !important; }' })
     await page.waitForTimeout(300)
+    await settle()
     await $('neuron-card').screenshot({ path: `${DIR}/neurons.png` })
     await unstick.evaluate((el) => el.remove())
     await $('maxtok-input').fill('20')
