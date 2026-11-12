@@ -10,6 +10,9 @@ async function pausedRun(page: Page) {
   await page.getByTestId('prompt-input').fill('The cat sat on the')
   await page.getByTestId('btn-generate').click()
   await page.getByTestId('btn-pause').click()
+  // the finished run takes its place on the shelf and pushes the scrubber down: wait for that, so that a position
+  // measured now still holds when the mouse gets there
+  await expect(page.getByTestId('run-chip')).toHaveCount(1, { timeout: 15000 })
   return page.getByTestId('scrubber')
 }
 
