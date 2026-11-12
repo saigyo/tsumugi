@@ -5,7 +5,7 @@ import { defineConfig, devices } from '@playwright/test'
 // (and the "Design check" workflow) runs the walk in Chromium.
 // Firefox and WebKit run only the checks that depend on rendering differences: `npm run e2e:browsers`.
 const design = /polish\.spec\.ts/
-const crossEngine = [design, /formulas\.spec\.ts/, /scrubber\.spec\.ts/]
+const crossEngine = [design, /formulas\.spec\.ts/, /scrubber\.spec\.ts/, /logits\.spec\.ts/]
 
 export default defineConfig({
   testDir: 'e2e',

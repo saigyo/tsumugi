@@ -12,7 +12,6 @@ import { count, fixed } from '../ui/format'
 const X_CELL_W = 5, X_CELL_H = 14          // bench strips (full card width available)
 const EQ_CELL_W = 4                        // the x strip in the equation row, next to E and the scores
 const DOT_CELL_W = 2, DOT_CELL_H = 10      // compact product strip per candidate
-const BAR_W = 120
 
 
 export interface LogitsReadoutProps {
@@ -81,8 +80,9 @@ export function LogitsReadout({ candidates, lastHidden, dims, vocabSize, selecte
                   <VectorStrip cells={c.dot} cellW={DOT_CELL_W} cellH={DOT_CELL_H} gap={0} testId="readout-product"
                     ariaLabel={`products for ${readableTokenText(c.id, c.text)}`} />
                 ) : <span className="readout-nostrip" aria-hidden="true" />}
-                <svg data-testid="logit-bar" data-token={c.text} width={BAR_W} height="14">
-                  <rect y="2" width={BAR_W * frac} height="10" rx="2" className={`bar-svg${i === top ? ' bar-svg-chosen' : ''}`} style={{ transition: 'width .4s' }} />
+                {/* as wide as its column, which gives way before a token is cut; no viewBox, so the corners stay round */}
+                <svg data-testid="logit-bar" data-token={c.text} className="logit-bar" width="100%" height="14">
+                  <rect y="2" width={`${(frac * 100).toFixed(2)}%`} height="10" rx="2" className={`bar-svg${i === top ? ' bar-svg-chosen' : ''}`} style={{ transition: 'width .4s' }} />
                 </svg>
                 <span className="bar-value">{fixed(c.logit, 1)}</span>
               </button>

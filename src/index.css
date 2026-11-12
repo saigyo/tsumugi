@@ -612,19 +612,28 @@ button.cmp-token:hover:not(:disabled, .is-picked) { border-color: var(--ai); }
 /* the matrix drawing: plain indigo marks, the picked candidate's at full strength against a lighter rest */
 .readout-row-mark { fill: var(--ai); opacity: .35; }
 .readout-row-mark[data-selected="true"] { opacity: 1; }
-.readout-scores { display: flex; flex-direction: column; row-gap: .3rem; }
-.readout-candidate { display: grid; grid-template-columns: minmax(5rem, max-content) 128px 120px 3rem; align-items: center; gap: .5rem;
+/* one grid for the whole list, as on the Softmax card: every strip, bar and number starts on the same line.
+   When the card is narrow the bars get shorter and the chip column narrower (a chip then ends in "…") */
+.readout-scores { display: grid; grid-template-columns: minmax(6rem, max-content) 128px minmax(3rem, 120px) max-content; gap: .3rem .5rem;
+  align-items: center; align-content: start; justify-content: start; }
+.readout-scores .embed-col-label { grid-column: 1 / -1; }
+.logit-bar { display: block; }
+.readout-candidate { display: grid; grid-template-columns: subgrid; grid-column: 1 / -1; align-items: center;
   font: inherit; color: var(--ink); background: none; border: 1px solid transparent; border-radius: 8px; padding: .1rem .3rem; cursor: pointer; text-align: left; }
 .readout-candidate.is-picked .bar-value { color: var(--ink); }
-.readout-candidate .tok, .softmax-candidate .tok { justify-self: start; max-width: 9rem; overflow: hidden; }
-.readout-candidate .chip-text, .softmax-candidate .chip-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.readout-candidate .bar-value { text-align: right; }
+/* a chip holds at most 9rem of text and is never wider than its column: the text carries the fixed limit (it sets the
+   column's width), the chip the relative one */
+.readout-candidate .tok, .softmax-candidate .tok { justify-self: start; box-sizing: border-box; max-width: 100%; overflow: hidden; }
+.readout-candidate .chip-text, .softmax-candidate .chip-text { max-width: 9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .readout-nostrip { display: inline-block; width: 128px; height: 10px; border-bottom: 1px dotted var(--ai-soft); }
 .readout-bench { border-top: 1px solid var(--line); margin-top: .8rem; padding-top: .6rem; }
 .readout-bench-rows { display: grid; grid-template-columns: 4.5rem minmax(0, 1fr); gap: .35rem .6rem; align-items: center; }
 .readout-bench-label { font-family: var(--mono); font-size: var(--t-label); color: var(--ai-deep); }
 .readout-bench-rows .readout-x-missing, .readout-bench-rows .embed-strip-missing { justify-self: start; }
 .readout-sum { font-variant-numeric: tabular-nums; margin: .4rem 0 0; }
-@media (max-width: 720px) { .readout-equation { grid-template-columns: 1fr; } .readout-op { display: none; } }
+/* below this width the equation no longer fits in one row with the narrowest score list, so its parts stack */
+@media (max-width: 970px) { .readout-equation { grid-template-columns: minmax(0, 1fr); } .readout-op { display: none; } }
 
 /* ── Pill: a round chip you click (head chips, section links, examples, "+N more", knockout chips) ── */
 .pill { font: inherit; font-size: var(--t-cap); border: 1px solid var(--line-strong); background: var(--card); color: var(--ink);
