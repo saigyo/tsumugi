@@ -214,12 +214,12 @@ input[type="number"] { width: 4rem; }
   padding: .85rem .9rem .65rem 1.1rem; box-shadow: var(--shadow-box);
 }
 .prompt-line { display: flex; gap: .7rem; align-items: center; }
+/* the field is as tall as the row, so its focus line sits at the row's lower edge and ends before the buttons */
 .prompt-line input[data-testid="prompt-input"] {
-  flex: 1; min-width: 0; border: 0; background: transparent; padding: .3rem 0;
+  flex: 1; min-width: 0; align-self: stretch; border: 0; background: transparent; padding: .3rem 0;
   font-size: var(--t-prompt); border-radius: 0;
 }
-.prompt-line input[data-testid="prompt-input"]:focus-visible { outline: none; }
-.prompt-line:has(input[data-testid="prompt-input"]:focus-visible) { box-shadow: 0 2px 0 -1px var(--ai); }
+.prompt-line input[data-testid="prompt-input"]:focus-visible { outline: none; box-shadow: 0 2px 0 -1px var(--ai); }
 .btn-accent .generate-activity { background: var(--on-shu); }
 .settings-line {
   display: flex; flex-wrap: wrap; align-items: center; gap: .4rem .4rem;
@@ -363,8 +363,7 @@ input[type="number"] { width: 4rem; }
 .chosen-marker { color: var(--shu-deep); font-weight: 600; }
 
 .controls { display: flex; gap: .5rem; align-items: center; padding: .6rem 0; flex-wrap: wrap;
-  position: sticky; top: 0; z-index: 3; background: var(--washi);
-  border-bottom: 1px solid var(--line); }
+  position: sticky; top: 0; z-index: 3; background: var(--washi); }
 /* the slider: a thin rounded track filled in indigo up to the thumb (--pos is set by Controls). While a run is
    still being written, Controls also sets --written: the track keeps its tone up to there, and the part the
    model has not written yet is fainter. */
