@@ -1,0 +1,29 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      npm-minor-and-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
+
+  - package-ecosystem: uv
+    directory: /tools/export
+    schedule:
+      interval: monthly
+    groups:
+      export-minor-and-patch:
+        update-types: [minor, patch]
+    ignore:
+      # pyproject.toml caps transformers below 4.58 for the ONNX export.
+      - dependency-name: transformers
+        versions: [">=4.58"]
