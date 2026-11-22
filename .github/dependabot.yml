@@ -32,3 +32,6 @@ updates:
         versions: [">=1.0"]
       # optimum follows optimum-onnx, which pins its own optimum range.
       - dependency-name: optimum
+      # onnx 1.23 saves models as IR version 14, which onnxruntime 1.29 cannot load yet.
+      - dependency-name: onnx
+        versions: [">=1.23"]
