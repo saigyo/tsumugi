@@ -27,3 +27,8 @@ updates:
       # pyproject.toml caps transformers below 4.58 for the ONNX export.
       - dependency-name: transformers
         versions: [">=4.58"]
+      # Every transformers below 4.58 needs huggingface_hub below 1.0.
+      - dependency-name: huggingface_hub
+        versions: [">=1.0"]
+      # optimum follows optimum-onnx, which pins its own optimum range.
+      - dependency-name: optimum
